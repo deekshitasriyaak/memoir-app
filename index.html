@@ -2061,7 +2061,6 @@ async function handleConnect() {
 
 async function initRepoStructure(isNew) {
   if (isNew) {
-    // Create the repo first
     await ghFetch('/user/repos', {
       method: 'POST',
       body: JSON.stringify({
@@ -2071,10 +2070,10 @@ async function initRepoStructure(isNew) {
         auto_init: true
       })
     });
-    await new Promise(r => setTimeout(r, 1500)); // wait for GitHub to init
+    await new Promise(r => setTimeout(r, 1500));
   }
 
-  // Ensure key files exist
+  // Check each file exists via raw API — never parse, never overwrite existing data
   const files = [
     ['posts-index.json', []],
     ['music/music-index.json', []],
@@ -2087,9 +2086,14 @@ async function initRepoStructure(isNew) {
   ];
 
   for (const [path, defaultContent] of files) {
-    const existing = await ghGetFile(path).catch(() => null);
-    if (!existing) {
-      await ghPutFile(path, defaultContent, null, `memoir: initialize ${path}`);
+    try {
+      const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
+      if (res.status === 404) {
+        await ghPutFile(path, defaultContent, null, `memoir: initialize ${path}`);
+      }
+      // File exists — skip it, never overwrite
+    } catch (e) {
+      // Network error — skip silently
     }
   }
 }
