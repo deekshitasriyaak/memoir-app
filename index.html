@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Memoir">
@@ -996,6 +997,29 @@ html, body {
   color: var(--text);
 }
 
+.media-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  background: rgba(14,12,10,0.82);
+  border: 1px solid rgba(192,112,96,0.5);
+  border-radius: 50%;
+  color: var(--rose);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  line-height: 1;
+  padding: 0;
+  font-family: var(--mono);
+}
+
+.media-remove-btn:active { background: rgba(192,112,96,0.3); }
+
 .media-add-btn {
   position: absolute;
   bottom: 10px;
@@ -1921,6 +1945,11 @@ function navigateTo(screenId, addHistory = true) {
   setTimeout(() => next.classList.remove('slide-in'), 300);
 
   if (addHistory) state.navHistory.push(screenId);
+
+  // Screen-specific on-show hooks
+  if (screenId === 'screen-logs') loadLogs();
+  if (screenId === 'screen-settings') loadSettings();
+  if (screenId === 'screen-music') loadMusicLibrary();
 }
 
 function goBack() {
@@ -2310,7 +2339,14 @@ async function openPost(postId) {
 
     // Music
     if (meta.song?.filename) {
-      const songUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${meta.song.filename}`;
+      // Use GitHub API to get the download URL (avoids raw.githubusercontent.com CORS issues)
+      let songUrl;
+      try {
+        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${meta.song.filename}`);
+        songUrl = fileInfo?.download_url || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${meta.song.filename}`;
+      } catch {
+        songUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${meta.song.filename}`;
+      }
       setupAudio(songUrl, meta.song.title, meta.song.artist, meta.song.title);
     }
 
@@ -2478,8 +2514,17 @@ function renderMediaGrid() {
   if (!files.length) {
     grid.style.display = 'none';
     addBtn.style.display = 'none';
+    // Show the placeholder again
+    document.querySelector('#media-picker .media-picker-icon').style.display = '';
+    document.querySelector('#media-picker .media-picker-text').style.display = '';
+    document.querySelector('#media-picker .media-picker-sub').style.display = '';
     return;
   }
+
+  // Hide placeholder text when images are shown
+  document.querySelector('#media-picker .media-picker-icon').style.display = 'none';
+  document.querySelector('#media-picker .media-picker-text').style.display = 'none';
+  document.querySelector('#media-picker .media-picker-sub').style.display = 'none';
 
   grid.style.display = 'grid';
   addBtn.style.display = 'flex';
@@ -2491,16 +2536,26 @@ function renderMediaGrid() {
     const url = URL.createObjectURL(f);
     const isVideo = f.type.startsWith('video/');
     return `
-      <div class="media-grid-item" ${i === 0 ? '' : ''}>
+      <div class="media-grid-item" style="position:relative">
         ${isVideo
           ? `<video src="${url}" muted></video>`
           : `<img src="${url}" alt="">`
         }
+        <button class="media-remove-btn" onclick="event.stopPropagation();removeMedia(${i})" title="Remove">✕</button>
         ${i === 2 && more > 0
           ? `<div class="media-grid-more">+${more + 1}</div>`
           : ''}
       </div>`;
   }).join('');
+}
+
+function removeMedia(index) {
+  state.pendingMedia.splice(index, 1);
+  renderMediaGrid();
+  document.getElementById('btn-post').disabled = state.pendingMedia.length === 0;
+  if (!state.pendingMedia.length) {
+    document.getElementById('media-picker').style.opacity = '';
+  }
 }
 
 async function loadMusicForCreate() {
@@ -2599,10 +2654,22 @@ async function submitPost() {
     let songMeta = null;
     if (selectedSong) {
       updateProgress('Adding music…', selectedSong.filename, (done / total) * 100);
-      // Fetch raw song from GitHub and re-upload to post folder
-      const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${selectedSong.filename}`;
-      const songRes = await fetch(rawUrl, { headers: { 'Authorization': `Bearer ${state.auth.token}` } });
-      const songBuffer = await songRes.arrayBuffer();
+      // Get download_url from GitHub API (avoids CORS on raw.githubusercontent.com)
+      let songBuffer;
+      try {
+        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+        const downloadUrl = fileInfo?.download_url;
+        if (!downloadUrl) throw new Error('No download URL');
+        const songRes = await fetch(downloadUrl);
+        if (!songRes.ok) throw new Error(`HTTP ${songRes.status}`);
+        songBuffer = await songRes.arrayBuffer();
+      } catch (e) {
+        // Fallback: re-fetch via authenticated API (returns base64 content)
+        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+        const b64 = fileInfo?.content?.replace(/\n/g, '');
+        const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        songBuffer = bytes.buffer;
+      }
       await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: add song to ${postId}`);
       songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3' };
       done++;
@@ -2649,6 +2716,12 @@ async function submitPost() {
     document.getElementById('caption-input').value = '';
     document.getElementById('media-grid').style.display = 'none';
     document.getElementById('media-add-btn').style.display = 'none';
+    document.querySelector('#media-picker .media-picker-icon').style.display = '';
+    document.querySelector('#media-picker .media-picker-text').style.display = '';
+    document.querySelector('#media-picker .media-picker-sub').style.display = '';
+    // Deselect song
+    document.querySelectorAll('.music-option').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.mo-check').forEach(el => el.textContent = '');
     progress.classList.remove('visible');
     btn.disabled = false;
 
@@ -2742,7 +2815,14 @@ function previewSong(id) {
     document.getElementById(`play-${previewingId}`).textContent = '▶';
   }
 
-  const url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
+  // Use GitHub API download_url to avoid CORS issues with raw.githubusercontent.com
+  let url;
+  try {
+    const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
+    url = fileInfo?.download_url || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
+  } catch {
+    url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
+  }
   previewAudio = new Audio(url);
   previewAudio.play().catch(() => showToast('Playback blocked', 'Tap play again', 'warning'));
   previewAudio.addEventListener('play', () => {
@@ -2980,7 +3060,7 @@ function discColor(str) {
 async function boot() {
   // Register service worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(console.error);
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
   }
 
   // Check for saved auth
@@ -2993,18 +3073,19 @@ async function boot() {
     setupAndroidInstallPrompt();
     await loadFeed();
     await loadMusicForCreate();
+  } else {
+    state.navHistory = ['screen-setup'];
   }
-  // else stays on setup screen
 
   // Wire up create screen music load on navigate
-  document.getElementById('screen-create').addEventListener('transitionend', () => {
+  document.getElementById('screen-create')?.addEventListener('transitionend', () => {
     if (document.getElementById('screen-create').classList.contains('active')) {
       loadMusicForCreate();
     }
   });
 
-  // Wire up logs screen
-  document.getElementById('screen-logs').addEventListener('animationend', loadLogs);
+  // Wire up logs screen — load whenever it becomes active
+  document.getElementById('screen-logs')?.addEventListener('animationend', loadLogs);
 
   // Handle Android back button
   window.addEventListener('popstate', goBack);
