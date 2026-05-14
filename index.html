@@ -2182,17 +2182,22 @@ print(f'Archived {len(logs)} entries to {archive_path}')
   ];
 
   for (const [path, content] of workflows) {
-    const existing = await ghGetFile(path).catch(() => null);
-    if (!existing) {
-      // Upload as text file
-      const encoded = btoa(unescape(encodeURIComponent(content)));
-      await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          message: `memoir: add ${path}`,
-          content: encoded
-        })
-      });
+    try {
+      const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
+      if (res.status === 404) {
+        // File doesn't exist — create it
+        const encoded = btoa(unescape(encodeURIComponent(content)));
+        await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            message: `memoir: add ${path}`,
+            content: encoded
+          })
+        });
+      }
+      // File exists — skip, never overwrite
+    } catch (e) {
+      // Network error — skip silently
     }
   }
 }
