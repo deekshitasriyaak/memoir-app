@@ -2795,7 +2795,7 @@ async function loadMusicLibrary() {
 let previewAudio = null;
 let previewingId = null;
 
-function previewSong(id) {
+async function previewSong(id) {
   const song = state.musicIndex.find(s => s.id === id);
   if (!song) return;
 
