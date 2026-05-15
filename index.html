@@ -12,6 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=Syne:wght@300;400;500&family=Syne+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
 /* ══════════════════════════════════════════════
@@ -903,6 +904,15 @@ html, body {
   line-height: 1.7;
 }
 
+.post-view-location {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .post-view-actions {
   display: flex;
   gap: 10px;
@@ -913,7 +923,7 @@ html, body {
 
 
 /* ══════════════════════════════════════════════
-   SCREEN: CREATE POST
+   SCREEN: CREATE / EDIT POST
 ══════════════════════════════════════════════ */
 .create-header {
   padding: calc(var(--safe-top) + 12px) 16px 12px;
@@ -1159,6 +1169,101 @@ html, body {
   transition: width 0.3s ease;
 }
 
+/* Edit media strip — existing photos shown as horizontal scroll */
+.edit-media-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.edit-media-strip::-webkit-scrollbar { display: none; }
+
+.edit-media-thumb {
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: grab;
+  touch-action: none;
+}
+
+.edit-media-thumb.dragging {
+  opacity: 0.5;
+  border-color: var(--gold-dim);
+  cursor: grabbing;
+}
+
+.edit-media-thumb.drag-over {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--gold-faint);
+}
+
+.edit-media-thumb.to-delete {
+  opacity: 0.3;
+}
+
+.edit-media-thumb img,
+.edit-media-thumb video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+
+.edit-media-thumb .media-remove-btn {
+  top: 4px; right: 4px; width: 18px; height: 18px; font-size: 8px;
+}
+
+.edit-media-thumb .drag-handle {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  background: rgba(14,12,10,0.7);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.edit-add-more {
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--gold-dim);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--gold-dim);
+  font-size: 22px;
+}
+
+.edit-add-more span { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); }
+
+.edit-date-row {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.edit-date-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+.edit-date-value { font-size: 12px; color: var(--text-faint); }
+
 
 /* ══════════════════════════════════════════════
    SCREEN: MUSIC LIBRARY
@@ -1261,7 +1366,7 @@ html, body {
 
 
 /* ══════════════════════════════════════════════
-   SCREEN: SETTINGS & LOGS
+   SCREEN: SETTINGS
 ══════════════════════════════════════════════ */
 .settings-section { padding: 20px 16px 0; }
 
@@ -1300,22 +1405,154 @@ html, body {
 
 .si-danger .si-label { color: var(--rose); }
 
-.log-entry {
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+
+/* ══════════════════════════════════════════════
+   SCREEN: REORDER POSTS
+══════════════════════════════════════════════ */
+.reorder-list {
+  padding: 16px;
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.log-entry:last-child { border-bottom: none; }
+.reorder-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.15s;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
 
-.log-icon { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
-.log-body { flex: 1; }
+.reorder-card.dragging {
+  opacity: 0.5;
+  border-color: var(--gold-dim);
+  transform: scale(1.02);
+}
 
-.log-op { font-size: 11px; color: var(--text); }
-.log-detail { font-size: 9px; color: var(--text-muted); margin-top: 2px; line-height: 1.5; }
-.log-time { font-size: 8px; color: var(--text-faint); flex-shrink: 0; }
+.reorder-card.drag-over {
+  border-color: var(--gold);
+  background: var(--gold-faint);
+}
+
+.reorder-handle {
+  color: var(--text-faint);
+  font-size: 16px;
+  cursor: grab;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.reorder-handle:active { cursor: grabbing; }
+
+.reorder-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+
+.reorder-thumb img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+
+.reorder-info { flex: 1; overflow: hidden; }
+.reorder-date { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; }
+.reorder-caption {
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reorder-footer {
+  padding: 16px;
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.reorder-footer .btn { flex: 1; padding: 12px; font-size: 9px; }
+
+
+/* ══════════════════════════════════════════════
+   QR OVERLAY
+══════════════════════════════════════════════ */
+#qr-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 600;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+#qr-overlay.open { display: flex; }
+
+.qr-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.qr-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-style: italic;
+  color: var(--gold);
+  text-align: center;
+}
+
+.qr-subtitle { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.6; }
+
+#qr-canvas-wrap {
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-warning {
+  background: rgba(192,112,96,0.08);
+  border: 1px solid rgba(192,112,96,0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 10px;
+  color: var(--rose);
+  text-align: center;
+  line-height: 1.6;
+  width: 100%;
+}
+
+.qr-close {
+  width: 100%;
+}
 </style>
 </head>
 <body>
@@ -1477,6 +1714,9 @@ html, body {
 
       <div class="post-view-date" id="post-view-date"></div>
       <div class="post-view-caption" id="post-view-caption"></div>
+      <div class="post-view-location" id="post-view-location" style="display:none">
+        <span>📍</span><span id="post-view-location-text"></span>
+      </div>
 
       <div class="post-view-actions">
         <button class="btn btn-ghost" onclick="openEditPost()">Edit</button>
@@ -1510,7 +1750,6 @@ html, body {
           <div class="media-grid" id="media-grid" style="display:none"></div>
           <div class="media-add-btn" id="media-add-btn" style="display:none">+</div>
         </div>
-        <!-- FIX 3: Two separate inputs — main picker (multiple) and add-more (multiple) -->
         <input type="file" id="media-file-input" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaFiles(this.files)">
         <input type="file" id="media-file-input-add" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaFiles(this.files)">
       </div>
@@ -1519,6 +1758,12 @@ html, body {
       <div>
         <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
         <textarea class="caption-textarea" id="caption-input" placeholder="what's the memory…" rows="3"></textarea>
+      </div>
+
+      <!-- Location -->
+      <div>
+        <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
+        <input class="field-input" id="location-input" type="text" placeholder="where were you…" autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
       <!-- Music -->
@@ -1543,6 +1788,75 @@ html, body {
         <div class="upload-row">
           <div class="upload-file" id="upload-file"></div>
           <div class="upload-count" id="upload-count"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     SCREEN: EDIT POST
+══════════════════════════════════════════════ -->
+<div id="screen-edit" class="screen">
+  <div class="create-header">
+    <button class="header-btn" onclick="goBack()">✕</button>
+    <div class="create-title">Edit Memory</div>
+    <button class="btn btn-primary" id="btn-save-edit" onclick="submitEdit()"
+            style="width:auto;padding:8px 16px;font-size:9px">Save</button>
+  </div>
+
+  <div class="scroll-body">
+    <div class="create-body">
+
+      <!-- Non-editable date -->
+      <div>
+        <div class="section-label">Date</div>
+        <div class="edit-date-row">
+          <span class="edit-date-label">Created</span>
+          <span class="edit-date-value" id="edit-date-value">—</span>
+        </div>
+      </div>
+
+      <!-- Media (existing + add more) -->
+      <div>
+        <div class="section-label">Photos & Video <span style="color:var(--text-faint);font-size:8px">drag to reorder · tap ✕ to remove</span></div>
+        <div class="edit-media-strip" id="edit-media-strip"></div>
+        <input type="file" id="edit-media-input" accept="image/*,video/*" multiple style="display:none" onchange="handleEditAddMedia(this.files)">
+      </div>
+
+      <!-- Caption -->
+      <div>
+        <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
+        <textarea class="caption-textarea" id="edit-caption-input" placeholder="what's the memory…" rows="3"></textarea>
+      </div>
+
+      <!-- Location -->
+      <div>
+        <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
+        <input class="field-input" id="edit-location-input" type="text" placeholder="where were you…" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+
+      <!-- Music -->
+      <div>
+        <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
+        <div class="music-selector" id="edit-music-selector">
+          <div style="font-size:11px;color:var(--text-faint);padding:10px 0">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Upload progress -->
+      <div class="upload-progress" id="edit-upload-progress">
+        <div class="upload-row">
+          <div class="upload-label" id="edit-upload-label">Saving…</div>
+          <div class="upload-pct" id="edit-upload-pct">0%</div>
+        </div>
+        <div class="upload-bar">
+          <div class="upload-bar-fill" id="edit-upload-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="upload-row">
+          <div class="upload-file" id="edit-upload-file"></div>
+          <div class="upload-count" id="edit-upload-count"></div>
         </div>
       </div>
     </div>
@@ -1618,16 +1932,6 @@ html, body {
           <span class="si-label">Reorder Posts</span>
           <span class="si-arrow">›</span>
         </div>
-      </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">Debugging</div>
-      <div class="settings-row">
-        <div class="settings-item" onclick="navigateTo('screen-logs')">
-          <span class="si-label">View Logs</span>
-          <span class="si-arrow">›</span>
-        </div>
         <div class="settings-item" onclick="syncMusicLibrary()">
           <span class="si-label">Sync Music Library</span>
           <span class="si-value">from GitHub repo</span>
@@ -1640,7 +1944,7 @@ html, body {
       <div class="settings-row">
         <div class="settings-item" onclick="showQRExport()">
           <span class="si-label">Export Login (QR)</span>
-          <span class="si-value">for another device</span>
+          <span class="si-value">transfer to another device</span>
         </div>
       </div>
     </div>
@@ -1658,23 +1962,22 @@ html, body {
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: LOGS
+     SCREEN: REORDER POSTS
 ══════════════════════════════════════════════ -->
-<div id="screen-logs" class="screen">
+<div id="screen-reorder" class="screen">
   <div class="app-header">
-    <button class="header-btn" onclick="goBack()">←</button>
-    <div class="logo" style="font-size:22px">Logs</div>
-    <button class="header-btn" onclick="clearLogs()" style="font-size:11px;width:auto;padding:0 10px">Clear</button>
+    <button class="header-btn" onclick="cancelReorder()">✕</button>
+    <div class="logo" style="font-size:22px">Reorder</div>
+    <div style="width:36px"></div>
   </div>
 
   <div class="scroll-body">
-    <div id="log-list" style="background:var(--surface);margin:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
-      <div class="empty-state" style="padding:40px">
-        <div class="empty-icon">✓</div>
-        <div class="empty-title">All clear</div>
-        <div class="empty-sub">No errors logged</div>
-      </div>
-    </div>
+    <div class="reorder-list" id="reorder-list"></div>
+  </div>
+
+  <div class="reorder-footer">
+    <button class="btn btn-ghost" onclick="cancelReorder()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveReorder()">Save Order</button>
   </div>
 </div>
 
@@ -1735,6 +2038,18 @@ html, body {
 <!-- Audio element -->
 <audio id="audio-player" loop></audio>
 
+<!-- QR Export Overlay -->
+<div id="qr-overlay" onclick="closeQRExport()">
+  <div class="qr-box" onclick="event.stopPropagation()">
+    <div class="qr-title">Transfer Login</div>
+    <div class="qr-subtitle">Scan this QR code on another device to sign in automatically. Keep it private.</div>
+    <div id="qr-canvas-wrap"></div>
+    <div class="qr-warning">⚠ This QR contains your access token. Only show it to yourself.</div>
+    <button class="btn btn-ghost qr-close" onclick="closeQRExport()">Close</button>
+  </div>
+</div>
+
+
 <!-- ══════════════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════════════ -->
@@ -1765,8 +2080,11 @@ let state = {
   audioUnlocked: false,
   navHistory: ['screen-feed'],
   activeTab: 'feed',
-  selectedSongId: null,         // FIX 4: declare in state
-  musicLoaded: false,           // FIX 4: track if music already loaded for create screen
+  selectedSongId: null,
+  musicLoaded: false,
+  editPost: null,        // edit session state
+  reorderOriginal: [],   // backup for cancel
+  reorderCurrent: [],    // working copy
 };
 
 // ── CRYPTO ───────────────────────────────────────────────────────
@@ -1944,23 +2262,17 @@ function navigateTo(screenId, addHistory = true) {
 
   if (addHistory) state.navHistory.push(screenId);
 
-  if (screenId === 'screen-logs') loadLogs();
   if (screenId === 'screen-settings') loadSettings();
   if (screenId === 'screen-music') loadMusicLibrary();
-
-  // FIX 4: Load music for create screen only when navigating TO it
-  if (screenId === 'screen-create') {
-    loadMusicForCreate();
-  }
+  if (screenId === 'screen-create') loadMusicForCreate();
+  if (screenId === 'screen-reorder') loadReorderScreen();
 }
 
-// FIX 2: goBack now also stops any preview audio when leaving music screen
 function goBack() {
   if (state.navHistory.length <= 1) return;
 
   const leavingScreen = state.navHistory[state.navHistory.length - 1];
 
-  // Stop post audio when leaving post view
   if (leavingScreen === 'screen-post') {
     const audio = document.getElementById('audio-player');
     audio.pause();
@@ -1968,7 +2280,6 @@ function goBack() {
     state.audio = null;
   }
 
-  // FIX 2: Stop preview audio when leaving music screen
   if (leavingScreen === 'screen-music') {
     if (previewAudio) {
       previewAudio.pause();
@@ -1990,15 +2301,22 @@ function goBack() {
   document.getElementById(prev).classList.add('active');
 }
 
-// FIX: pass event explicitly to avoid relying on global `event`
 function switchTab(tab, evt) {
   state.activeTab = tab;
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   if (evt?.currentTarget) evt.currentTarget.classList.add('active');
 
   const map = { feed: 'screen-feed', music: 'screen-music', settings: 'screen-settings' };
-  state.navHistory = [map[tab]];
-  navigateTo(map[tab], false);
+  const target = map[tab];
+
+  // Always reset history so back button works from non-feed tabs
+  if (tab === 'feed') {
+    state.navHistory = ['screen-feed'];
+  } else {
+    state.navHistory = ['screen-feed', target];
+  }
+
+  navigateTo(target, false);
 }
 
 // ── SHEETS ────────────────────────────────────────────────────────
@@ -2210,7 +2528,6 @@ async function launchApp() {
   state.navHistory = ['screen-feed'];
   showInstallNudge();
   await loadFeed();
-  setupAndroidInstallPrompt();
 }
 
 // ── FEED ─────────────────────────────────────────────────────────
@@ -2261,7 +2578,6 @@ function renderFeed(posts) {
 
 function renderPostCard(post) {
   const date = formatDate(post.date);
-  // FIX 5: Use GitHub API download URL path instead of raw.githubusercontent.com
   const thumbUrl = post.thumbnail
     ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}?token=${Date.now()}`
     : null;
@@ -2295,7 +2611,7 @@ function renderPostCard(post) {
 function handleSearch(query) {
   const q = query.toLowerCase().trim();
   state.filteredPosts = q
-    ? state.posts.filter(p => (p.captionPreview || '').toLowerCase().includes(q))
+    ? state.posts.filter(p => (p.captionPreview || '').toLowerCase().includes(q) || (p.location || '').toLowerCase().includes(q))
     : [...state.posts];
   renderFeed(state.filteredPosts);
 }
@@ -2305,7 +2621,6 @@ async function openPost(postId) {
   navigateTo('screen-post');
   state.currentSlide = 0;
 
-  // Stop any existing audio cleanly
   const audioEl = document.getElementById('audio-player');
   audioEl.pause();
   audioEl.src = '';
@@ -2316,6 +2631,7 @@ async function openPost(postId) {
   document.getElementById('np-unlock-hint').style.display = 'none';
   document.getElementById('post-view-caption').textContent = '';
   document.getElementById('post-view-date').textContent = '';
+  document.getElementById('post-view-location').style.display = 'none';
 
   try {
     const file = await ghGetFile(`posts/${postId}/meta.json`);
@@ -2326,16 +2642,13 @@ async function openPost(postId) {
     const slides = document.getElementById('post-slides');
     const dots = document.getElementById('swipe-dots');
 
-    // FIX 5: Fetch all media URLs via GitHub API to get proper download_urls
     const sortedMedia = [...meta.media].sort((a,b) => a.order - b.order);
 
     for (let i = 0; i < sortedMedia.length; i++) {
       const m = sortedMedia[i];
-      // Use raw.githubusercontent.com with cache-busting for images (CORS is fine for images)
       const url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${m.filename}`;
 
       if (m.type === 'video') {
-        // Videos need the API download_url to avoid CORS
         let videoUrl = url;
         try {
           const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
@@ -2352,7 +2665,6 @@ async function openPost(postId) {
         img.className = 'post-view-slide';
         img.src = url;
         img.alt = '';
-        // FIX 5: fallback — if raw URL fails, try API download_url
         img.onerror = async function() {
           if (this.dataset.tried) return;
           this.dataset.tried = '1';
@@ -2374,15 +2686,22 @@ async function openPost(postId) {
     document.getElementById('post-view-date').textContent = formatDate(meta.createdAt?.split('T')[0]);
     document.getElementById('post-view-caption').textContent = meta.caption || '';
 
+    if (meta.location) {
+      document.getElementById('post-view-location').style.display = 'flex';
+      document.getElementById('post-view-location-text').textContent = meta.location;
+    }
+
     if (meta.song?.filename) {
-      let songUrl;
-      try {
-        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${meta.song.filename}`);
-        songUrl = fileInfo?.download_url || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${meta.song.filename}`;
-      } catch {
-        songUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${meta.song.filename}`;
-      }
-      setupAudio(songUrl, meta.song.title, meta.song.artist, meta.song.title);
+      const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${meta.song.filename}`;
+      setupAudio(rawUrl, meta.song.title, meta.song.artist, meta.song.title);
+      // Try to get better URL in background
+      ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${meta.song.filename}`)
+        .then(info => {
+          if (info?.download_url) {
+            const audio = document.getElementById('audio-player');
+            if (!audio.src || audio.paused) audio.src = info.download_url;
+          }
+        }).catch(() => {});
     }
 
     logEvent('openPost', 'success', postId);
@@ -2429,13 +2748,9 @@ function setupAudio(url, title, artist, songId) {
   np.style.display = 'flex';
 
   const audio = document.getElementById('audio-player');
-
-  // Clean up old listeners by replacing element
-  // Actually just remove and re-add listeners safely via one-time clone approach
   audio.src = url;
   state.audio = audio;
 
-  // Remove old listeners
   audio.ontimeupdate = updateProgress;
   audio.onloadedmetadata = () => {
     document.getElementById('np-duration').textContent = fmtTime(audio.duration);
@@ -2471,9 +2786,6 @@ function setupAudio(url, title, artist, songId) {
   }
 }
 
-// FIX 1: toggleAudio was fine — but ensure the audio element's onpause/onplay
-// handlers are set via onX assignment (not addEventListener) so they don't stack.
-// This was already fixed above by using audio.onplay / audio.onpause.
 function toggleAudio() {
   const audio = document.getElementById('audio-player');
   if (!audio.src) return;
@@ -2533,17 +2845,14 @@ async function confirmDelete() {
 }
 
 // ── CREATE POST ───────────────────────────────────────────────────
-
-// FIX 3: openMediaPicker and media-add-btn use separate input elements
-// so that re-selecting the same file always triggers onchange
 function openMediaPicker() {
   const input = document.getElementById('media-file-input');
-  input.value = ''; // reset so same file can be re-selected
+  input.value = '';
   input.click();
 }
 
 function openMediaPickerAdd(e) {
-  e.stopPropagation(); // prevent bubble to media-picker's onclick
+  e.stopPropagation();
   const input = document.getElementById('media-file-input-add');
   input.value = '';
   input.click();
@@ -2588,8 +2897,6 @@ function renderMediaGrid() {
 
   grid.style.display = 'grid';
   addBtn.style.display = 'flex';
-
-  // FIX 3: wire add btn to separate input, with stopPropagation
   addBtn.onclick = openMediaPickerAdd;
 
   const show = files.slice(0, 3);
@@ -2613,15 +2920,11 @@ function renderMediaGrid() {
 }
 
 function removeMedia(index) {
-  // FIX 3: revoke the object URL to free memory
-  const file = state.pendingMedia[index];
   state.pendingMedia.splice(index, 1);
   renderMediaGrid();
   document.getElementById('btn-post').disabled = state.pendingMedia.length === 0;
 }
 
-// FIX 4: loadMusicForCreate — only re-render selector if music changed,
-// and always restore the selected state from state.selectedSongId
 async function loadMusicForCreate() {
   const selector = document.getElementById('music-selector');
   if (!state.auth) return;
@@ -2629,19 +2932,14 @@ async function loadMusicForCreate() {
   try {
     const file = await ghGetFile('music/music-index.json');
     const newIndex = file?.content || [];
-
-    // Only re-render if the library content changed (or first load)
     const changed = JSON.stringify(newIndex) !== JSON.stringify(state.musicIndex);
-    if (changed) {
-      state.musicIndex = newIndex;
-    }
+    if (changed) state.musicIndex = newIndex;
 
     if (!state.musicIndex.length) {
       selector.innerHTML = `<div style="font-size:11px;color:var(--text-faint);padding:10px 0">No songs yet — add some in the Music tab</div>`;
       return;
     }
 
-    // Always re-render so IDs are fresh, but preserve selection
     selector.innerHTML = state.musicIndex.map(song => {
       const [c1, c2] = discColor(song.id || song.title);
       const isSelected = state.selectedSongId === song.id;
@@ -2660,14 +2958,8 @@ async function loadMusicForCreate() {
   }
 }
 
-// FIX 4: selectSong is now clean — state.selectedSongId lives in state
 function selectSong(id) {
-  if (state.selectedSongId === id) {
-    state.selectedSongId = null;
-  } else {
-    state.selectedSongId = id;
-  }
-  // Update UI without re-fetching
+  state.selectedSongId = state.selectedSongId === id ? null : id;
   document.querySelectorAll('.music-option').forEach(el => el.classList.remove('selected'));
   document.querySelectorAll('[id^="mc-"]').forEach(el => el.textContent = '');
   if (state.selectedSongId) {
@@ -2688,6 +2980,7 @@ async function submitPost() {
 
   const postId = generatePostId();
   const caption = document.getElementById('caption-input').value.trim();
+  const location = document.getElementById('location-input').value.trim();
   const selectedSong = state.selectedSongId
     ? state.musicIndex.find(s => s.id === state.selectedSongId)
     : null;
@@ -2697,7 +2990,7 @@ async function submitPost() {
     const total = state.pendingMedia.length + (selectedSong ? 1 : 0) + 1;
     let done = 0;
 
-    function updateProgress(label, file, pct) {
+    function updateProg(label, file, pct) {
       document.getElementById('upload-label').textContent = label;
       document.getElementById('upload-pct').textContent = Math.round(pct) + '%';
       document.getElementById('upload-bar-fill').style.width = pct + '%';
@@ -2713,16 +3006,16 @@ async function submitPost() {
       let type = isVideo ? 'video' : 'image';
       let filename = `media_${i + 1}.${ext}`;
 
-      updateProgress(`Uploading ${isVideo ? 'video' : 'photo'} ${i+1}…`, file.name, (done / total) * 100);
+      updateProg(`Uploading ${isVideo ? 'video' : 'photo'} ${i+1}…`, file.name, (done / total) * 100);
       await ghPutBinary(`posts/${postId}/${filename}`, buffer, null, `memoir: add media to ${postId}`);
       mediaEntries.push({ filename, type, order: i + 1 });
       done++;
-      updateProgress('Uploading…', file.name, (done / total) * 100);
+      updateProg('Uploading…', file.name, (done / total) * 100);
     }
 
     let songMeta = null;
     if (selectedSong) {
-      updateProgress('Adding music…', selectedSong.filename, (done / total) * 100);
+      updateProg('Adding music…', selectedSong.filename, (done / total) * 100);
       let songBuffer;
       try {
         const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
@@ -2742,25 +3035,26 @@ async function submitPost() {
       done++;
     }
 
-    updateProgress('Saving post…', 'meta.json', (done / total) * 100);
+    updateProg('Saving post…', 'meta.json', (done / total) * 100);
     const meta = {
       id: postId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       caption,
+      location,
       media: mediaEntries,
       song: songMeta
     };
     await ghPutFile(`posts/${postId}/meta.json`, meta, null, `memoir: create post ${postId}`);
     done++;
 
-    updateProgress('Updating feed…', 'posts-index.json', 95);
+    updateProg('Updating feed…', 'posts-index.json', 95);
     const indexFile = await ghGetFile('posts-index.json');
     const indexEntry = {
       id: postId,
       date: postId.split('-').slice(0,3).join('-'),
       captionPreview: caption.slice(0, 120),
-      // FIX 5: only set thumbnail if the first media item is actually an image
+      location,
       thumbnail: (mediaEntries[0]?.type === 'image') ? `posts/${postId}/${mediaEntries[0].filename}` : null,
       songTitle: songMeta?.title || null,
       songArtist: songMeta?.artist || null,
@@ -2776,10 +3070,11 @@ async function submitPost() {
     showToast('Posted ✦', 'Memory saved to GitHub', 'success');
     logEvent('createPost', 'success', postId);
 
-    // Reset create screen state fully
+    // Reset create screen
     state.pendingMedia = [];
     state.selectedSongId = null;
     document.getElementById('caption-input').value = '';
+    document.getElementById('location-input').value = '';
     document.getElementById('media-grid').style.display = 'none';
     document.getElementById('media-add-btn').style.display = 'none';
     document.querySelector('#media-picker .media-picker-icon').style.display = '';
@@ -2788,9 +3083,7 @@ async function submitPost() {
     progress.classList.remove('visible');
     btn.disabled = false;
 
-    // Re-render selector to clear selection visually
     loadMusicForCreate();
-
     renderFeed(state.filteredPosts);
     goBack();
 
@@ -2801,12 +3094,417 @@ async function submitPost() {
   }
 }
 
-function openEditPost() {
-  showToast('Coming soon', 'Edit post will be in the next update', 'info');
-}
-
 function openPostMenu() {
   showToast('Post options', 'Edit and delete available below', 'info');
+}
+
+// ── EDIT POST ─────────────────────────────────────────────────────
+async function openEditPost() {
+  const meta = state.currentPost;
+  if (!meta) return;
+
+  // Initialize edit state
+  state.editPost = {
+    postId: meta.id,
+    meta: JSON.parse(JSON.stringify(meta)),
+    originalCaption: meta.caption || '',
+    originalLocation: meta.location || '',
+    originalSong: meta.song ? JSON.parse(JSON.stringify(meta.song)) : null,
+    originalMedia: [...meta.media].sort((a,b) => a.order - b.order),
+    // working copies
+    currentMedia: [...meta.media].sort((a,b) => a.order - b.order).map(m => ({ ...m, _status: 'existing' })),
+    toDelete: [],    // {filename, sha} items to delete from GitHub
+    toAdd: [],       // {file, filename, type} new files to upload
+    selectedSongId: null,
+    songChanged: false,
+  };
+
+  // Pre-select existing song (match by title+artist in musicIndex)
+  if (meta.song) {
+    const match = state.musicIndex.find(s => s.title === meta.song.title && s.artist === meta.song.artist);
+    if (match) state.editPost.selectedSongId = match.id;
+  }
+
+  // Fill UI
+  document.getElementById('edit-date-value').textContent = formatDate(meta.createdAt?.split('T')[0]);
+  document.getElementById('edit-caption-input').value = meta.caption || '';
+  document.getElementById('edit-location-input').value = meta.location || '';
+
+  // Render media strip
+  await renderEditMediaStrip();
+
+  // Load music selector
+  await loadMusicForEdit();
+
+  navigateTo('screen-edit');
+}
+
+async function renderEditMediaStrip() {
+  const strip = document.getElementById('edit-media-strip');
+  const ep = state.editPost;
+  strip.innerHTML = '';
+
+  for (let i = 0; i < ep.currentMedia.length; i++) {
+    const m = ep.currentMedia[i];
+    const thumb = document.createElement('div');
+    thumb.className = 'edit-media-thumb' + (m._status === 'delete' ? ' to-delete' : '');
+    thumb.dataset.index = i;
+    thumb.draggable = true;
+
+    let mediaEl;
+    if (m._status === 'new') {
+      const url = URL.createObjectURL(m._file);
+      if (m.type === 'video') {
+        mediaEl = document.createElement('video');
+        mediaEl.src = url;
+        mediaEl.muted = true;
+      } else {
+        mediaEl = document.createElement('img');
+        mediaEl.src = url;
+        mediaEl.alt = '';
+      }
+    } else {
+      const url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${ep.postId}/${m.filename}`;
+      if (m.type === 'video') {
+        mediaEl = document.createElement('video');
+        mediaEl.src = url;
+        mediaEl.muted = true;
+      } else {
+        mediaEl = document.createElement('img');
+        mediaEl.src = url;
+        mediaEl.alt = '';
+        mediaEl.onerror = async function() {
+          if (this.dataset.tried) return;
+          this.dataset.tried = '1';
+          try {
+            const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${ep.postId}/${m.filename}`);
+            if (info?.download_url) this.src = info.download_url;
+          } catch {}
+        };
+      }
+    }
+
+    // Remove / restore button
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'media-remove-btn';
+    removeBtn.textContent = m._status === 'delete' ? '↩' : '✕';
+    removeBtn.title = m._status === 'delete' ? 'Restore' : 'Remove';
+    removeBtn.onclick = () => toggleEditMediaDelete(i);
+
+    // Drag handle
+    const handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+
+    thumb.appendChild(mediaEl);
+    thumb.appendChild(removeBtn);
+    thumb.appendChild(handle);
+    strip.appendChild(thumb);
+
+    // Drag events for reordering
+    setupDragEvents(thumb, i);
+  }
+
+  // Add more button
+  const addBtn = document.createElement('div');
+  addBtn.className = 'edit-add-more';
+  addBtn.innerHTML = `+ <span>Add more</span>`;
+  addBtn.onclick = () => {
+    const inp = document.getElementById('edit-media-input');
+    inp.value = '';
+    inp.click();
+  };
+  strip.appendChild(addBtn);
+}
+
+function toggleEditMediaDelete(index) {
+  const m = state.editPost.currentMedia[index];
+  if (m._status === 'new') {
+    // Remove new file completely
+    state.editPost.currentMedia.splice(index, 1);
+  } else if (m._status === 'delete') {
+    m._status = 'existing';
+  } else {
+    m._status = 'delete';
+  }
+  renderEditMediaStrip();
+}
+
+// Drag-and-drop reorder in edit strip
+let dragSrcIndex = null;
+
+function setupDragEvents(el, index) {
+  el.addEventListener('dragstart', () => {
+    dragSrcIndex = index;
+    setTimeout(() => el.classList.add('dragging'), 0);
+  });
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    document.querySelectorAll('.edit-media-thumb').forEach(t => t.classList.remove('drag-over'));
+  });
+  el.addEventListener('dragover', e => {
+    e.preventDefault();
+    document.querySelectorAll('.edit-media-thumb').forEach(t => t.classList.remove('drag-over'));
+    el.classList.add('drag-over');
+  });
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    if (dragSrcIndex === null || dragSrcIndex === index) return;
+    const items = state.editPost.currentMedia;
+    const [moved] = items.splice(dragSrcIndex, 1);
+    items.splice(index, 0, moved);
+    dragSrcIndex = null;
+    renderEditMediaStrip();
+  });
+}
+
+function handleEditAddMedia(files) {
+  const arr = Array.from(files);
+  const existing = state.editPost.currentMedia.length;
+  const canAdd = MAX_MEDIA - existing;
+  if (canAdd <= 0) { showToast('Max media', 'Cannot add more than 10 items', 'warning'); return; }
+
+  const toAdd = arr.slice(0, canAdd);
+  let orderStart = (state.editPost.currentMedia.reduce((m, x) => Math.max(m, x.order || 0), 0)) + 1;
+
+  toAdd.forEach((file, i) => {
+    const isVideo = file.type.startsWith('video/');
+    const ext = file.name.split('.').pop().toLowerCase();
+    const newFilename = `media_new_${Date.now()}_${i}.${ext}`;
+    state.editPost.currentMedia.push({
+      filename: newFilename,
+      type: isVideo ? 'video' : 'image',
+      order: orderStart + i,
+      _status: 'new',
+      _file: file
+    });
+  });
+
+  renderEditMediaStrip();
+}
+
+async function loadMusicForEdit() {
+  const selector = document.getElementById('edit-music-selector');
+  if (!state.auth) return;
+
+  try {
+    if (!state.musicIndex.length) {
+      const file = await ghGetFile('music/music-index.json');
+      state.musicIndex = file?.content || [];
+    }
+
+    if (!state.musicIndex.length) {
+      selector.innerHTML = `<div style="font-size:11px;color:var(--text-faint);padding:10px 0">No songs yet</div>`;
+      return;
+    }
+
+    const currentSongId = state.editPost.selectedSongId;
+
+    selector.innerHTML = state.musicIndex.map(song => {
+      const [c1, c2] = discColor(song.id || song.title);
+      const isSelected = currentSongId === song.id;
+      return `
+        <div class="music-option${isSelected ? ' selected' : ''}" onclick="selectEditSong('${song.id}')" id="emo-${song.id}">
+          <div class="mo-disc" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div>
+          <div class="mo-info">
+            <div class="mo-title">${esc(song.title)}</div>
+            <div class="mo-artist">${esc(song.artist)}</div>
+          </div>
+          <div class="mo-check" id="emc-${song.id}">${isSelected ? '✓' : ''}</div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    selector.innerHTML = `<div style="font-size:11px;color:var(--rose)">Couldn't load library</div>`;
+  }
+}
+
+function selectEditSong(id) {
+  state.editPost.selectedSongId = state.editPost.selectedSongId === id ? null : id;
+  state.editPost.songChanged = true;
+  document.querySelectorAll('#edit-music-selector .music-option').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('[id^="emc-"]').forEach(el => el.textContent = '');
+  if (state.editPost.selectedSongId) {
+    document.getElementById(`emo-${state.editPost.selectedSongId}`)?.classList.add('selected');
+    const checkEl = document.getElementById(`emc-${state.editPost.selectedSongId}`);
+    if (checkEl) checkEl.textContent = '✓';
+  }
+}
+
+async function submitEdit() {
+  const ep = state.editPost;
+  if (!ep) return;
+
+  const btn = document.getElementById('btn-save-edit');
+  btn.disabled = true;
+
+  const progress = document.getElementById('edit-upload-progress');
+  progress.classList.add('visible');
+
+  const postId = ep.postId;
+  const newCaption = document.getElementById('edit-caption-input').value.trim();
+  const newLocation = document.getElementById('edit-location-input').value.trim();
+
+  function updateProg(label, file, pct) {
+    document.getElementById('edit-upload-label').textContent = label;
+    document.getElementById('edit-upload-pct').textContent = Math.round(pct) + '%';
+    document.getElementById('edit-upload-bar-fill').style.width = pct + '%';
+    document.getElementById('edit-upload-file').textContent = file || '';
+    document.getElementById('edit-upload-count').textContent = '';
+  }
+
+  try {
+    let totalSteps = 0;
+    let doneSteps = 0;
+
+    const toDeleteItems = ep.currentMedia.filter(m => m._status === 'delete');
+    const toAddItems = ep.currentMedia.filter(m => m._status === 'new');
+    const captionChanged = newCaption !== ep.originalCaption;
+    const locationChanged = newLocation !== ep.originalLocation;
+
+    totalSteps = toDeleteItems.length + toAddItems.length + 1; // +1 for meta
+    const selectedSong = ep.selectedSongId ? state.musicIndex.find(s => s.id === ep.selectedSongId) : null;
+    const oldSong = ep.originalSong;
+    const songChanged = ep.songChanged;
+
+    if (songChanged && selectedSong && (!oldSong || selectedSong.title !== oldSong.title)) {
+      totalSteps += 1; // upload new song file
+    }
+
+    // 1. Delete removed media files
+    for (const m of toDeleteItems) {
+      updateProg(`Removing ${m.filename}…`, m.filename, (doneSteps / totalSteps) * 90);
+      try {
+        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
+        if (fileInfo?.sha) {
+          await ghDeleteFile(`posts/${postId}/${m.filename}`, fileInfo.sha, `memoir: remove media from ${postId}`);
+        }
+      } catch (e) {}
+      doneSteps++;
+    }
+
+    // 2. Upload new media files
+    for (const m of toAddItems) {
+      updateProg(`Uploading ${m.filename}…`, m.filename, (doneSteps / totalSteps) * 90);
+      const buffer = await m._file.arrayBuffer();
+      await ghPutBinary(`posts/${postId}/${m.filename}`, buffer, null, `memoir: add media to ${postId}`);
+      doneSteps++;
+    }
+
+    // 3. Handle song change
+    let newSongMeta = oldSong;
+    if (songChanged) {
+      if (!selectedSong) {
+        // Removed song — delete song file if it was a copy
+        if (oldSong?.filename === 'song.mp3') {
+          try {
+            const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`);
+            if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha, `memoir: remove song from ${postId}`);
+          } catch {}
+        }
+        newSongMeta = null;
+      } else if (!oldSong || selectedSong.title !== oldSong.title || selectedSong.artist !== oldSong.artist) {
+        // Upload new song
+        updateProg('Updating song…', selectedSong.filename, (doneSteps / totalSteps) * 90);
+        // Delete old song file first
+        if (oldSong?.filename === 'song.mp3') {
+          try {
+            const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`);
+            if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha, `memoir: replace song in ${postId}`);
+          } catch {}
+        }
+        let songBuffer;
+        try {
+          const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+          const downloadUrl = fileInfo?.download_url;
+          if (!downloadUrl) throw new Error('No download URL');
+          const songRes = await fetch(downloadUrl);
+          if (!songRes.ok) throw new Error(`HTTP ${songRes.status}`);
+          songBuffer = await songRes.arrayBuffer();
+        } catch {
+          const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+          const b64 = fileInfo?.content?.replace(/\n/g, '');
+          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+          songBuffer = bytes.buffer;
+        }
+        await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: update song in ${postId}`);
+        newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3' };
+        doneSteps++;
+      }
+    }
+
+    // 4. Build updated media list (reordered, minus deleted, with new)
+    const finalMedia = ep.currentMedia
+      .filter(m => m._status !== 'delete')
+      .map((m, i) => ({ filename: m.filename, type: m.type, order: i + 1 }));
+
+    // 5. Update meta.json
+    updateProg('Saving…', 'meta.json', 90);
+    const metaFile = await ghGetFile(`posts/${postId}/meta.json`);
+    const updatedMeta = {
+      ...metaFile.content,
+      caption: newCaption,
+      location: newLocation,
+      media: finalMedia,
+      song: newSongMeta,
+      updatedAt: new Date().toISOString()
+    };
+    await ghPutFile(`posts/${postId}/meta.json`, updatedMeta, metaFile.sha, `memoir: edit post ${postId}`);
+
+    // 6. Update posts-index.json if caption or thumbnail changed
+    const firstImage = finalMedia.find(m => m.type === 'image');
+    const newThumbnail = firstImage ? `posts/${postId}/${firstImage.filename}` : null;
+    const oldEntry = state.posts.find(p => p.id === postId);
+    const oldThumbnail = oldEntry?.thumbnail;
+
+    const indexNeedsUpdate = captionChanged || locationChanged ||
+      newThumbnail !== oldThumbnail ||
+      (newSongMeta?.title !== oldSong?.title) ||
+      (newSongMeta?.artist !== oldSong?.artist) ||
+      finalMedia.length !== ep.originalMedia.length;
+
+    if (indexNeedsUpdate) {
+      updateProg('Updating feed…', 'posts-index.json', 96);
+      const indexFile = await ghGetFile('posts-index.json');
+      const updatedIndex = (indexFile?.content || []).map(p => {
+        if (p.id !== postId) return p;
+        return {
+          ...p,
+          captionPreview: newCaption.slice(0, 120),
+          location: newLocation,
+          thumbnail: newThumbnail,
+          songTitle: newSongMeta?.title || null,
+          songArtist: newSongMeta?.artist || null,
+          mediaCount: finalMedia.length,
+          hasVideo: finalMedia.some(m => m.type === 'video')
+        };
+      });
+      await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: update post index ${postId}`);
+      state.posts = updatedIndex;
+      state.filteredPosts = updatedIndex;
+      renderFeed(state.filteredPosts);
+    }
+
+    // Update currentPost in state so post view is fresh
+    state.currentPost = updatedMeta;
+
+    updateProg('Done', '', 100);
+    showToast('Saved ✦', 'Memory updated', 'success');
+    logEvent('editPost', 'success', postId);
+
+    progress.classList.remove('visible');
+    btn.disabled = false;
+    state.editPost = null;
+
+    // Go back to post view, refreshing it
+    goBack();
+    // Re-open post view to show updated content
+    setTimeout(() => openPost(postId), 50);
+
+  } catch (err) {
+    showError('Save failed', err);
+    btn.disabled = false;
+    progress.classList.remove('visible');
+  }
 }
 
 // ── MUSIC LIBRARY ─────────────────────────────────────────────────
@@ -2857,7 +3555,6 @@ async function loadMusicLibrary() {
   }
 }
 
-// FIX 1 & 2: previewSong — clean pause toggle, audio cleanup on goBack handled separately
 let previewAudio = null;
 let previewingId = null;
 
@@ -2865,7 +3562,7 @@ async function previewSong(id) {
   const song = state.musicIndex.find(s => s.id === id);
   if (!song) return;
 
-  // FIX 1: If same song — toggle pause/play properly
+  // Same song — toggle pause/play
   if (previewingId === id) {
     if (previewAudio && !previewAudio.paused) {
       previewAudio.pause();
@@ -2893,15 +3590,10 @@ async function previewSong(id) {
 
   previewingId = id;
 
-  let url;
-  try {
-    const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
-    url = fileInfo?.download_url || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
-  } catch {
-    url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
-  }
-
-  previewAudio = new Audio(url);
+  // Start with raw URL immediately (preserves user gesture for autoplay)
+  const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
+  previewAudio = new Audio(rawUrl);
+  state.audioUnlocked = true;
 
   previewAudio.addEventListener('play', () => {
     document.getElementById(`disc-${id}`)?.classList.add('playing');
@@ -2923,7 +3615,22 @@ async function previewSong(id) {
     previewAudio = null;
   });
 
-  previewAudio.play().catch(() => showToast('Playback blocked', 'Tap play again', 'warning'));
+  previewAudio.addEventListener('error', async () => {
+    // Raw URL failed — try API download_url
+    try {
+      const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
+      if (fileInfo?.download_url && previewAudio) {
+        previewAudio.src = fileInfo.download_url;
+        previewAudio.play().catch(() => {});
+      }
+    } catch {}
+  });
+
+  previewAudio.play().catch(() => {
+    // Autoplay blocked — guide user to tap the play button again
+    const pb = document.getElementById(`play-${id}`);
+    if (pb) { pb.textContent = '▶'; pb.classList.add('playing'); }
+  });
 }
 
 function openAddSong() {
@@ -3026,6 +3733,95 @@ async function syncMusicLibrary() {
   }
 }
 
+// ── REORDER POSTS ─────────────────────────────────────────────────
+function loadReorderScreen() {
+  state.reorderOriginal = [...state.posts];
+  state.reorderCurrent  = [...state.posts];
+  renderReorderList();
+}
+
+function renderReorderList() {
+  const list = document.getElementById('reorder-list');
+  if (!state.reorderCurrent.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⊟</div><div class="empty-title">No posts yet</div></div>`;
+    return;
+  }
+
+  list.innerHTML = state.reorderCurrent.map((post, i) => {
+    const thumbUrl = post.thumbnail
+      ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`
+      : null;
+    return `
+      <div class="reorder-card" draggable="true" data-index="${i}"
+           ondragstart="reorderDragStart(event,${i})"
+           ondragover="reorderDragOver(event)"
+           ondrop="reorderDrop(event,${i})"
+           ondragend="reorderDragEnd()">
+        <div class="reorder-handle">⠿</div>
+        <div class="reorder-thumb">
+          ${thumbUrl ? `<img src="${thumbUrl}" alt="" onerror="this.style.display='none'">` : ''}
+        </div>
+        <div class="reorder-info">
+          <div class="reorder-date">${formatDate(post.date)}</div>
+          <div class="reorder-caption">${esc(post.captionPreview || '(no caption)')}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+let reorderDragIdx = null;
+
+function reorderDragStart(e, idx) {
+  reorderDragIdx = idx;
+  setTimeout(() => {
+    document.querySelectorAll('.reorder-card')[idx]?.classList.add('dragging');
+  }, 0);
+}
+
+function reorderDragOver(e) {
+  e.preventDefault();
+  document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+
+function reorderDrop(e, targetIdx) {
+  e.preventDefault();
+  if (reorderDragIdx === null || reorderDragIdx === targetIdx) return;
+  const items = state.reorderCurrent;
+  const [moved] = items.splice(reorderDragIdx, 1);
+  items.splice(targetIdx, 0, moved);
+  reorderDragIdx = null;
+  renderReorderList();
+}
+
+function reorderDragEnd() {
+  reorderDragIdx = null;
+  document.querySelectorAll('.reorder-card').forEach(c => {
+    c.classList.remove('dragging', 'drag-over');
+  });
+}
+
+function cancelReorder() {
+  state.reorderCurrent = [...state.reorderOriginal];
+  goBack();
+}
+
+async function saveReorder() {
+  showToast('Saving order…', '', 'info', 8000);
+  try {
+    const indexFile = await ghGetFile('posts-index.json');
+    await ghPutFile('posts-index.json', state.reorderCurrent, indexFile?.sha, 'memoir: reorder posts');
+    state.posts = [...state.reorderCurrent];
+    state.filteredPosts = [...state.reorderCurrent];
+    renderFeed(state.filteredPosts);
+    showToast('Order saved', '', 'success');
+    logEvent('reorderPosts', 'success', `${state.reorderCurrent.length} posts`);
+    goBack();
+  } catch (err) {
+    showError('Reorder failed', err);
+  }
+}
+
 // ── SETTINGS ──────────────────────────────────────────────────────
 async function loadSettings() {
   if (!state.auth) return;
@@ -3055,32 +3851,6 @@ function confirmSignOut() {
   state.navHistory = ['screen-setup'];
 }
 
-// ── LOGS ──────────────────────────────────────────────────────────
-function loadLogs() {
-  const logs = JSON.parse(localStorage.getItem('memoir_logs') || '[]');
-  const list = document.getElementById('log-list');
-  if (!logs.length) {
-    list.innerHTML = `<div class="empty-state" style="padding:40px"><div class="empty-icon">✓</div><div class="empty-title">All clear</div></div>`;
-    return;
-  }
-  list.innerHTML = logs.map(e => `
-    <div class="log-entry">
-      <span class="log-icon">${e.status === 'error' ? '✗' : '✓'}</span>
-      <div class="log-body">
-        <div class="log-op">${esc(e.op)}</div>
-        ${e.detail ? `<div class="log-detail">${esc(e.detail)}</div>` : ''}
-      </div>
-      <span class="log-time">${e.ts?.slice(11,19) || ''}</span>
-    </div>
-  `).join('');
-}
-
-function clearLogs() {
-  localStorage.removeItem('memoir_logs');
-  loadLogs();
-  showToast('Logs cleared', '', 'success');
-}
-
 // ── INSTALL NUDGE ─────────────────────────────────────────────────
 function showInstallNudge() {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -3096,23 +3866,38 @@ function dismissInstallNudge() {
   localStorage.setItem('memoir_nudge_dismissed', '1');
 }
 
-let deferredPrompt = null;
-function setupAndroidInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredPrompt = e;
-    setTimeout(() => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-      }
-    }, 3000);
-  });
-}
-
 // ── QR EXPORT ────────────────────────────────────────────────────
 function showQRExport() {
-  showToast('Coming soon', 'QR credential export in next update', 'info');
+  if (!state.auth) return;
+
+  const wrap = document.getElementById('qr-canvas-wrap');
+  wrap.innerHTML = '';
+
+  const payload = JSON.stringify({
+    u: state.auth.username,
+    r: state.auth.repo,
+    t: state.auth.token,
+    e: state.auth.email || ''
+  });
+
+  try {
+    new QRCode(wrap, {
+      text: payload,
+      width: 176,
+      height: 176,
+      colorDark: '#0e0c0a',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch (err) {
+    wrap.innerHTML = `<div style="color:var(--rose);font-size:10px;text-align:center">QR generation failed.<br>Try refreshing.</div>`;
+  }
+
+  document.getElementById('qr-overlay').classList.add('open');
+}
+
+function closeQRExport() {
+  document.getElementById('qr-overlay').classList.remove('open');
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────
@@ -3156,9 +3941,7 @@ async function boot() {
     navigateTo('screen-feed', false);
     state.navHistory = ['screen-feed'];
     showInstallNudge();
-    setupAndroidInstallPrompt();
     await loadFeed();
-    // Pre-load music index for create screen without rendering selector yet
     try {
       const file = await ghGetFile('music/music-index.json');
       state.musicIndex = file?.content || [];
