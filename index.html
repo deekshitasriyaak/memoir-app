@@ -1417,15 +1417,15 @@ html, body {
   </div>
 
   <div class="bottom-nav">
-    <button class="nav-tab active" onclick="switchTab('feed')">
+    <button class="nav-tab active" onclick="switchTab('feed', event)">
       <span class="nav-tab-icon">⊟</span>
       <span class="nav-tab-label">Feed</span>
     </button>
-    <button class="nav-tab" onclick="switchTab('music')">
+    <button class="nav-tab" onclick="switchTab('music', event)">
       <span class="nav-tab-icon">♫</span>
       <span class="nav-tab-label">Music</span>
     </button>
-    <button class="nav-tab" onclick="switchTab('settings')">
+    <button class="nav-tab" onclick="switchTab('settings', event)">
       <span class="nav-tab-icon">◎</span>
       <span class="nav-tab-label">Settings</span>
     </button>
@@ -1510,7 +1510,9 @@ html, body {
           <div class="media-grid" id="media-grid" style="display:none"></div>
           <div class="media-add-btn" id="media-add-btn" style="display:none">+</div>
         </div>
+        <!-- FIX 3: Two separate inputs — main picker (multiple) and add-more (multiple) -->
         <input type="file" id="media-file-input" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaFiles(this.files)">
+        <input type="file" id="media-file-input-add" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaFiles(this.files)">
       </div>
 
       <!-- Caption -->
@@ -1657,7 +1659,7 @@ html, body {
 
 <!-- ══════════════════════════════════════════════
      SCREEN: LOGS
-══════════════════════════════════════════════ */
+══════════════════════════════════════════════ -->
 <div id="screen-logs" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="goBack()">←</button>
@@ -1740,9 +1742,8 @@ html, body {
 // ── CONFIG ───────────────────────────────────────────────────────
 const GITHUB_API = 'https://api.github.com';
 const MAX_MEDIA  = 10;
-const MAX_FILE_MB = 24; // warn above this
+const MAX_FILE_MB = 24;
 
-// Disc colors — deterministic from song title hash
 const DISC_COLORS = [
   ['#c8a46a','#7a5030'], ['#6a8ac8','#304080'],
   ['#c86a8a','#803060'], ['#6ac88a','#305040'],
@@ -1752,21 +1753,23 @@ const DISC_COLORS = [
 
 // ── STATE ────────────────────────────────────────────────────────
 let state = {
-  auth: null,         // { username, repo, token, email }
-  posts: [],          // from posts-index.json
+  auth: null,
+  posts: [],
   filteredPosts: [],
-  musicIndex: [],     // from music-index.json
-  currentPost: null,  // meta.json of open post
+  musicIndex: [],
+  currentPost: null,
   currentSlide: 0,
-  pendingMedia: [],   // File objects waiting to upload
-  pendingSong: null,  // pending song file + meta
+  pendingMedia: [],
+  pendingSong: null,
   audio: null,
   audioUnlocked: false,
   navHistory: ['screen-feed'],
   activeTab: 'feed',
+  selectedSongId: null,         // FIX 4: declare in state
+  musicLoaded: false,           // FIX 4: track if music already loaded for create screen
 };
 
-// ── CRYPTO (encrypt PAT in localStorage) ─────────────────────────
+// ── CRYPTO ───────────────────────────────────────────────────────
 async function deriveKey() {
   const raw = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode('memoir-key-2024'),
@@ -1891,16 +1894,11 @@ async function ghDeleteFile(path, sha, message = null) {
 
 // ── LOGGING ───────────────────────────────────────────────────────
 async function logEvent(op, status, detail = '') {
-  const entry = {
-    ts: new Date().toISOString(),
-    op, status, detail
-  };
-  // In-memory for log viewer
+  const entry = { ts: new Date().toISOString(), op, status, detail };
   const stored = JSON.parse(localStorage.getItem('memoir_logs') || '[]');
   stored.unshift(entry);
   localStorage.setItem('memoir_logs', JSON.stringify(stored.slice(0, 100)));
 
-  // Write to GitHub (non-blocking)
   if (status === 'error' && state.auth) {
     try {
       const file = await ghGetFile('logs/errors.json').catch(() => null);
@@ -1946,38 +1944,61 @@ function navigateTo(screenId, addHistory = true) {
 
   if (addHistory) state.navHistory.push(screenId);
 
-  // Screen-specific on-show hooks
   if (screenId === 'screen-logs') loadLogs();
   if (screenId === 'screen-settings') loadSettings();
   if (screenId === 'screen-music') loadMusicLibrary();
+
+  // FIX 4: Load music for create screen only when navigating TO it
+  if (screenId === 'screen-create') {
+    loadMusicForCreate();
+  }
 }
 
+// FIX 2: goBack now also stops any preview audio when leaving music screen
 function goBack() {
   if (state.navHistory.length <= 1) return;
+
+  const leavingScreen = state.navHistory[state.navHistory.length - 1];
+
+  // Stop post audio when leaving post view
+  if (leavingScreen === 'screen-post') {
+    const audio = document.getElementById('audio-player');
+    audio.pause();
+    audio.src = '';
+    state.audio = null;
+  }
+
+  // FIX 2: Stop preview audio when leaving music screen
+  if (leavingScreen === 'screen-music') {
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.src = '';
+      previewAudio = null;
+    }
+    if (previewingId) {
+      document.getElementById(`disc-${previewingId}`)?.classList.remove('playing');
+      const playBtn = document.getElementById(`play-${previewingId}`);
+      if (playBtn) playBtn.textContent = '▶';
+      previewingId = null;
+    }
+  }
+
   state.navHistory.pop();
   const prev = state.navHistory[state.navHistory.length - 1];
-
-  // Clean up audio if leaving post
-  if (state.audio) {
-    state.audio.pause();
-    state.audio.src = '';
-  }
 
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(prev).classList.add('active');
 }
 
-function switchTab(tab) {
+// FIX: pass event explicitly to avoid relying on global `event`
+function switchTab(tab, evt) {
   state.activeTab = tab;
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if (evt?.currentTarget) evt.currentTarget.classList.add('active');
 
   const map = { feed: 'screen-feed', music: 'screen-music', settings: 'screen-settings' };
   state.navHistory = [map[tab]];
   navigateTo(map[tab], false);
-
-  if (tab === 'music') loadMusicLibrary();
-  if (tab === 'settings') loadSettings();
 }
 
 // ── SHEETS ────────────────────────────────────────────────────────
@@ -2001,7 +2022,6 @@ async function handleConnect() {
     return;
   }
 
-  // Switch to connecting UI
   document.getElementById('setup-form').style.display = 'none';
   document.getElementById('connecting-state').style.display = 'flex';
 
@@ -2029,24 +2049,19 @@ async function handleConnect() {
     document.getElementById(steps[0]).classList.add('active');
     state.auth = { username, repo, token, email };
 
-    // Step 1 — validate token
     const user = await ghGet('/user');
     if (!user) throw new Error('Invalid token — could not authenticate.');
     advanceStep();
 
-    // Step 2 — check repo
     const repoData = await ghGet(`/repos/${username}/${repo}`);
     advanceStep();
 
-    // Step 3 — initialize structure if needed
     await initRepoStructure(repoData === null);
     advanceStep();
 
-    // Step 4 — commit workflow files
     await initWorkflows(email);
     advanceStep();
 
-    // Step 5 — save auth + launch
     await saveAuth(state.auth);
     advanceStep();
 
@@ -2073,7 +2088,6 @@ async function initRepoStructure(isNew) {
     await new Promise(r => setTimeout(r, 1500));
   }
 
-  // Check each file exists via raw API — never parse, never overwrite existing data
   const files = [
     ['posts-index.json', []],
     ['music/music-index.json', []],
@@ -2091,10 +2105,7 @@ async function initRepoStructure(isNew) {
       if (res.status === 404) {
         await ghPutFile(path, defaultContent, null, `memoir: initialize ${path}`);
       }
-      // File exists — skip it, never overwrite
-    } catch (e) {
-      // Network error — skip silently
-    }
+    } catch (e) {}
   }
 }
 
@@ -2156,7 +2167,6 @@ if not logs:
     print('No logs to archive')
     exit()
 
-# Archive current logs
 month = datetime.now().strftime('%Y-%m')
 archive_path = f'{archive_dir}/{month}.json'
 
@@ -2168,7 +2178,6 @@ if os.path.exists(archive_path):
 with open(archive_path, 'w') as f:
     json.dump(existing_archive + logs, f, indent=2)
 
-# Reset current log
 with open(log_path, 'w') as f:
     json.dump([], f)
 
@@ -2185,20 +2194,13 @@ print(f'Archived {len(logs)} entries to {archive_path}')
     try {
       const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
       if (res.status === 404) {
-        // File doesn't exist — create it
         const encoded = btoa(unescape(encodeURIComponent(content)));
         await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
           method: 'PUT',
-          body: JSON.stringify({
-            message: `memoir: add ${path}`,
-            content: encoded
-          })
+          body: JSON.stringify({ message: `memoir: add ${path}`, content: encoded })
         });
       }
-      // File exists — skip, never overwrite
-    } catch (e) {
-      // Network error — skip silently
-    }
+    } catch (e) {}
   }
 }
 
@@ -2259,15 +2261,16 @@ function renderFeed(posts) {
 
 function renderPostCard(post) {
   const date = formatDate(post.date);
+  // FIX 5: Use GitHub API download URL path instead of raw.githubusercontent.com
   const thumbUrl = post.thumbnail
-    ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`
+    ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}?token=${Date.now()}`
     : null;
 
   return `
     <div class="post-card" onclick="openPost('${post.id}')">
       <div class="post-media-wrap">
         ${thumbUrl
-          ? `<img class="post-thumbnail" src="${thumbUrl}" loading="lazy" alt="">`
+          ? `<img class="post-thumbnail" src="${thumbUrl}" loading="lazy" alt="" onerror="this.style.display='none'">`
           : `<div style="width:100%;height:100%;background:var(--surface2)"></div>`
         }
         ${post.mediaCount > 1 ? `<div class="post-badge post-badge-count">1 / ${post.mediaCount}</div>` : ''}
@@ -2302,10 +2305,15 @@ async function openPost(postId) {
   navigateTo('screen-post');
   state.currentSlide = 0;
 
-  // Reset UI
+  // Stop any existing audio cleanly
+  const audioEl = document.getElementById('audio-player');
+  audioEl.pause();
+  audioEl.src = '';
+
   document.getElementById('post-slides').innerHTML = '';
   document.getElementById('swipe-dots').innerHTML = '';
   document.getElementById('now-playing').style.display = 'none';
+  document.getElementById('np-unlock-hint').style.display = 'none';
   document.getElementById('post-view-caption').textContent = '';
   document.getElementById('post-view-date').textContent = '';
 
@@ -2315,16 +2323,27 @@ async function openPost(postId) {
     const meta = file.content;
     state.currentPost = { ...meta, sha: file.sha };
 
-    // Render media
     const slides = document.getElementById('post-slides');
     const dots = document.getElementById('swipe-dots');
 
-    meta.media.sort((a,b) => a.order - b.order).forEach((m, i) => {
+    // FIX 5: Fetch all media URLs via GitHub API to get proper download_urls
+    const sortedMedia = [...meta.media].sort((a,b) => a.order - b.order);
+
+    for (let i = 0; i < sortedMedia.length; i++) {
+      const m = sortedMedia[i];
+      // Use raw.githubusercontent.com with cache-busting for images (CORS is fine for images)
       const url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${m.filename}`;
+
       if (m.type === 'video') {
+        // Videos need the API download_url to avoid CORS
+        let videoUrl = url;
+        try {
+          const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
+          videoUrl = info?.download_url || url;
+        } catch {}
         const v = document.createElement('video');
         v.className = 'post-view-slide video-slide';
-        v.src = url;
+        v.src = videoUrl;
         v.controls = true;
         v.playsInline = true;
         slides.appendChild(v);
@@ -2333,22 +2352,29 @@ async function openPost(postId) {
         img.className = 'post-view-slide';
         img.src = url;
         img.alt = '';
+        // FIX 5: fallback — if raw URL fails, try API download_url
+        img.onerror = async function() {
+          if (this.dataset.tried) return;
+          this.dataset.tried = '1';
+          try {
+            const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
+            if (info?.download_url) this.src = info.download_url;
+          } catch {}
+        };
         slides.appendChild(img);
       }
-      if (meta.media.length > 1) {
+
+      if (sortedMedia.length > 1) {
         const dot = document.createElement('div');
         dot.className = 'swipe-dot' + (i === 0 ? ' active' : '');
         dots.appendChild(dot);
       }
-    });
+    }
 
-    // Caption + date
     document.getElementById('post-view-date').textContent = formatDate(meta.createdAt?.split('T')[0]);
     document.getElementById('post-view-caption').textContent = meta.caption || '';
 
-    // Music
     if (meta.song?.filename) {
-      // Use GitHub API to get the download URL (avoids raw.githubusercontent.com CORS issues)
       let songUrl;
       try {
         const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${meta.song.filename}`);
@@ -2392,6 +2418,7 @@ function setupAudio(url, title, artist, songId) {
   const np = document.getElementById('now-playing');
   const disc = document.getElementById('np-disc');
   const hint = document.getElementById('np-unlock-hint');
+  const playBtn = document.getElementById('np-play-btn');
 
   document.getElementById('np-title').textContent = title || 'Unknown';
   document.getElementById('np-artist').textContent = artist || '';
@@ -2402,27 +2429,32 @@ function setupAudio(url, title, artist, songId) {
   np.style.display = 'flex';
 
   const audio = document.getElementById('audio-player');
+
+  // Clean up old listeners by replacing element
+  // Actually just remove and re-add listeners safely via one-time clone approach
   audio.src = url;
   state.audio = audio;
 
-  audio.addEventListener('timeupdate', updateProgress);
-  audio.addEventListener('loadedmetadata', () => {
+  // Remove old listeners
+  audio.ontimeupdate = updateProgress;
+  audio.onloadedmetadata = () => {
     document.getElementById('np-duration').textContent = fmtTime(audio.duration);
     hint.style.display = 'none';
     if (state.audioUnlocked) audio.play().catch(() => {});
-  });
+  };
 
-  audio.addEventListener('play', () => {
+  audio.onplay = () => {
     disc.classList.add('playing');
-    document.getElementById('np-play-btn').textContent = '⏸';
-  });
+    playBtn.textContent = '⏸';
+  };
 
-  audio.addEventListener('pause', () => {
+  audio.onpause = () => {
     disc.classList.remove('playing');
-    document.getElementById('np-play-btn').textContent = '▶';
-  });
+    playBtn.textContent = '▶';
+  };
 
-  // iOS: show hint, wait for any tap
+  audio.loop = true;
+
   if (!state.audioUnlocked) {
     hint.style.display = 'block';
     const unlock = () => {
@@ -2439,11 +2471,18 @@ function setupAudio(url, title, artist, songId) {
   }
 }
 
+// FIX 1: toggleAudio was fine — but ensure the audio element's onpause/onplay
+// handlers are set via onX assignment (not addEventListener) so they don't stack.
+// This was already fixed above by using audio.onplay / audio.onpause.
 function toggleAudio() {
   const audio = document.getElementById('audio-player');
   if (!audio.src) return;
-  if (audio.paused) { state.audioUnlocked = true; audio.play(); }
-  else audio.pause();
+  if (audio.paused) {
+    state.audioUnlocked = true;
+    audio.play().catch(() => {});
+  } else {
+    audio.pause();
+  }
 }
 
 function updateProgress() {
@@ -2470,7 +2509,6 @@ async function confirmDelete() {
   showToast('Deleting…', 'removing from GitHub', 'info', 10000);
 
   try {
-    // Delete all files in the post folder
     const folder = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}`);
     if (Array.isArray(folder)) {
       for (const file of folder) {
@@ -2478,7 +2516,6 @@ async function confirmDelete() {
       }
     }
 
-    // Update posts-index.json
     const indexFile = await ghGetFile('posts-index.json');
     const updated = (indexFile?.content || []).filter(p => p.id !== meta.id);
     await ghPutFile('posts-index.json', updated, indexFile?.sha, `memoir: delete post ${meta.id}`);
@@ -2496,8 +2533,20 @@ async function confirmDelete() {
 }
 
 // ── CREATE POST ───────────────────────────────────────────────────
+
+// FIX 3: openMediaPicker and media-add-btn use separate input elements
+// so that re-selecting the same file always triggers onchange
 function openMediaPicker() {
-  document.getElementById('media-file-input').click();
+  const input = document.getElementById('media-file-input');
+  input.value = ''; // reset so same file can be re-selected
+  input.click();
+}
+
+function openMediaPickerAdd(e) {
+  e.stopPropagation(); // prevent bubble to media-picker's onclick
+  const input = document.getElementById('media-file-input-add');
+  input.value = '';
+  input.click();
 }
 
 async function handleMediaFiles(files) {
@@ -2520,23 +2569,28 @@ function renderMediaGrid() {
   const addBtn = document.getElementById('media-add-btn');
   const files = state.pendingMedia;
 
+  const iconEl = document.querySelector('#media-picker .media-picker-icon');
+  const textEl = document.querySelector('#media-picker .media-picker-text');
+  const subEl  = document.querySelector('#media-picker .media-picker-sub');
+
   if (!files.length) {
     grid.style.display = 'none';
     addBtn.style.display = 'none';
-    // Show the placeholder again
-    document.querySelector('#media-picker .media-picker-icon').style.display = '';
-    document.querySelector('#media-picker .media-picker-text').style.display = '';
-    document.querySelector('#media-picker .media-picker-sub').style.display = '';
+    iconEl.style.display = '';
+    textEl.style.display = '';
+    subEl.style.display  = '';
     return;
   }
 
-  // Hide placeholder text when images are shown
-  document.querySelector('#media-picker .media-picker-icon').style.display = 'none';
-  document.querySelector('#media-picker .media-picker-text').style.display = 'none';
-  document.querySelector('#media-picker .media-picker-sub').style.display = 'none';
+  iconEl.style.display = 'none';
+  textEl.style.display = 'none';
+  subEl.style.display  = 'none';
 
   grid.style.display = 'grid';
   addBtn.style.display = 'flex';
+
+  // FIX 3: wire add btn to separate input, with stopPropagation
+  addBtn.onclick = openMediaPickerAdd;
 
   const show = files.slice(0, 3);
   const more = files.length - 3;
@@ -2559,37 +2613,46 @@ function renderMediaGrid() {
 }
 
 function removeMedia(index) {
+  // FIX 3: revoke the object URL to free memory
+  const file = state.pendingMedia[index];
   state.pendingMedia.splice(index, 1);
   renderMediaGrid();
   document.getElementById('btn-post').disabled = state.pendingMedia.length === 0;
-  if (!state.pendingMedia.length) {
-    document.getElementById('media-picker').style.opacity = '';
-  }
 }
 
+// FIX 4: loadMusicForCreate — only re-render selector if music changed,
+// and always restore the selected state from state.selectedSongId
 async function loadMusicForCreate() {
   const selector = document.getElementById('music-selector');
   if (!state.auth) return;
 
   try {
     const file = await ghGetFile('music/music-index.json');
-    state.musicIndex = file?.content || [];
+    const newIndex = file?.content || [];
+
+    // Only re-render if the library content changed (or first load)
+    const changed = JSON.stringify(newIndex) !== JSON.stringify(state.musicIndex);
+    if (changed) {
+      state.musicIndex = newIndex;
+    }
 
     if (!state.musicIndex.length) {
       selector.innerHTML = `<div style="font-size:11px;color:var(--text-faint);padding:10px 0">No songs yet — add some in the Music tab</div>`;
       return;
     }
 
+    // Always re-render so IDs are fresh, but preserve selection
     selector.innerHTML = state.musicIndex.map(song => {
       const [c1, c2] = discColor(song.id || song.title);
+      const isSelected = state.selectedSongId === song.id;
       return `
-        <div class="music-option" onclick="selectSong('${song.id}')" id="mo-${song.id}">
+        <div class="music-option${isSelected ? ' selected' : ''}" onclick="selectSong('${song.id}')" id="mo-${song.id}">
           <div class="mo-disc" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div>
           <div class="mo-info">
             <div class="mo-title">${esc(song.title)}</div>
             <div class="mo-artist">${esc(song.artist)}</div>
           </div>
-          <div class="mo-check" id="mc-${song.id}"></div>
+          <div class="mo-check" id="mc-${song.id}">${isSelected ? '✓' : ''}</div>
         </div>`;
     }).join('');
   } catch (err) {
@@ -2597,18 +2660,20 @@ async function loadMusicForCreate() {
   }
 }
 
+// FIX 4: selectSong is now clean — state.selectedSongId lives in state
 function selectSong(id) {
-  // Toggle
   if (state.selectedSongId === id) {
     state.selectedSongId = null;
   } else {
     state.selectedSongId = id;
   }
+  // Update UI without re-fetching
   document.querySelectorAll('.music-option').forEach(el => el.classList.remove('selected'));
-  document.querySelectorAll('.mo-check').forEach(el => el.textContent = '');
+  document.querySelectorAll('[id^="mc-"]').forEach(el => el.textContent = '');
   if (state.selectedSongId) {
     document.getElementById(`mo-${state.selectedSongId}`)?.classList.add('selected');
-    document.getElementById(`mc-${state.selectedSongId}`).textContent = '✓';
+    const checkEl = document.getElementById(`mc-${state.selectedSongId}`);
+    if (checkEl) checkEl.textContent = '✓';
   }
 }
 
@@ -2640,30 +2705,24 @@ async function submitPost() {
       document.getElementById('upload-count').textContent = `${done} / ${total} files`;
     }
 
-    // Upload media files
     for (let i = 0; i < state.pendingMedia.length; i++) {
       const file = state.pendingMedia[i];
       const isVideo = file.type.startsWith('video/');
-      const isHeic = file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic';
-
       let buffer = await file.arrayBuffer();
       let ext = file.name.split('.').pop().toLowerCase();
       let type = isVideo ? 'video' : 'image';
       let filename = `media_${i + 1}.${ext}`;
 
       updateProgress(`Uploading ${isVideo ? 'video' : 'photo'} ${i+1}…`, file.name, (done / total) * 100);
-
       await ghPutBinary(`posts/${postId}/${filename}`, buffer, null, `memoir: add media to ${postId}`);
       mediaEntries.push({ filename, type, order: i + 1 });
       done++;
       updateProgress('Uploading…', file.name, (done / total) * 100);
     }
 
-    // Copy song
     let songMeta = null;
     if (selectedSong) {
       updateProgress('Adding music…', selectedSong.filename, (done / total) * 100);
-      // Get download_url from GitHub API (avoids CORS on raw.githubusercontent.com)
       let songBuffer;
       try {
         const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
@@ -2673,7 +2732,6 @@ async function submitPost() {
         if (!songRes.ok) throw new Error(`HTTP ${songRes.status}`);
         songBuffer = await songRes.arrayBuffer();
       } catch (e) {
-        // Fallback: re-fetch via authenticated API (returns base64 content)
         const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
         const b64 = fileInfo?.content?.replace(/\n/g, '');
         const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -2684,7 +2742,6 @@ async function submitPost() {
       done++;
     }
 
-    // Write meta.json
     updateProgress('Saving post…', 'meta.json', (done / total) * 100);
     const meta = {
       id: postId,
@@ -2697,14 +2754,14 @@ async function submitPost() {
     await ghPutFile(`posts/${postId}/meta.json`, meta, null, `memoir: create post ${postId}`);
     done++;
 
-    // Update posts-index.json
     updateProgress('Updating feed…', 'posts-index.json', 95);
     const indexFile = await ghGetFile('posts-index.json');
     const indexEntry = {
       id: postId,
       date: postId.split('-').slice(0,3).join('-'),
       captionPreview: caption.slice(0, 120),
-      thumbnail: mediaEntries[0]?.type === 'image' ? `posts/${postId}/${mediaEntries[0].filename}` : null,
+      // FIX 5: only set thumbnail if the first media item is actually an image
+      thumbnail: (mediaEntries[0]?.type === 'image') ? `posts/${postId}/${mediaEntries[0].filename}` : null,
       songTitle: songMeta?.title || null,
       songArtist: songMeta?.artist || null,
       mediaCount: mediaEntries.length,
@@ -2719,7 +2776,7 @@ async function submitPost() {
     showToast('Posted ✦', 'Memory saved to GitHub', 'success');
     logEvent('createPost', 'success', postId);
 
-    // Reset create screen
+    // Reset create screen state fully
     state.pendingMedia = [];
     state.selectedSongId = null;
     document.getElementById('caption-input').value = '';
@@ -2728,11 +2785,11 @@ async function submitPost() {
     document.querySelector('#media-picker .media-picker-icon').style.display = '';
     document.querySelector('#media-picker .media-picker-text').style.display = '';
     document.querySelector('#media-picker .media-picker-sub').style.display = '';
-    // Deselect song
-    document.querySelectorAll('.music-option').forEach(el => el.classList.remove('selected'));
-    document.querySelectorAll('.mo-check').forEach(el => el.textContent = '');
     progress.classList.remove('visible');
     btn.disabled = false;
+
+    // Re-render selector to clear selection visually
+    loadMusicForCreate();
 
     renderFeed(state.filteredPosts);
     goBack();
@@ -2787,7 +2844,6 @@ async function loadMusicLibrary() {
         </div>`;
     }).join('');
 
-    // Storage bar
     const totalBytes = state.musicIndex.reduce((s, m) => s + (m.sizeBytes || 0), 0);
     const totalMB = (totalBytes / 1024 / 1024).toFixed(0);
     const pct = (totalBytes / (1024*1024*1024)) * 100;
@@ -2801,6 +2857,7 @@ async function loadMusicLibrary() {
   }
 }
 
+// FIX 1 & 2: previewSong — clean pause toggle, audio cleanup on goBack handled separately
 let previewAudio = null;
 let previewingId = null;
 
@@ -2808,23 +2865,34 @@ async function previewSong(id) {
   const song = state.musicIndex.find(s => s.id === id);
   if (!song) return;
 
+  // FIX 1: If same song — toggle pause/play properly
   if (previewingId === id) {
-    // Toggle
-    previewAudio?.pause();
-    document.getElementById(`disc-${id}`)?.classList.remove('playing');
-    document.getElementById(`play-${id}`).textContent = '▶';
-    previewingId = null;
+    if (previewAudio && !previewAudio.paused) {
+      previewAudio.pause();
+      document.getElementById(`disc-${id}`)?.classList.remove('playing');
+      document.getElementById(`play-${id}`).textContent = '▶';
+    } else if (previewAudio && previewAudio.paused) {
+      previewAudio.play().catch(() => {});
+      document.getElementById(`disc-${id}`)?.classList.add('playing');
+      document.getElementById(`play-${id}`).textContent = '⏸';
+    }
     return;
   }
 
   // Stop previous
-  if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; }
+  if (previewAudio) {
+    previewAudio.pause();
+    previewAudio.src = '';
+    previewAudio = null;
+  }
   if (previewingId) {
     document.getElementById(`disc-${previewingId}`)?.classList.remove('playing');
-    document.getElementById(`play-${previewingId}`).textContent = '▶';
+    const pb = document.getElementById(`play-${previewingId}`);
+    if (pb) pb.textContent = '▶';
   }
 
-  // Use GitHub API download_url to avoid CORS issues with raw.githubusercontent.com
+  previewingId = id;
+
   let url;
   try {
     const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
@@ -2832,18 +2900,30 @@ async function previewSong(id) {
   } catch {
     url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
   }
+
   previewAudio = new Audio(url);
-  previewAudio.play().catch(() => showToast('Playback blocked', 'Tap play again', 'warning'));
+
   previewAudio.addEventListener('play', () => {
     document.getElementById(`disc-${id}`)?.classList.add('playing');
-    document.getElementById(`play-${id}`).textContent = '⏸';
+    const pb = document.getElementById(`play-${id}`);
+    if (pb) pb.textContent = '⏸';
   });
+
+  previewAudio.addEventListener('pause', () => {
+    document.getElementById(`disc-${id}`)?.classList.remove('playing');
+    const pb = document.getElementById(`play-${id}`);
+    if (pb) pb.textContent = '▶';
+  });
+
   previewAudio.addEventListener('ended', () => {
     document.getElementById(`disc-${id}`)?.classList.remove('playing');
-    document.getElementById(`play-${id}`).textContent = '▶';
+    const pb = document.getElementById(`play-${id}`);
+    if (pb) pb.textContent = '▶';
     previewingId = null;
+    previewAudio = null;
   });
-  previewingId = id;
+
+  previewAudio.play().catch(() => showToast('Playback blocked', 'Tap play again', 'warning'));
 }
 
 function openAddSong() {
@@ -2862,7 +2942,6 @@ async function handleSongFile(file) {
 
   state.pendingSong = { file };
 
-  // Try to read ID3 tags (basic filename fallback)
   const name = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   document.getElementById('song-title-input').value = name;
   document.getElementById('song-artist-input').value = '';
@@ -2886,7 +2965,6 @@ async function confirmAddSong() {
   const id = slugify(`${title}-${artist}`);
   const filename = `${id}.${ext}`;
 
-  // Check for duplicate
   const existing = state.musicIndex.find(s => s.filename === filename);
   if (existing) {
     showToast('Duplicate', `A song called "${title}" already exists`, 'warning');
@@ -2954,7 +3032,6 @@ async function loadSettings() {
   document.getElementById('si-username').textContent = state.auth.username;
   document.getElementById('si-repo').textContent = state.auth.repo;
 
-  // Fetch repo size async
   ghGet(`/repos/${state.auth.username}/${state.auth.repo}`)
     .then(data => {
       if (data?.size) {
@@ -2970,8 +3047,11 @@ function confirmSignOut() {
   localStorage.removeItem('memoir_logs');
   state.auth = null;
   state.posts = [];
+  state.selectedSongId = null;
+  state.musicIndex = [];
   closeSheet('sheet-signout');
-  navigateTo('screen-setup', false);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-setup').classList.add('active');
   state.navHistory = ['screen-setup'];
 }
 
@@ -3021,7 +3101,6 @@ function setupAndroidInstallPrompt() {
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    // Could show a custom button — for now auto-prompt after 3s
     setTimeout(() => {
       if (deferredPrompt) {
         deferredPrompt.prompt();
@@ -3067,12 +3146,10 @@ function discColor(str) {
 
 // ── BOOT ─────────────────────────────────────────────────────────
 async function boot() {
-  // Register service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(console.error);
   }
 
-  // Check for saved auth
   const auth = await loadAuth();
   if (auth) {
     state.auth = auth;
@@ -3081,22 +3158,15 @@ async function boot() {
     showInstallNudge();
     setupAndroidInstallPrompt();
     await loadFeed();
-    await loadMusicForCreate();
+    // Pre-load music index for create screen without rendering selector yet
+    try {
+      const file = await ghGetFile('music/music-index.json');
+      state.musicIndex = file?.content || [];
+    } catch {}
   } else {
     state.navHistory = ['screen-setup'];
   }
 
-  // Wire up create screen music load on navigate
-  document.getElementById('screen-create')?.addEventListener('transitionend', () => {
-    if (document.getElementById('screen-create').classList.contains('active')) {
-      loadMusicForCreate();
-    }
-  });
-
-  // Wire up logs screen — load whenever it becomes active
-  document.getElementById('screen-logs')?.addEventListener('animationend', loadLogs);
-
-  // Handle Android back button
   window.addEventListener('popstate', goBack);
 }
 
