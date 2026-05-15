@@ -744,6 +744,40 @@ body { background: #060503; }
 .reorder-footer .btn { flex: 1; padding: 11px; font-size: 9px; }
 
 /* ══════════════════════════════════════════════
+   VIDEO PLAYER (CUSTOM)
+══════════════════════════════════════════════ */
+.video-player-wrap { position: relative; min-width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; }
+.video-player-wrap video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.video-tap-area { position: absolute; inset: 0; z-index: 2; cursor: pointer; }
+.video-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.78)); padding: 24px 12px 12px; z-index: 3; opacity: 1; transition: opacity 0.35s; }
+.video-controls.v-hidden { opacity: 0; pointer-events: none; }
+.video-ctrl-row { display: flex; align-items: center; gap: 10px; }
+.video-play-btn { width: 26px; height: 26px; border: 1px solid rgba(255,255,255,0.45); border-radius: 50%; background: none; color: white; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+.video-time { font-size: 8px; color: rgba(255,255,255,0.65); font-family: var(--mono); white-space: nowrap; flex-shrink: 0; min-width: 68px; text-align: right; }
+.video-scrub-wrap { flex: 1; padding: 9px 0; cursor: pointer; touch-action: none; }
+.video-scrub-track { height: 2px; background: rgba(255,255,255,0.25); border-radius: 2px; position: relative; }
+.video-scrub-fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--gold); border-radius: 2px; width: 0%; pointer-events: none; }
+.video-scrub-thumb { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); transform: translate(-50%, -50%); left: 0%; pointer-events: none; }
+.video-center-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.45); border: 1.5px solid rgba(255,255,255,0.4); color: white; font-size: 18px; display: flex; align-items: center; justify-content: center; z-index: 4; opacity: 0; transition: opacity 0.18s; pointer-events: none; }
+.video-center-btn.flash { opacity: 1; }
+
+/* ══════════════════════════════════════════════
+   MUSIC SCRUB (DRAGGABLE)
+══════════════════════════════════════════════ */
+.np-progress-bar { cursor: pointer; touch-action: none; }
+
+/* ══════════════════════════════════════════════
+   FEED CARD LOCATION
+══════════════════════════════════════════════ */
+.post-card-location { display: flex; align-items: center; gap: 3px; font-size: 8px; color: var(--text-muted); margin-top: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
+
+/* ══════════════════════════════════════════════
+   IMAGE ZOOM
+══════════════════════════════════════════════ */
+.zoomable-wrap { min-width: 100%; height: 100%; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
+.zoomable-wrap img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; user-select: none; -webkit-user-select: none; touch-action: none; will-change: transform; }
+
+/* ══════════════════════════════════════════════
    QR OVERLAY
 ══════════════════════════════════════════════ */
 #qr-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 600; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
@@ -1525,17 +1559,18 @@ function renderFeed(posts) {
     return;
   }
   container.innerHTML = posts.map(renderPostCard).join('');
+  loadFeedThumbnails();
 }
 
 function renderPostCard(post) {
   const date = formatDate(post.date);
-  const thumbUrl = post.thumbnail
-    ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`
-    : null;
+  const thumbPath = post.thumbnail || null;
   return `
     <div class="post-card" onclick="openPost('${post.id}')">
       <div class="post-media-wrap">
-        ${thumbUrl ? `<img class="post-thumbnail" src="${thumbUrl}" loading="lazy" alt="" onerror="this.style.display='none'">` : `<div style="width:100%;height:100%;background:var(--surface2)"></div>`}
+        ${thumbPath
+          ? `<img class="post-thumbnail" data-thumb-path="${thumbPath}" alt="" style="opacity:0;transition:opacity 0.3s" onerror="this.style.display='none'">`
+          : `<div style="width:100%;height:100%;background:var(--surface2)"></div>`}
         ${post.mediaCount > 1 ? `<div class="post-badge post-badge-count">1 / ${post.mediaCount}</div>` : ''}
         ${post.hasVideo ? `<div class="post-badge post-badge-video">▶ video</div>` : ''}
         ${post.songTitle ? `<div class="post-music-strip"><div class="mini-disc" style="background:radial-gradient(circle at 35% 35%,${discColor(post.songTitle)[0]},${discColor(post.songTitle)[1]})"></div><div class="music-strip-info"><div class="music-strip-title">${esc(post.songTitle)}</div><div class="music-strip-artist">${esc(post.songArtist||'')}</div></div></div>` : ''}
@@ -1543,8 +1578,33 @@ function renderPostCard(post) {
       <div class="post-body">
         <div class="post-date">${date}</div>
         ${post.captionPreview ? `<div class="post-caption">${esc(post.captionPreview)}</div>` : ''}
+        ${post.location ? `<div class="post-card-location"><span>📍</span><span>${esc(post.location)}</span></div>` : ''}
       </div>
     </div>`;
+}
+
+function loadFeedThumbnails() {
+  if (!state.auth) return;
+  const imgs = document.querySelectorAll('.post-thumbnail[data-thumb-path]');
+  if (!imgs.length) return;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(async (entry) => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      obs.unobserve(img);
+      const path = img.dataset.thumbPath;
+      if (!path || img.dataset.loaded) return;
+      img.dataset.loaded = '1';
+      try {
+        const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
+        if (info?.download_url) {
+          img.onload = () => { img.style.opacity = '1'; };
+          img.src = info.download_url;
+        }
+      } catch {}
+    });
+  }, { rootMargin: '300px' });
+  imgs.forEach(img => obs.observe(img));
 }
 
 function handleSearch(query) {
@@ -1569,6 +1629,7 @@ async function openPost(postId) {
   audioEl.onloadedmetadata = null;
   audioEl.onplay = null;
   audioEl.onpause = null;
+  audioEl._eventsSet = false;
 
   // Reset UI
   document.getElementById('post-slides').innerHTML = '';
@@ -1611,20 +1672,20 @@ async function openPost(postId) {
     // Render slides using authenticated download_urls
     for (let i = 0; i < sortedMedia.length; i++) {
       const m = sortedMedia[i];
-      const url = folderUrls[m.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${m.filename}`;
+      let url = folderUrls[m.filename];
+      if (!url) {
+        // Fetch individually to get an authenticated download_url
+        try {
+          const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
+          url = info?.download_url || '';
+        } catch { url = ''; }
+      }
 
       let el;
       if (m.type === 'video') {
-        el = document.createElement('video');
-        el.className = 'post-view-slide video-slide';
-        el.src = url;
-        el.controls = true;
-        el.playsInline = true;
+        el = createVideoSlide(url);
       } else {
-        el = document.createElement('img');
-        el.className = 'post-view-slide';
-        el.src = url;
-        el.alt = '';
+        el = createImageSlide(url);
       }
       slides.appendChild(el);
 
@@ -1656,6 +1717,198 @@ async function openPost(postId) {
   }
 }
 
+// ── VIDEO SLIDE ────────────────────────────────────────────────────
+function createVideoSlide(url) {
+  const wrap = document.createElement('div');
+  wrap.className = 'video-player-wrap';
+
+  const video = document.createElement('video');
+  video.src = url;
+  video.playsInline = true;
+  video.preload = 'metadata';
+  video.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
+
+  const centerBtn = document.createElement('div');
+  centerBtn.className = 'video-center-btn';
+  centerBtn.textContent = '▶';
+
+  const controls = document.createElement('div');
+  controls.className = 'video-controls';
+  controls.innerHTML = `
+    <div class="video-ctrl-row">
+      <button class="video-play-btn">▶</button>
+      <div class="video-scrub-wrap">
+        <div class="video-scrub-track">
+          <div class="video-scrub-fill"></div>
+          <div class="video-scrub-thumb"></div>
+        </div>
+      </div>
+      <span class="video-time">0:00 / 0:00</span>
+    </div>`;
+
+  wrap.appendChild(video);
+  wrap.appendChild(centerBtn);
+  wrap.appendChild(controls);
+
+  const playBtn    = controls.querySelector('.video-play-btn');
+  const scrubFill  = controls.querySelector('.video-scrub-fill');
+  const scrubThumb = controls.querySelector('.video-scrub-thumb');
+  const scrubWrap  = controls.querySelector('.video-scrub-wrap');
+  const timeLabel  = controls.querySelector('.video-time');
+  let hideTimer;
+
+  function showControls() {
+    controls.classList.remove('v-hidden');
+    clearTimeout(hideTimer);
+    if (!video.paused) hideTimer = setTimeout(() => controls.classList.add('v-hidden'), 3000);
+  }
+
+  function updateProgress() {
+    if (!video.duration) return;
+    const pct = (video.currentTime / video.duration * 100);
+    scrubFill.style.width = pct + '%';
+    scrubThumb.style.left = pct + '%';
+    timeLabel.textContent = `${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;
+  }
+
+  function flashCenter(icon) {
+    centerBtn.textContent = icon;
+    centerBtn.classList.add('flash');
+    setTimeout(() => centerBtn.classList.remove('flash'), 350);
+  }
+
+  video.addEventListener('loadedmetadata', () => { timeLabel.textContent = `0:00 / ${fmtTime(video.duration)}`; });
+  video.addEventListener('timeupdate', updateProgress);
+  video.addEventListener('play',  () => { playBtn.textContent = '⏸'; showControls(); });
+  video.addEventListener('pause', () => { playBtn.textContent = '▶'; showControls(); });
+  video.addEventListener('ended', () => { playBtn.textContent = '▶'; controls.classList.remove('v-hidden'); });
+
+  // Tap on video area toggles play/pause
+  const tapArea = document.createElement('div');
+  tapArea.className = 'video-tap-area';
+  wrap.appendChild(tapArea);
+
+  tapArea.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (video.paused) { video.play(); flashCenter('⏸'); } else { video.pause(); flashCenter('▶'); }
+    showControls();
+  });
+
+  playBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (video.paused) video.play(); else video.pause();
+    showControls();
+  });
+
+  // Scrubbing
+  let isScrubbing = false;
+  function seekTo(clientX) {
+    const rect = scrubWrap.querySelector('.video-scrub-track').getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    if (video.duration) video.currentTime = pct * video.duration;
+    updateProgress();
+  }
+
+  scrubWrap.addEventListener('mousedown', (e) => { e.stopPropagation(); isScrubbing = true; seekTo(e.clientX); });
+  scrubWrap.addEventListener('touchstart', (e) => { e.stopPropagation(); isScrubbing = true; seekTo(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener('mousemove', (e) => { if (isScrubbing) seekTo(e.clientX); });
+  document.addEventListener('touchmove', (e) => { if (isScrubbing) seekTo(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener('mouseup',  () => { isScrubbing = false; });
+  document.addEventListener('touchend', () => { isScrubbing = false; });
+
+  controls.addEventListener('click', (e) => e.stopPropagation());
+  showControls();
+  return wrap;
+}
+
+// ── IMAGE SLIDE (with pinch/double-tap zoom) ───────────────────────
+function createImageSlide(url) {
+  const wrap = document.createElement('div');
+  wrap.className = 'zoomable-wrap';
+
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = '';
+  img.draggable = false;
+  wrap.appendChild(img);
+
+  let scale = 1, lastScale = 1;
+  let originX = 0, originY = 0;
+  let panX = 0, panY = 0, lastPanX = 0, lastPanY = 0;
+  let lastTap = 0;
+  let isPinching = false;
+  let initialPinchDist = 0;
+  let panStart = { x: 0, y: 0, px: 0, py: 0 };
+
+  function applyTransform(animate) {
+    img.style.transition = animate ? 'transform 0.25s ease' : 'none';
+    img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  }
+
+  function clampPan() {
+    if (scale <= 1) { panX = 0; panY = 0; return; }
+    const maxX = (img.clientWidth  * (scale - 1)) / 2;
+    const maxY = (img.clientHeight * (scale - 1)) / 2;
+    panX = Math.max(-maxX, Math.min(maxX, panX));
+    panY = Math.max(-maxY, Math.min(maxY, panY));
+  }
+
+  function resetZoom() { scale = 1; panX = 0; panY = 0; applyTransform(true); }
+
+  function dist(t) {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  wrap.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      isPinching = true;
+      initialPinchDist = dist(e.touches);
+      lastScale = scale;
+    } else if (e.touches.length === 1) {
+      isPinching = false;
+      const now = Date.now();
+      if (now - lastTap < 280) {
+        // Double tap
+        if (scale > 1) { resetZoom(); } else { scale = 2.5; clampPan(); applyTransform(true); }
+        lastTap = 0;
+        return;
+      }
+      lastTap = now;
+      panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, px: panX, py: panY };
+    }
+  }, { passive: true });
+
+  wrap.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && isPinching) {
+      e.preventDefault();
+      const newDist = dist(e.touches);
+      scale = Math.max(1, Math.min(5, lastScale * (newDist / initialPinchDist)));
+      clampPan();
+      applyTransform(false);
+    } else if (e.touches.length === 1 && scale > 1 && !isPinching) {
+      e.preventDefault();
+      panX = panStart.px + (e.touches[0].clientX - panStart.x);
+      panY = panStart.py + (e.touches[0].clientY - panStart.y);
+      clampPan();
+      applyTransform(false);
+    }
+  }, { passive: false });
+
+  wrap.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) isPinching = false;
+    if (scale < 1.05) resetZoom();
+  }, { passive: true });
+
+  // Block parent swipe when zoomed in
+  wrap.addEventListener('touchstart', (e) => {
+    if (scale > 1) e.stopPropagation();
+  }, { passive: true });
+
+  return wrap;
+}
+
 // Swipe
 let touchX = 0;
 function touchStart(e) { touchX = e.touches[0].clientX; }
@@ -1683,6 +1936,28 @@ function setupAudioUI(title, artist, colorKey) {
   const [c1, c2] = discColor(colorKey || title || '');
   document.getElementById('np-disc').style.background = `radial-gradient(circle at 35% 35%, ${c1}, ${c2})`;
   np.style.display = 'flex';
+
+  // Wire up draggable music progress bar
+  const bar = document.getElementById('np-progress').parentElement;
+  if (bar && !bar._scrubWired) {
+    bar._scrubWired = true;
+    let scrubbing = false;
+    function scrubAudio(clientX) {
+      const audio = document.getElementById('audio-player');
+      if (!audio.duration) return;
+      const rect = bar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      audio.currentTime = pct * audio.duration;
+      document.getElementById('np-progress').style.width = (pct * 100) + '%';
+      document.getElementById('np-current').textContent = fmtTime(audio.currentTime);
+    }
+    bar.addEventListener('mousedown',  (e) => { scrubbing = true; scrubAudio(e.clientX); });
+    bar.addEventListener('touchstart', (e) => { scrubbing = true; scrubAudio(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('mousemove',  (e) => { if (scrubbing) scrubAudio(e.clientX); });
+    document.addEventListener('touchmove',  (e) => { if (scrubbing) scrubAudio(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('mouseup',  () => { scrubbing = false; });
+    document.addEventListener('touchend', () => { scrubbing = false; });
+  }
 }
 
 async function toggleAudio() {
