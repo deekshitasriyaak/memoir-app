@@ -34,8 +34,8 @@
   --text-faint:  #2e2820;
   --rose:        #c07060;
   --green:       #5a9e78;
-  --safe-top:    env(safe-area-inset-top, 44px);
-  --safe-bottom: env(safe-area-inset-bottom, 20px);
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   --serif:       'Playfair Display', Georgia, serif;
   --sans:        'Syne', sans-serif;
   --mono:        'Syne Mono', monospace;
@@ -47,83 +47,87 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 12px;
   -webkit-font-smoothing: antialiased;
 }
 
+body { background: #060503; }
+
 /* ══════════════════════════════════════════════
-   SCREEN SYSTEM
+   APP CONTAINER — background decoration only
+══════════════════════════════════════════════ */
+#app { display: contents; }
+
+/* ══════════════════════════════════════════════
+   SCREEN SYSTEM — centred phone-width columns
 ══════════════════════════════════════════════ */
 .screen {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
   display: none;
   flex-direction: column;
   background: var(--bg);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  overflow: hidden;
 }
 
-.screen.active {
-  display: flex;
-}
+.screen.active { display: flex; }
 
-.screen.slide-in {
-  animation: slideIn 0.3s ease forwards;
-}
-
-.screen.slide-out {
-  animation: slideOut 0.25s ease forwards;
-}
+.screen.slide-in { animation: slideIn 0.28s ease forwards; }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from { transform: translateX(calc(-50% + 20px)); opacity: 0; }
+  to   { transform: translateX(-50%);              opacity: 1; }
 }
 
-@keyframes slideOut {
-  from { transform: translateX(0);    opacity: 1; }
-  to   { transform: translateX(-30%); opacity: 0; }
+/* Desktop: show dark gutter around the centred column */
+@media (min-width: 480px) {
+  .screen { box-shadow: 0 0 0 1px #1a1610; }
 }
 
 /* ══════════════════════════════════════════════
    SHARED COMPONENTS
 ══════════════════════════════════════════════ */
-
-/* Header */
 .app-header {
-  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  padding: calc(var(--safe-top) + 10px) 16px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background: rgba(14,12,10,0.95);
+  background: rgba(14,12,10,0.96);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  min-height: 52px;
 }
 
 .logo {
   font-family: var(--serif);
-  font-size: 28px;
+  font-size: 24px;
   font-style: italic;
   color: var(--gold);
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
 }
 
 .header-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 7px;
   background: none;
   color: var(--text-muted);
-  font-size: 18px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s;
   font-family: var(--mono);
+  flex-shrink: 0;
 }
 
 .header-btn:active, .header-btn:hover {
@@ -131,9 +135,8 @@ html, body {
   color: var(--gold);
 }
 
-.header-actions { display: flex; gap: 10px; }
+.header-actions { display: flex; gap: 8px; }
 
-/* Scrollable body */
 .scroll-body {
   flex: 1;
   overflow-y: auto;
@@ -141,7 +144,6 @@ html, body {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
-
 .scroll-body::-webkit-scrollbar { display: none; }
 
 /* Bottom nav */
@@ -150,7 +152,7 @@ html, body {
   border-top: 1px solid var(--border);
   display: flex;
   background: rgba(14,12,10,0.98);
-  padding-bottom: var(--safe-bottom);
+  padding-bottom: max(var(--safe-bottom), 4px);
 }
 
 .nav-tab {
@@ -158,8 +160,8 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 10px 0;
+  gap: 2px;
+  padding: 8px 0;
   border: none;
   background: none;
   color: var(--text-muted);
@@ -169,14 +171,8 @@ html, body {
 }
 
 .nav-tab.active { color: var(--gold); }
-
-.nav-tab-icon { font-size: 20px; }
-
-.nav-tab-label {
-  font-size: 8px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
+.nav-tab-icon { font-size: 18px; }
+.nav-tab-label { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; }
 
 /* Buttons */
 .btn {
@@ -184,59 +180,37 @@ html, body {
   color: var(--gold);
   background: none;
   border-radius: 6px;
-  padding: 13px 20px;
+  padding: 11px 18px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
   width: 100%;
   transition: all 0.15s;
 }
-
 .btn:active, .btn:hover { background: var(--gold); color: var(--bg); }
 .btn:disabled { opacity: 0.35; pointer-events: none; }
 
-.btn-primary {
-  background: var(--gold);
-  color: var(--bg);
-}
+.btn-primary { background: var(--gold); color: var(--bg); }
+.btn-primary:active, .btn-primary:hover { background: #dbb878; color: var(--bg); }
 
-.btn-primary:active, .btn-primary:hover {
-  background: #dbb878;
-  color: var(--bg);
-}
+.btn-ghost { border-color: var(--border2); color: var(--text-muted); }
+.btn-ghost:active, .btn-ghost:hover { background: var(--surface2); color: var(--text); }
 
-.btn-ghost {
-  border-color: var(--border2);
-  color: var(--text-muted);
-}
-
-.btn-ghost:active, .btn-ghost:hover {
-  background: var(--surface2);
-  color: var(--text);
-}
-
-.btn-danger {
-  border-color: rgba(192,112,96,0.4);
-  color: var(--rose);
-}
-
-.btn-danger:active, .btn-danger:hover {
-  background: rgba(192,112,96,0.1);
-  color: var(--rose);
-}
+.btn-danger { border-color: rgba(192,112,96,0.4); color: var(--rose); }
+.btn-danger:active, .btn-danger:hover { background: rgba(192,112,96,0.1); }
 
 /* Form fields */
-.field { margin-bottom: 18px; }
+.field { margin-bottom: 14px; }
 
 .field-label {
   display: block;
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 7px;
+  margin-bottom: 6px;
 }
 
 .field-input {
@@ -244,38 +218,31 @@ html, body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   color: var(--text);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 12px;
   outline: none;
   transition: border-color 0.15s;
   -webkit-appearance: none;
   appearance: none;
 }
-
 .field-input:focus { border-color: var(--gold-dim); }
 .field-input::placeholder { color: var(--text-faint); }
 
-.field-hint {
-  margin-top: 6px;
-  font-size: 10px;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
-
+.field-hint { margin-top: 5px; font-size: 9px; color: var(--text-muted); line-height: 1.6; }
 .field-hint a { color: var(--gold-dim); text-decoration: none; }
 
 /* Toast */
 #toast-container {
-  position: fixed;
-  bottom: calc(var(--safe-bottom) + 80px);
-  left: 16px;
-  right: 16px;
+  position: absolute;
+  bottom: calc(max(var(--safe-bottom), 4px) + 62px);
+  left: 12px;
+  right: 12px;
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   pointer-events: none;
 }
 
@@ -283,47 +250,26 @@ html, body {
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-radius: 10px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 9px;
   pointer-events: all;
-  animation: toastIn 0.3s ease;
+  animation: toastIn 0.25s ease;
 }
-
-.toast.error { border-color: rgba(192,112,96,0.4); }
+.toast.error  { border-color: rgba(192,112,96,0.4); }
 .toast.success { border-color: rgba(90,158,120,0.4); }
 
 @keyframes toastIn {
-  from { transform: translateY(20px); opacity: 0; }
+  from { transform: translateY(12px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-.toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.toast-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
 .toast-body { flex: 1; }
-
-.toast-title {
-  font-size: 12px;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-
-.toast-msg {
-  font-size: 10px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.toast-close {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 16px;
-  flex-shrink: 0;
-  padding: 0;
-  font-family: var(--mono);
-}
+.toast-title { font-size: 11px; color: var(--text); margin-bottom: 2px; }
+.toast-msg { font-size: 9px; color: var(--text-muted); line-height: 1.5; }
+.toast-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; flex-shrink: 0; padding: 0; font-family: var(--mono); }
 
 /* Loading skeleton */
 .skeleton {
@@ -332,15 +278,11 @@ html, body {
   animation: shimmer 1.4s infinite;
   border-radius: 4px;
 }
-
-@keyframes shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
-}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
 /* Sheet (bottom modal) */
 .sheet-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0,0,0,0.6);
   z-index: 500;
@@ -349,521 +291,240 @@ html, body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
-
 .sheet-overlay.open { display: flex; }
 
 .sheet {
   width: 100%;
   background: var(--surface);
   border-top: 1px solid var(--border2);
-  border-radius: 20px 20px 0 0;
-  padding: 0 20px calc(var(--safe-bottom) + 20px);
-  animation: sheetUp 0.3s ease;
+  border-radius: 18px 18px 0 0;
+  padding: 0 18px calc(max(var(--safe-bottom), 4px) + 16px);
+  animation: sheetUp 0.28s ease;
 }
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-@keyframes sheetUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
+.sheet-handle { width: 32px; height: 3px; background: var(--border2); border-radius: 2px; margin: 10px auto 16px; }
+.sheet-title { font-family: var(--serif); font-size: 18px; font-style: italic; color: var(--text); margin-bottom: 6px; }
+.sheet-msg { font-size: 10px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+.sheet-actions { display: flex; flex-direction: column; gap: 8px; }
 
-.sheet-handle {
-  width: 36px;
-  height: 4px;
-  background: var(--border2);
-  border-radius: 2px;
-  margin: 12px auto 20px;
-}
-
-.sheet-title {
-  font-family: var(--serif);
-  font-size: 20px;
-  font-style: italic;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-
-.sheet-msg {
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.6;
-  margin-bottom: 20px;
-}
-
-.sheet-actions { display: flex; flex-direction: column; gap: 10px; }
-
-/* Section label */
 .section-label {
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-/* Empty state */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 40px;
-  text-align: center;
-  gap: 12px;
-}
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 32px; text-align: center; gap: 10px; }
+.empty-icon { font-size: 36px; opacity: 0.18; }
+.empty-title { font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--text-muted); }
+.empty-sub { font-size: 10px; color: var(--text-faint); line-height: 1.6; }
 
-.empty-icon { font-size: 40px; opacity: 0.2; }
-
-.empty-title {
-  font-family: var(--serif);
-  font-size: 22px;
-  font-style: italic;
-  color: var(--text-muted);
-}
-
-.empty-sub {
-  font-size: 11px;
-  color: var(--text-faint);
-  line-height: 1.6;
-}
-
+/* Spin utility */
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ══════════════════════════════════════════════
    SCREEN: SETUP
 ══════════════════════════════════════════════ */
-#screen-setup {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
+#screen-setup { overflow-y: auto; }
 
 .setup-wrap {
   min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: calc(var(--safe-top) + 40px) 28px calc(var(--safe-bottom) + 40px);
+  padding: calc(var(--safe-top) + 32px) 24px calc(max(var(--safe-bottom),4px) + 32px);
   position: relative;
 }
 
 .setup-glow {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 300px;
+  height: 260px;
   background: radial-gradient(ellipse at 50% 0%, rgba(200,164,106,0.07) 0%, transparent 70%);
   pointer-events: none;
 }
 
-.setup-logo {
-  font-family: var(--serif);
-  font-size: 56px;
-  font-style: italic;
-  color: var(--gold);
-  letter-spacing: -2px;
-  line-height: 1;
-  margin-bottom: 4px;
-}
+.setup-logo { font-family: var(--serif); font-size: 48px; font-style: italic; color: var(--gold); letter-spacing: -2px; line-height: 1; margin-bottom: 3px; }
+.setup-tagline { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 40px; }
 
-.setup-tagline {
-  font-size: 10px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 48px;
-}
-
-.setup-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 24px 0;
-}
-
-.setup-section-title {
-  font-size: 9px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--gold-dim);
-  margin-bottom: 16px;
-}
+.setup-section-title { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 14px; }
 
 .setup-note {
   background: var(--gold-faint);
   border: 1px solid rgba(200,164,106,0.15);
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 11px 13px;
   font-size: 10px;
   color: var(--text-muted);
   line-height: 1.7;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
-
 .setup-note strong { color: var(--gold-dim); }
 
 #setup-error {
   background: rgba(192,112,96,0.08);
   border: 1px solid rgba(192,112,96,0.3);
   border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 11px;
+  padding: 11px 13px;
+  font-size: 10px;
   color: var(--rose);
   line-height: 1.6;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   display: none;
 }
 
-.connecting-state {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-}
-
-.connecting-spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--border2);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.connecting-steps {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 2;
-}
-
+.connecting-state { display: none; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0; }
+.connecting-spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.connecting-steps { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 2; }
 .connecting-steps .step { opacity: 0.3; transition: opacity 0.3s; }
 .connecting-steps .step.done { opacity: 1; color: var(--green); }
 .connecting-steps .step.active { opacity: 1; color: var(--gold); }
 
-
 /* ══════════════════════════════════════════════
    SCREEN: FEED
 ══════════════════════════════════════════════ */
-.search-bar {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.search-input-wrap {
-  position: relative;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-  font-size: 14px;
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 9px 12px 9px 34px;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 12px;
-  outline: none;
-  -webkit-appearance: none;
-}
-
+.search-bar { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.search-input-wrap { position: relative; }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; pointer-events: none; }
+.search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px 8px 30px; color: var(--text); font-family: var(--mono); font-size: 11px; outline: none; -webkit-appearance: none; }
 .search-input:focus { border-color: var(--border2); }
 .search-input::placeholder { color: var(--text-faint); }
 
 /* Post card */
 .post-card {
-  margin: 0 14px 14px;
+  margin: 0 10px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.15s;
-  -webkit-tap-highlight-color: transparent;
 }
-
 .post-card:active { transform: scale(0.985); border-color: var(--border2); }
 
-.post-media-wrap {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4/3;
-  overflow: hidden;
-  background: var(--surface2);
-}
+.post-media-wrap { position: relative; width: 100%; aspect-ratio: 4/3; overflow: hidden; background: var(--surface2); }
+.post-thumbnail { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.post-thumbnail {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
+.post-badge { position: absolute; top: 8px; border-radius: 16px; padding: 2px 8px; font-size: 8px; letter-spacing: 1px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background: rgba(14,12,10,0.7); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); }
+.post-badge-count { right: 8px; }
+.post-badge-video { left: 8px; color: var(--gold); border-color: rgba(200,164,106,0.3); }
 
-.post-badge {
-  position: absolute;
-  top: 10px;
-  border-radius: 20px;
-  padding: 3px 9px;
-  font-size: 8px;
-  letter-spacing: 1px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  background: rgba(14,12,10,0.7);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: var(--text-muted);
-}
+.post-music-strip { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(14,12,10,0.88)); padding: 20px 10px 8px; display: flex; align-items: center; gap: 7px; }
 
-.post-badge-count { right: 10px; }
-.post-badge-video { left: 10px; color: var(--gold); border-color: rgba(200,164,106,0.3); }
-
-.post-music-strip {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  background: linear-gradient(transparent, rgba(14,12,10,0.88));
-  padding: 24px 12px 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mini-disc {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--gold);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.mini-disc::after {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--bg);
-  position: absolute;
-}
-
+.mini-disc { width: 20px; height: 20px; border-radius: 50%; background: var(--gold); flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+.mini-disc::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--bg); position: absolute; }
 .mini-disc.spinning { animation: spin 3s linear infinite; }
 
 .music-strip-info { flex: 1; overflow: hidden; }
+.music-strip-title { font-size: 9px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.music-strip-artist { font-size: 8px; color: var(--text-muted); }
 
-.music-strip-title {
-  font-size: 10px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.post-body { padding: 8px 12px 12px; }
+.post-date { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.post-caption { font-family: var(--sans); font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-.music-strip-artist {
-  font-size: 8px;
-  color: var(--text-muted);
-}
-
-.post-body {
-  padding: 10px 14px 14px;
-}
-
-.post-date {
-  font-size: 8px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 5px;
-}
-
-.post-caption {
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 300;
-  color: var(--text);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Feed skeleton */
-.skeleton-card {
-  margin: 0 14px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
+.skeleton-card { margin: 0 10px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .skeleton-media { width: 100%; aspect-ratio: 4/3; }
-.skeleton-line { height: 10px; margin: 12px 14px 6px; }
-.skeleton-line-sm { height: 8px; margin: 0 14px 14px; width: 60%; }
+.skeleton-line { height: 9px; margin: 10px 12px 5px; }
+.skeleton-line-sm { height: 8px; margin: 0 12px 12px; width: 55%; }
 
 /* iOS install nudge */
-#ios-install-nudge {
-  margin: 12px 14px 0;
-  background: var(--gold-faint);
-  border: 1px solid rgba(200,164,106,0.2);
-  border-radius: 10px;
-  padding: 12px 14px;
-  display: none;
-  align-items: center;
-  gap: 12px;
-}
-
-.nudge-text { flex: 1; font-size: 10px; color: var(--text-muted); line-height: 1.6; }
+#ios-install-nudge { margin: 10px 10px 0; background: var(--gold-faint); border: 1px solid rgba(200,164,106,0.2); border-radius: 9px; padding: 10px 12px; display: none; align-items: center; gap: 10px; }
+.nudge-text { flex: 1; font-size: 9px; color: var(--text-muted); line-height: 1.6; }
 .nudge-text strong { color: var(--gold-dim); }
-.nudge-close { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 0; }
-
+.nudge-close { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 0; }
 
 /* ══════════════════════════════════════════════
    SCREEN: POST VIEW
 ══════════════════════════════════════════════ */
-#screen-post .app-header { position: absolute; top: 0; left: 0; right: 0; z-index: 10; background: transparent; border: none; }
+#screen-post { background: var(--bg); }
+
+#screen-post .app-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  background: transparent;
+  border: none;
+}
 
 .post-view-media {
   width: 100%;
   aspect-ratio: 1/1;
   position: relative;
   overflow: hidden;
-  background: var(--surface2);
+  background: #000;
+  flex-shrink: 0;
   touch-action: pan-y;
 }
 
-.post-view-slides {
-  display: flex;
-  height: 100%;
-  transition: transform 0.3s ease;
-}
-
-.post-view-slide {
-  min-width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.post-view-slide.video-slide {
-  object-fit: contain;
-  background: #000;
-}
-
-.swipe-indicators {
+.post-view-blur-bg {
   position: absolute;
-  bottom: 10px;
-  left: 0; right: 0;
+  inset: -10px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px);
+  transform: scale(1.1);
+  opacity: 0.55;
+  z-index: 0;
+}
+
+.post-view-slides {
+  position: absolute;
+  inset: 0;
   display: flex;
-  justify-content: center;
-  gap: 5px;
-  pointer-events: none;
+  z-index: 1;
+  transition: transform 0.28s ease;
 }
 
-.swipe-dot {
-  height: 4px;
-  width: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.35);
-  transition: all 0.25s;
-}
+.post-view-slide { min-width: 100%; height: 100%; object-fit: contain; display: block; }
+.post-view-slide.video-slide { object-fit: contain; background: transparent; }
 
-.swipe-dot.active {
-  width: 16px;
-  background: white;
-}
+.swipe-indicators { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; pointer-events: none; z-index: 2; }
+.swipe-dot { height: 3px; width: 3px; border-radius: 2px; background: rgba(255,255,255,0.35); transition: all 0.25s; }
+.swipe-dot.active { width: 14px; background: white; }
 
-.post-view-body {
-  padding: 0 16px 16px;
-}
+.post-view-body { padding: 0 14px 20px; }
 
 /* Now playing */
 .now-playing {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 11px 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
 }
 
 .np-disc {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #dbb878, #7a5030);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
 }
-
-.np-disc::after {
-  content: '';
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--bg);
-  position: absolute;
-}
-
+.np-disc::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); position: absolute; }
 .np-disc.playing { animation: spin 3s linear infinite; }
 
 .np-info { flex: 1; overflow: hidden; }
+.np-title { font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-artist { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
 
-.np-title {
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.np-artist { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-
-.np-progress-wrap { margin-top: 8px; }
-
-.np-progress-bar {
-  height: 2px;
-  background: var(--border2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.np-progress-fill {
-  height: 100%;
-  background: var(--gold);
-  border-radius: 2px;
-  width: 0%;
-  transition: width 0.5s linear;
-}
-
-.np-time {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-  font-size: 8px;
-  color: var(--text-muted);
-}
+.np-progress-wrap { margin-top: 7px; }
+.np-progress-bar { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.np-progress-fill { height: 100%; background: var(--gold); border-radius: 2px; width: 0%; transition: width 0.5s linear; }
+.np-time { display: flex; justify-content: space-between; margin-top: 3px; font-size: 8px; color: var(--text-muted); }
 
 .np-play-btn {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--gold-dim);
+  border: 1.5px solid var(--gold-dim);
   border-radius: 50%;
   background: none;
   color: var(--gold);
@@ -874,150 +535,72 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.15s;
-  padding-left: 2px;
 }
-
 .np-play-btn:active { background: var(--gold-faint); }
+.np-play-btn.loading { opacity: 0.5; pointer-events: none; }
 
-.np-unlock-hint {
-  font-size: 9px;
-  color: var(--text-muted);
-  text-align: center;
-  margin-top: 6px;
-  letter-spacing: 1px;
-}
+.post-view-date { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-top: 14px; margin-bottom: 7px; }
+.post-view-caption { font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--text); line-height: 1.7; }
 
-.post-view-date {
-  font-size: 9px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-top: 16px;
-  margin-bottom: 8px;
-}
+.post-view-location { font-size: 10px; color: var(--text-muted); margin-top: 7px; display: flex; align-items: center; gap: 4px; }
 
-.post-view-caption {
-  font-family: var(--serif);
-  font-size: 16px;
-  font-style: italic;
-  color: var(--text);
-  line-height: 1.7;
-}
-
-.post-view-location {
-  font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.post-view-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.post-view-actions .btn { flex: 1; padding: 11px; font-size: 9px; }
-
+.post-view-actions { display: flex; gap: 8px; margin-top: 16px; }
+.post-view-actions .btn { flex: 1; padding: 10px; font-size: 9px; }
 
 /* ══════════════════════════════════════════════
    SCREEN: CREATE / EDIT POST
 ══════════════════════════════════════════════ */
 .create-header {
-  padding: calc(var(--safe-top) + 12px) 16px 12px;
+  padding: calc(var(--safe-top) + 10px) 14px 10px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  min-height: 52px;
 }
 
-.create-title {
-  flex: 1;
-  font-family: var(--serif);
-  font-size: 20px;
-  font-style: italic;
-  color: var(--text);
-}
-
-.create-body { padding: 20px 16px; display: flex; flex-direction: column; gap: 20px; }
+.create-title { flex: 1; font-family: var(--serif); font-size: 18px; font-style: italic; color: var(--text); }
+.create-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
 /* Media picker */
 .media-picker {
   border: 1.5px dashed var(--gold-dim);
-  border-radius: 12px;
+  border-radius: 10px;
   aspect-ratio: 4/3;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.15s;
   position: relative;
   overflow: hidden;
   background: var(--surface);
 }
-
 .media-picker:active { border-color: var(--gold); background: var(--gold-faint); }
+.media-picker-icon { font-size: 28px; opacity: 0.22; }
+.media-picker-text { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+.media-picker-sub { font-size: 8px; color: var(--text-faint); }
 
-.media-picker-icon { font-size: 32px; opacity: 0.25; }
-.media-picker-text { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
-.media-picker-sub { font-size: 9px; color: var(--text-faint); }
-
-.media-grid {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 2px;
-}
-
-.media-grid-item {
-  position: relative;
-  overflow: hidden;
-  background: var(--surface2);
-}
-
-.media-grid-item:first-child {
-  grid-row: 1 / 3;
-}
-
-.media-grid-item img,
-.media-grid-item video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.media-grid-more {
-  position: absolute;
-  inset: 0;
-  background: rgba(14,12,10,0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--serif);
-  font-size: 22px;
-  font-style: italic;
-  color: var(--text);
-}
+.media-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
+.media-grid-item { position: relative; overflow: hidden; background: var(--surface2); }
+.media-grid-item:first-child { grid-row: 1 / 3; }
+.media-grid-item img, .media-grid-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-grid-more { position: absolute; inset: 0; background: rgba(14,12,10,0.75); display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--text); }
 
 .media-remove-btn {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
   background: rgba(14,12,10,0.82);
   border: 1px solid rgba(192,112,96,0.5);
   border-radius: 50%;
   color: var(--rose);
-  font-size: 10px;
+  font-size: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1027,164 +610,60 @@ html, body {
   padding: 0;
   font-family: var(--mono);
 }
-
 .media-remove-btn:active { background: rgba(192,112,96,0.3); }
 
-.media-add-btn {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  background: rgba(14,12,10,0.8);
-  border: 1px solid var(--gold-dim);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gold);
-  font-size: 18px;
-}
+.media-add-btn { position: absolute; bottom: 8px; right: 8px; width: 28px; height: 28px; background: rgba(14,12,10,0.8); border: 1px solid var(--gold-dim); border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 16px; }
 
-/* Caption textarea */
 .caption-textarea {
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
+  border-radius: 7px;
+  padding: 11px 12px;
   font-family: var(--serif);
-  font-size: 15px;
+  font-size: 14px;
   font-style: italic;
   color: var(--text);
   resize: none;
   outline: none;
-  min-height: 90px;
+  min-height: 80px;
   line-height: 1.6;
   transition: border-color 0.15s;
   -webkit-appearance: none;
 }
-
 .caption-textarea:focus { border-color: var(--border2); }
 .caption-textarea::placeholder { color: var(--text-faint); }
 
-/* Music selector */
-.music-selector { display: flex; flex-direction: column; gap: 8px; }
-
-.music-option {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 11px 13px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.music-option.selected {
-  border-color: var(--gold-dim);
-  background: var(--gold-faint);
-}
-
+.music-selector { display: flex; flex-direction: column; gap: 6px; }
+.music-option { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.15s; }
+.music-option.selected { border-color: var(--gold-dim); background: var(--gold-faint); }
 .music-option:active { transform: scale(0.98); }
-
-.mo-disc {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
+.mo-disc { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
 .mo-info { flex: 1; overflow: hidden; }
+.mo-title { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mo-artist { font-size: 8px; color: var(--text-muted); }
+.mo-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; transition: all 0.15s; }
+.music-option.selected .mo-check { background: var(--gold); border-color: var(--gold); color: var(--bg); }
 
-.mo-title {
-  font-family: var(--sans);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mo-artist { font-size: 9px; color: var(--text-muted); }
-
-.mo-check {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border2);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  transition: all 0.15s;
-}
-
-.music-option.selected .mo-check {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: var(--bg);
-}
-
-/* Upload progress */
-.upload-progress {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-}
-
+.upload-progress { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 13px; display: none; flex-direction: column; gap: 10px; }
 .upload-progress.visible { display: flex; }
+.upload-row { display: flex; justify-content: space-between; align-items: center; }
+.upload-label { font-size: 10px; color: var(--text-muted); }
+.upload-pct { font-size: 10px; color: var(--gold); }
+.upload-file { font-size: 8px; color: var(--text-faint); }
+.upload-count { font-size: 8px; color: var(--text-muted); }
+.upload-bar { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.upload-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 2px; transition: width 0.3s ease; }
 
-.upload-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.upload-label { font-size: 11px; color: var(--text-muted); }
-.upload-pct { font-size: 11px; color: var(--gold); }
-.upload-file { font-size: 9px; color: var(--text-faint); }
-.upload-count { font-size: 9px; color: var(--text-muted); }
-
-.upload-bar {
-  height: 2px;
-  background: var(--border2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.upload-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-/* Edit media strip — existing photos shown as horizontal scroll */
-.edit-media-strip {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
+/* Edit media strip */
+.edit-media-strip { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .edit-media-strip::-webkit-scrollbar { display: none; }
 
 .edit-media-thumb {
   flex-shrink: 0;
-  width: 90px;
-  height: 90px;
-  border-radius: 8px;
+  width: 82px;
+  height: 82px;
+  border-radius: 7px;
   overflow: hidden;
   position: relative;
   border: 1px solid var(--border);
@@ -1192,370 +671,93 @@ html, body {
   cursor: grab;
   touch-action: none;
 }
+.edit-media-thumb.dragging { opacity: 0.45; border-color: var(--gold-dim); cursor: grabbing; }
+.edit-media-thumb.drag-over { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-faint); }
+.edit-media-thumb.to-delete { opacity: 0.28; }
+.edit-media-thumb img, .edit-media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.edit-media-thumb .media-remove-btn { top: 3px; right: 3px; width: 16px; height: 16px; font-size: 7px; }
+.drag-handle { position: absolute; bottom: 3px; left: 3px; width: 16px; height: 16px; background: rgba(14,12,10,0.7); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 8px; }
 
-.edit-media-thumb.dragging {
-  opacity: 0.5;
-  border-color: var(--gold-dim);
-  cursor: grabbing;
-}
+.edit-add-more { flex-shrink: 0; width: 82px; height: 82px; border-radius: 7px; border: 1.5px dashed var(--gold-dim); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; color: var(--gold-dim); font-size: 20px; }
+.edit-add-more span { font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); }
 
-.edit-media-thumb.drag-over {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 2px var(--gold-faint);
-}
-
-.edit-media-thumb.to-delete {
-  opacity: 0.3;
-}
-
-.edit-media-thumb img,
-.edit-media-thumb video {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
-
-.edit-media-thumb .media-remove-btn {
-  top: 4px; right: 4px; width: 18px; height: 18px; font-size: 8px;
-}
-
-.edit-media-thumb .drag-handle {
-  position: absolute;
-  bottom: 4px;
-  left: 4px;
-  width: 18px;
-  height: 18px;
-  background: rgba(14,12,10,0.7);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 9px;
-}
-
-.edit-add-more {
-  flex-shrink: 0;
-  width: 90px;
-  height: 90px;
-  border-radius: 8px;
-  border: 1.5px dashed var(--gold-dim);
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  color: var(--gold-dim);
-  font-size: 22px;
-}
-
-.edit-add-more span { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); }
-
-.edit-date-row {
-  padding: 12px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.edit-date-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
-.edit-date-value { font-size: 12px; color: var(--text-faint); }
-
+.edit-date-row { padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; display: flex; align-items: center; justify-content: space-between; }
+.edit-date-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+.edit-date-value { font-size: 11px; color: var(--text-faint); }
 
 /* ══════════════════════════════════════════════
    SCREEN: MUSIC LIBRARY
 ══════════════════════════════════════════════ */
-.music-list { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.music-list { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
 
-.music-item {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 13px 14px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
+.music-item { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 11px 12px; display: flex; align-items: center; gap: 11px; cursor: pointer; transition: all 0.15s; }
 .music-item:active { transform: scale(0.98); border-color: var(--border2); }
 
-.mi-disc {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mi-disc::after {
-  content: '';
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--bg);
-  position: absolute;
-}
-
+.mi-disc { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; }
+.mi-disc::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); position: absolute; }
 .mi-disc.playing { animation: spin 3s linear infinite; }
 
 .mi-info { flex: 1; overflow: hidden; }
-
-.mi-title {
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+.mi-title { font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mi-artist { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
 .mi-size { font-size: 8px; color: var(--text-faint); }
 
-.mi-play {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border2);
-  border-radius: 50%;
-  background: none;
-  color: var(--text-muted);
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.15s;
-}
-
+.mi-play { width: 30px; height: 30px; border: 1px solid var(--border2); border-radius: 50%; background: none; color: var(--text-muted); font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
 .mi-play:active, .mi-play.playing { border-color: var(--gold-dim); color: var(--gold); }
 
-.music-storage-bar {
-  margin: 0 16px 16px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-
-.msb-label {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.msb-text { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
-.msb-value { font-size: 9px; color: var(--gold-dim); }
-
-.msb-bar { height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
-
-.msb-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
-  border-radius: 2px;
-}
-
+.music-storage-bar { margin: 0 12px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; }
+.msb-label { display: flex; justify-content: space-between; margin-bottom: 7px; }
+.msb-text { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
+.msb-value { font-size: 8px; color: var(--gold-dim); }
+.msb-bar { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.msb-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 2px; }
 
 /* ══════════════════════════════════════════════
    SCREEN: SETTINGS
 ══════════════════════════════════════════════ */
-.settings-section { padding: 20px 16px 0; }
-
-.settings-section-title {
-  font-size: 9px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--gold-dim);
-  margin-bottom: 10px;
-}
-
-.settings-row {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.settings-item {
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
+.settings-section { padding: 16px 14px 0; }
+.settings-section-title { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; }
+.settings-row { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; margin-bottom: 12px; }
+.settings-item { padding: 13px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
 .settings-item:last-child { border-bottom: none; }
 .settings-item:active { background: var(--surface2); }
-
-.si-label { font-size: 13px; color: var(--text); }
-.si-value { font-size: 11px; color: var(--text-muted); }
-.si-arrow { color: var(--text-faint); font-size: 12px; }
-
+.si-label { font-size: 12px; color: var(--text); }
+.si-value { font-size: 10px; color: var(--text-muted); }
+.si-arrow { color: var(--text-faint); font-size: 11px; }
 .si-danger .si-label { color: var(--rose); }
-
 
 /* ══════════════════════════════════════════════
    SCREEN: REORDER POSTS
 ══════════════════════════════════════════════ */
-.reorder-list {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.reorder-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.15s;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.reorder-card.dragging {
-  opacity: 0.5;
-  border-color: var(--gold-dim);
-  transform: scale(1.02);
-}
-
-.reorder-card.drag-over {
-  border-color: var(--gold);
-  background: var(--gold-faint);
-}
-
-.reorder-handle {
-  color: var(--text-faint);
-  font-size: 16px;
-  cursor: grab;
-  padding: 4px;
-  flex-shrink: 0;
-}
-
+.reorder-list { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.reorder-card { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; transition: all 0.15s; touch-action: none; user-select: none; -webkit-user-select: none; }
+.reorder-card.dragging { opacity: 0.45; border-color: var(--gold-dim); transform: scale(1.02); }
+.reorder-card.drag-over { border-color: var(--gold); background: var(--gold-faint); }
+.reorder-handle { color: var(--text-faint); font-size: 15px; cursor: grab; padding: 3px; flex-shrink: 0; }
 .reorder-handle:active { cursor: grabbing; }
-
-.reorder-thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: var(--surface2);
-}
-
-.reorder-thumb img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
-
+.reorder-thumb { width: 40px; height: 40px; border-radius: 5px; overflow: hidden; flex-shrink: 0; background: var(--surface2); }
+.reorder-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .reorder-info { flex: 1; overflow: hidden; }
-.reorder-date { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; }
-.reorder-caption {
-  font-size: 12px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.reorder-footer {
-  padding: 16px;
-  display: flex;
-  gap: 10px;
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.reorder-footer .btn { flex: 1; padding: 12px; font-size: 9px; }
-
+.reorder-date { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+.reorder-caption { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reorder-footer { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.reorder-footer .btn { flex: 1; padding: 11px; font-size: 9px; }
 
 /* ══════════════════════════════════════════════
    QR OVERLAY
 ══════════════════════════════════════════════ */
-#qr-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
-  z-index: 600;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
+#qr-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 600; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 #qr-overlay.open { display: flex; }
-
-.qr-box {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 16px;
-  padding: 28px 24px 24px;
-  width: 100%;
-  max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.qr-title {
-  font-family: var(--serif);
-  font-size: 22px;
-  font-style: italic;
-  color: var(--gold);
-  text-align: center;
-}
-
-.qr-subtitle { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.6; }
-
-#qr-canvas-wrap {
-  background: #fff;
-  padding: 12px;
-  border-radius: 10px;
-  width: 200px;
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.qr-warning {
-  background: rgba(192,112,96,0.08);
-  border: 1px solid rgba(192,112,96,0.3);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 10px;
-  color: var(--rose);
-  text-align: center;
-  line-height: 1.6;
-  width: 100%;
-}
-
-.qr-close {
-  width: 100%;
-}
+.qr-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 24px 20px 20px; width: 100%; max-width: 280px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.qr-title { font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--gold); text-align: center; }
+.qr-subtitle { font-size: 9px; color: var(--text-muted); text-align: center; line-height: 1.6; }
+#qr-canvas-wrap { background: #fff; padding: 10px; border-radius: 8px; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; }
+.qr-warning { background: rgba(192,112,96,0.08); border: 1px solid rgba(192,112,96,0.3); border-radius: 7px; padding: 9px 11px; font-size: 9px; color: var(--rose); text-align: center; line-height: 1.6; width: 100%; }
+.qr-close { width: 100%; }
 </style>
 </head>
 <body>
+<div id="app">
 
 <!-- ══════════════════════════════════════════════
      SCREEN: SETUP
@@ -1563,49 +765,37 @@ html, body {
 <div id="screen-setup" class="screen active">
   <div class="setup-wrap">
     <div class="setup-glow"></div>
-
     <div class="setup-logo">Memoir</div>
     <div class="setup-tagline">your private archive</div>
-
     <div id="setup-error"></div>
-
     <div id="setup-form">
       <div class="setup-section-title">GitHub Connection</div>
-
       <div class="setup-note">
         Your photos and music live in <strong>your own private GitHub repo</strong>.
         Memoir never stores anything. Create a repo called <strong>memoir-data</strong>
         and a Personal Access Token with <strong>repo</strong> scope.
         <br><br>
-        <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--gold-dim)">
-          Create token on GitHub →
-        </a>
+        <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--gold-dim)">Create token on GitHub →</a>
       </div>
-
       <div class="field">
         <label class="field-label" for="input-username">GitHub Username</label>
         <input class="field-input" id="input-username" type="text" placeholder="yourname" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
       </div>
-
       <div class="field">
         <label class="field-label" for="input-repo">Repository Name</label>
         <input class="field-input" id="input-repo" type="text" placeholder="memoir-data" value="memoir-data" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
       </div>
-
       <div class="field">
         <label class="field-label" for="input-token">Personal Access Token</label>
         <input class="field-input" id="input-token" type="password" placeholder="ghp_••••••••••••••••••" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
         <div class="field-hint">Needs <strong>repo</strong> scope. Stored only on this device.</div>
       </div>
-
       <div class="field">
         <label class="field-label" for="input-email">Your Email (for error alerts)</label>
         <input class="field-input" id="input-email" type="email" placeholder="you@gmail.com" autocomplete="email">
       </div>
-
       <button class="btn btn-primary" id="btn-connect" onclick="handleConnect()">Connect →</button>
     </div>
-
     <div class="connecting-state" id="connecting-state">
       <div class="connecting-spinner"></div>
       <div class="connecting-steps">
@@ -1627,42 +817,32 @@ html, body {
   <div class="app-header">
     <div class="logo">Memoir</div>
     <div class="header-actions">
-      <button class="header-btn" onclick="navigateTo('screen-music')" title="Music library">♪</button>
       <button class="header-btn" onclick="navigateTo('screen-create')" title="New post">+</button>
     </div>
   </div>
-
   <div class="search-bar">
     <div class="search-input-wrap">
       <span class="search-icon">⌕</span>
-      <input class="search-input" id="search-input" type="search" placeholder="search captions…" oninput="handleSearch(this.value)">
+      <input class="search-input" id="search-input" type="search" placeholder="search memories…" oninput="handleSearch(this.value)">
     </div>
   </div>
-
   <div class="scroll-body" id="feed-body">
-    <!-- iOS install nudge -->
     <div id="ios-install-nudge">
-      <div class="nudge-text">
-        <strong>Install Memoir</strong> — tap Share then
-        "Add to Home Screen" for the full app experience.
-      </div>
+      <div class="nudge-text"><strong>Install Memoir</strong> — tap Share then "Add to Home Screen" for the full app experience.</div>
       <button class="nudge-close" onclick="dismissInstallNudge()">✕</button>
     </div>
-
-    <!-- Content injected by JS -->
-    <div id="feed-content" style="padding-top:12px"></div>
+    <div id="feed-content" style="padding-top:10px"></div>
   </div>
-
   <div class="bottom-nav">
-    <button class="nav-tab active" onclick="switchTab('feed', event)">
+    <button class="nav-tab" id="nav-feed" onclick="switchTab('feed',event)">
       <span class="nav-tab-icon">⊟</span>
       <span class="nav-tab-label">Feed</span>
     </button>
-    <button class="nav-tab" onclick="switchTab('music', event)">
+    <button class="nav-tab" id="nav-music" onclick="switchTab('music',event)">
       <span class="nav-tab-icon">♫</span>
       <span class="nav-tab-label">Music</span>
     </button>
-    <button class="nav-tab" onclick="switchTab('settings', event)">
+    <button class="nav-tab" id="nav-settings" onclick="switchTab('settings',event)">
       <span class="nav-tab-icon">◎</span>
       <span class="nav-tab-label">Settings</span>
     </button>
@@ -1676,20 +856,17 @@ html, body {
 <div id="screen-post" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="goBack()" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7)">←</button>
-    <div style="flex:1"></div>
-    <button class="header-btn" id="btn-post-menu" onclick="openPostMenu()" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7)">···</button>
   </div>
 
   <div class="scroll-body">
-    <!-- Media slider -->
     <div class="post-view-media" id="post-view-media"
          ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">
+      <div class="post-view-blur-bg" id="post-view-blur-bg"></div>
       <div class="post-view-slides" id="post-slides"></div>
       <div class="swipe-indicators" id="swipe-dots"></div>
     </div>
 
     <div class="post-view-body">
-      <!-- Now playing -->
       <div class="now-playing" id="now-playing" style="display:none">
         <div class="np-disc" id="np-disc"></div>
         <div class="np-info">
@@ -1701,15 +878,11 @@ html, body {
             </div>
             <div class="np-time">
               <span id="np-current">0:00</span>
-              <span id="np-duration">0:00</span>
+              <span id="np-duration">—:——</span>
             </div>
           </div>
         </div>
         <button class="np-play-btn" id="np-play-btn" onclick="toggleAudio()">▶</button>
-      </div>
-
-      <div class="np-unlock-hint" id="np-unlock-hint" style="display:none">
-        tap anywhere to start music
       </div>
 
       <div class="post-view-date" id="post-view-date"></div>
@@ -1717,7 +890,6 @@ html, body {
       <div class="post-view-location" id="post-view-location" style="display:none">
         <span>📍</span><span id="post-view-location-text"></span>
       </div>
-
       <div class="post-view-actions">
         <button class="btn btn-ghost" onclick="openEditPost()">Edit</button>
         <button class="btn btn-danger" onclick="openDeleteSheet()">Delete</button>
@@ -1734,13 +906,10 @@ html, body {
   <div class="create-header">
     <button class="header-btn" onclick="goBack()">✕</button>
     <div class="create-title">New Memory</div>
-    <button class="btn btn-primary" id="btn-post" onclick="submitPost()"
-            style="width:auto;padding:8px 16px;font-size:9px" disabled>Post</button>
+    <button class="btn btn-primary" id="btn-post" onclick="submitPost()" style="width:auto;padding:7px 14px;font-size:9px" disabled>Post</button>
   </div>
-
   <div class="scroll-body">
     <div class="create-body">
-      <!-- Media -->
       <div>
         <div class="section-label">Photos & Video</div>
         <div class="media-picker" id="media-picker" onclick="openMediaPicker()">
@@ -1753,38 +922,26 @@ html, body {
         <input type="file" id="media-file-input" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaFiles(this.files)">
         <input type="file" id="media-file-input-add" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaFiles(this.files)">
       </div>
-
-      <!-- Caption -->
       <div>
         <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
         <textarea class="caption-textarea" id="caption-input" placeholder="what's the memory…" rows="3"></textarea>
       </div>
-
-      <!-- Location -->
       <div>
         <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
         <input class="field-input" id="location-input" type="text" placeholder="where were you…" autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
-
-      <!-- Music -->
       <div>
         <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
         <div class="music-selector" id="music-selector">
-          <div style="font-size:11px;color:var(--text-faint);padding:10px 0">
-            Loading your library…
-          </div>
+          <div style="font-size:10px;color:var(--text-faint);padding:8px 0">Loading your library…</div>
         </div>
       </div>
-
-      <!-- Upload progress (hidden until posting) -->
       <div class="upload-progress" id="upload-progress">
         <div class="upload-row">
           <div class="upload-label" id="upload-label">Uploading…</div>
           <div class="upload-pct" id="upload-pct">0%</div>
         </div>
-        <div class="upload-bar">
-          <div class="upload-bar-fill" id="upload-bar-fill" style="width:0%"></div>
-        </div>
+        <div class="upload-bar"><div class="upload-bar-fill" id="upload-bar-fill" style="width:0%"></div></div>
         <div class="upload-row">
           <div class="upload-file" id="upload-file"></div>
           <div class="upload-count" id="upload-count"></div>
@@ -1802,14 +959,10 @@ html, body {
   <div class="create-header">
     <button class="header-btn" onclick="goBack()">✕</button>
     <div class="create-title">Edit Memory</div>
-    <button class="btn btn-primary" id="btn-save-edit" onclick="submitEdit()"
-            style="width:auto;padding:8px 16px;font-size:9px">Save</button>
+    <button class="btn btn-primary" id="btn-save-edit" onclick="submitEdit()" style="width:auto;padding:7px 14px;font-size:9px">Save</button>
   </div>
-
   <div class="scroll-body">
     <div class="create-body">
-
-      <!-- Non-editable date -->
       <div>
         <div class="section-label">Date</div>
         <div class="edit-date-row">
@@ -1817,43 +970,31 @@ html, body {
           <span class="edit-date-value" id="edit-date-value">—</span>
         </div>
       </div>
-
-      <!-- Media (existing + add more) -->
       <div>
-        <div class="section-label">Photos & Video <span style="color:var(--text-faint);font-size:8px">drag to reorder · tap ✕ to remove</span></div>
+        <div class="section-label">Photos & Video <span style="color:var(--text-faint);font-size:7px">drag to reorder · tap ✕ to remove</span></div>
         <div class="edit-media-strip" id="edit-media-strip"></div>
         <input type="file" id="edit-media-input" accept="image/*,video/*" multiple style="display:none" onchange="handleEditAddMedia(this.files)">
       </div>
-
-      <!-- Caption -->
       <div>
         <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
         <textarea class="caption-textarea" id="edit-caption-input" placeholder="what's the memory…" rows="3"></textarea>
       </div>
-
-      <!-- Location -->
       <div>
         <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
         <input class="field-input" id="edit-location-input" type="text" placeholder="where were you…" autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
-
-      <!-- Music -->
       <div>
         <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
         <div class="music-selector" id="edit-music-selector">
-          <div style="font-size:11px;color:var(--text-faint);padding:10px 0">Loading…</div>
+          <div style="font-size:10px;color:var(--text-faint);padding:8px 0">Loading…</div>
         </div>
       </div>
-
-      <!-- Upload progress -->
       <div class="upload-progress" id="edit-upload-progress">
         <div class="upload-row">
           <div class="upload-label" id="edit-upload-label">Saving…</div>
           <div class="upload-pct" id="edit-upload-pct">0%</div>
         </div>
-        <div class="upload-bar">
-          <div class="upload-bar-fill" id="edit-upload-bar-fill" style="width:0%"></div>
-        </div>
+        <div class="upload-bar"><div class="upload-bar-fill" id="edit-upload-bar-fill" style="width:0%"></div></div>
         <div class="upload-row">
           <div class="upload-file" id="edit-upload-file"></div>
           <div class="upload-count" id="edit-upload-count"></div>
@@ -1870,30 +1011,25 @@ html, body {
 <div id="screen-music" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="goBack()">←</button>
-    <div class="logo" style="font-size:22px">Soundtrack</div>
+    <div class="logo" style="font-size:20px">Soundtrack</div>
     <button class="header-btn" onclick="openAddSong()" title="Add song">+</button>
   </div>
-
   <div class="scroll-body">
     <div class="music-list" id="music-list">
       <div class="empty-state">
         <div class="empty-icon">♫</div>
         <div class="empty-title">No songs yet</div>
-        <div class="empty-sub">Upload mp3 files via + or directly to<br>your GitHub repo's music/ folder</div>
+        <div class="empty-sub">Tap + to add a song, or upload mp3 files<br>directly to the music/ folder on GitHub</div>
       </div>
     </div>
   </div>
-
   <div class="music-storage-bar" id="music-storage-bar" style="display:none">
     <div class="msb-label">
       <span class="msb-text">Storage Used</span>
       <span class="msb-value" id="msb-value">— MB / 1 GB</span>
     </div>
-    <div class="msb-bar">
-      <div class="msb-fill" id="msb-fill" style="width:0%"></div>
-    </div>
+    <div class="msb-bar"><div class="msb-fill" id="msb-fill" style="width:0%"></div></div>
   </div>
-
   <input type="file" id="song-file-input" accept="audio/*,.mp3,.m4a,.wav" style="display:none" onchange="handleSongFile(this.files[0])">
 </div>
 
@@ -1903,9 +1039,10 @@ html, body {
 ══════════════════════════════════════════════ -->
 <div id="screen-settings" class="screen">
   <div class="app-header">
-    <div class="logo" style="font-size:22px">Settings</div>
+    <button class="header-btn" onclick="goBack()">←</button>
+    <div class="logo" style="font-size:20px">Settings</div>
+    <div style="width:32px"></div>
   </div>
-
   <div class="scroll-body">
     <div class="settings-section">
       <div class="settings-section-title">Account</div>
@@ -1924,7 +1061,6 @@ html, body {
         </div>
       </div>
     </div>
-
     <div class="settings-section">
       <div class="settings-section-title">Posts</div>
       <div class="settings-row">
@@ -1938,7 +1074,6 @@ html, body {
         </div>
       </div>
     </div>
-
     <div class="settings-section">
       <div class="settings-section-title">Device</div>
       <div class="settings-row">
@@ -1948,7 +1083,6 @@ html, body {
         </div>
       </div>
     </div>
-
     <div class="settings-section" style="margin-bottom:40px">
       <div class="settings-section-title">Danger</div>
       <div class="settings-row">
@@ -1967,14 +1101,12 @@ html, body {
 <div id="screen-reorder" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="cancelReorder()">✕</button>
-    <div class="logo" style="font-size:22px">Reorder</div>
-    <div style="width:36px"></div>
+    <div class="logo" style="font-size:20px">Reorder</div>
+    <div style="width:32px"></div>
   </div>
-
   <div class="scroll-body">
     <div class="reorder-list" id="reorder-list"></div>
   </div>
-
   <div class="reorder-footer">
     <button class="btn btn-ghost" onclick="cancelReorder()">Cancel</button>
     <button class="btn btn-primary" onclick="saveReorder()">Save Order</button>
@@ -1983,14 +1115,13 @@ html, body {
 
 
 <!-- ══════════════════════════════════════════════
-     SHEETS (bottom modals)
+     SHEETS / OVERLAYS
 ══════════════════════════════════════════════ -->
-<!-- Delete confirmation -->
 <div class="sheet-overlay" id="sheet-delete" onclick="closeSheet('sheet-delete')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Delete this memory?</div>
-    <div class="sheet-msg">This removes all photos, video, and the post from your GitHub repo. This cannot be undone.</div>
+    <div class="sheet-msg">This removes all photos, video and the post from your GitHub repo. Cannot be undone.</div>
     <div class="sheet-actions">
       <button class="btn btn-danger" onclick="confirmDelete()">Yes, delete it</button>
       <button class="btn btn-ghost" onclick="closeSheet('sheet-delete')">Cancel</button>
@@ -1998,7 +1129,6 @@ html, body {
   </div>
 </div>
 
-<!-- Add song name input -->
 <div class="sheet-overlay" id="sheet-song-meta" onclick="closeSheet('sheet-song-meta')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -2019,7 +1149,6 @@ html, body {
   </div>
 </div>
 
-<!-- Sign out confirmation -->
 <div class="sheet-overlay" id="sheet-signout" onclick="closeSheet('sheet-signout')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -2032,22 +1161,21 @@ html, body {
   </div>
 </div>
 
-<!-- Toast container -->
 <div id="toast-container"></div>
 
-<!-- Audio element -->
 <audio id="audio-player" loop></audio>
 
-<!-- QR Export Overlay -->
 <div id="qr-overlay" onclick="closeQRExport()">
   <div class="qr-box" onclick="event.stopPropagation()">
     <div class="qr-title">Transfer Login</div>
-    <div class="qr-subtitle">Scan this QR code on another device to sign in automatically. Keep it private.</div>
+    <div class="qr-subtitle">Scan on another device to sign in automatically. Keep it private.</div>
     <div id="qr-canvas-wrap"></div>
-    <div class="qr-warning">⚠ This QR contains your access token. Only show it to yourself.</div>
+    <div class="qr-warning">⚠ Contains your access token. Only show it to yourself.</div>
     <button class="btn btn-ghost qr-close" onclick="closeQRExport()">Close</button>
   </div>
 </div>
+
+</div><!-- end #app -->
 
 
 <!-- ══════════════════════════════════════════════
@@ -2055,8 +1183,8 @@ html, body {
 ══════════════════════════════════════════════ -->
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────
-const GITHUB_API = 'https://api.github.com';
-const MAX_MEDIA  = 10;
+const GITHUB_API  = 'https://api.github.com';
+const MAX_MEDIA   = 10;
 const MAX_FILE_MB = 24;
 
 const DISC_COLORS = [
@@ -2067,7 +1195,7 @@ const DISC_COLORS = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────
-let state = {
+const state = {
   auth: null,
   posts: [],
   filteredPosts: [],
@@ -2076,27 +1204,21 @@ let state = {
   currentSlide: 0,
   pendingMedia: [],
   pendingSong: null,
-  audio: null,
   audioUnlocked: false,
-  navHistory: ['screen-feed'],
+  navHistory: ['screen-setup'],
   activeTab: 'feed',
   selectedSongId: null,
-  musicLoaded: false,
-  editPost: null,        // edit session state
-  reorderOriginal: [],   // backup for cancel
-  reorderCurrent: [],    // working copy
+  editPost: null,
+  reorderOriginal: [],
+  reorderCurrent: [],
+  songUrl: null,         // download_url for current post's song
+  editFolderUrls: {},    // filename → download_url for edit screen
 };
 
 // ── CRYPTO ───────────────────────────────────────────────────────
 async function deriveKey() {
-  const raw = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode('memoir-key-2024'),
-    { name: 'PBKDF2' }, false, ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: new TextEncoder().encode('memoir-salt'), iterations: 100000, hash: 'SHA-256' },
-    raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
-  );
+  const raw = await crypto.subtle.importKey('raw', new TextEncoder().encode('memoir-key-2024'), { name: 'PBKDF2' }, false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: new TextEncoder().encode('memoir-salt'), iterations: 100000, hash: 'SHA-256' }, raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 
 async function encryptText(text) {
@@ -2109,23 +1231,15 @@ async function encryptText(text) {
 async function decryptText(b64) {
   try {
     const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const iv = raw.slice(0, 12);
-    const data = raw.slice(12);
     const key = await deriveKey();
-    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12));
     return new TextDecoder().decode(dec);
   } catch { return null; }
 }
 
-// ── AUTH PERSISTENCE ─────────────────────────────────────────────
 async function saveAuth(auth) {
   const encrypted = await encryptText(auth.token);
-  localStorage.setItem('memoir_auth', JSON.stringify({
-    username: auth.username,
-    repo: auth.repo,
-    email: auth.email,
-    tokenEnc: encrypted
-  }));
+  localStorage.setItem('memoir_auth', JSON.stringify({ username: auth.username, repo: auth.repo, email: auth.email, tokenEnc: encrypted }));
 }
 
 async function loadAuth() {
@@ -2141,20 +1255,14 @@ async function loadAuth() {
 
 // ── GITHUB API ────────────────────────────────────────────────────
 async function ghFetch(path, options = {}) {
-  const { token } = state.auth;
   const url = path.startsWith('http') ? path : `${GITHUB_API}${path}`;
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    }
+    headers: { 'Authorization': `Bearer ${state.auth.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   if (!res.ok && res.status !== 404) {
     const err = await res.json().catch(() => ({}));
-    throw Object.assign(new Error(err.message || `GitHub ${res.status}`), { status: res.status, ghError: err });
+    throw Object.assign(new Error(err.message || `GitHub ${res.status}`), { status: res.status });
   }
   return res;
 }
@@ -2169,20 +1277,12 @@ async function ghGetFile(path) {
   const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
   if (res.status === 404) return null;
   const data = await res.json();
-  const content = atob(data.content.replace(/\n/g,''));
-  return { content: JSON.parse(content), sha: data.sha };
+  return { content: JSON.parse(atob(data.content.replace(/\n/g,''))), sha: data.sha };
 }
 
 async function ghPutFile(path, content, sha = null, message = null) {
-  const body = {
-    message: message || `memoir: update ${path}`,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-    ...(sha ? { sha } : {})
-  };
-  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
-    method: 'PUT',
-    body: JSON.stringify(body)
-  });
+  const body = { message: message || `memoir: update ${path}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), ...(sha ? { sha } : {}) };
+  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
   return res.json();
 }
 
@@ -2190,24 +1290,24 @@ async function ghPutBinary(path, arrayBuffer, sha = null, message = null) {
   const bytes = new Uint8Array(arrayBuffer);
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  const body = {
-    message: message || `memoir: add ${path}`,
-    content: btoa(binary),
-    ...(sha ? { sha } : {})
-  };
-  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
-    method: 'PUT',
-    body: JSON.stringify(body)
-  });
+  const body = { message: message || `memoir: add ${path}`, content: btoa(binary), ...(sha ? { sha } : {}) };
+  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
   return res.json();
 }
 
 async function ghDeleteFile(path, sha, message = null) {
-  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
-    method: 'DELETE',
-    body: JSON.stringify({ message: message || `memoir: delete ${path}`, sha })
-  });
+  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'DELETE', body: JSON.stringify({ message: message || `memoir: delete ${path}`, sha }) });
   return res.json();
+}
+
+// Build a filename→download_url map from a folder listing
+async function ghFolderUrls(folderPath) {
+  try {
+    const items = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${folderPath}`);
+    const map = {};
+    if (Array.isArray(items)) items.forEach(f => { if (f.download_url) map[f.name] = f.download_url; });
+    return map;
+  } catch { return {}; }
 }
 
 // ── LOGGING ───────────────────────────────────────────────────────
@@ -2216,14 +1316,12 @@ async function logEvent(op, status, detail = '') {
   const stored = JSON.parse(localStorage.getItem('memoir_logs') || '[]');
   stored.unshift(entry);
   localStorage.setItem('memoir_logs', JSON.stringify(stored.slice(0, 100)));
-
   if (status === 'error' && state.auth) {
     try {
       const file = await ghGetFile('logs/errors.json').catch(() => null);
       const current = file ? file.content : [];
-      const updated = [entry, ...current].slice(0, 500);
-      await ghPutFile('logs/errors.json', updated, file?.sha, `memoir: log error - ${op}`);
-    } catch (e) { console.error('Log write failed', e); }
+      await ghPutFile('logs/errors.json', [entry, ...current].slice(0, 500), file?.sha, `memoir: log error - ${op}`);
+    } catch {}
   }
 }
 
@@ -2232,14 +1330,7 @@ function showToast(title, msg = '', type = 'info', duration = 4000) {
   const icons = { error: '✗', success: '✓', info: '·', warning: '⚠' };
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `
-    <span class="toast-icon">${icons[type]}</span>
-    <div class="toast-body">
-      <div class="toast-title">${title}</div>
-      ${msg ? `<div class="toast-msg">${msg}</div>` : ''}
-    </div>
-    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-  `;
+  el.innerHTML = `<span class="toast-icon">${icons[type]}</span><div class="toast-body"><div class="toast-title">${title}</div>${msg ? `<div class="toast-msg">${msg}</div>` : ''}</div><button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('toast-container').appendChild(el);
   setTimeout(() => el.remove(), duration);
 }
@@ -2251,17 +1342,19 @@ function showError(title, err) {
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────
+function setFeedTabActive() {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('nav-feed')?.classList.add('active');
+}
+
 function navigateTo(screenId, addHistory = true) {
   const current = document.querySelector('.screen.active');
   if (current?.id === screenId) return;
-
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const next = document.getElementById(screenId);
   next.classList.add('active', 'slide-in');
   setTimeout(() => next.classList.remove('slide-in'), 300);
-
   if (addHistory) state.navHistory.push(screenId);
-
   if (screenId === 'screen-settings') loadSettings();
   if (screenId === 'screen-music') loadMusicLibrary();
   if (screenId === 'screen-create') loadMusicForCreate();
@@ -2270,52 +1363,40 @@ function navigateTo(screenId, addHistory = true) {
 
 function goBack() {
   if (state.navHistory.length <= 1) return;
+  const leaving = state.navHistory[state.navHistory.length - 1];
 
-  const leavingScreen = state.navHistory[state.navHistory.length - 1];
-
-  if (leavingScreen === 'screen-post') {
+  if (leaving === 'screen-post') {
     const audio = document.getElementById('audio-player');
     audio.pause();
     audio.src = '';
-    state.audio = null;
+    state.songUrl = null;
   }
-
-  if (leavingScreen === 'screen-music') {
-    if (previewAudio) {
-      previewAudio.pause();
-      previewAudio.src = '';
-      previewAudio = null;
-    }
+  if (leaving === 'screen-music') {
+    if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; }
     if (previewingId) {
       document.getElementById(`disc-${previewingId}`)?.classList.remove('playing');
-      const playBtn = document.getElementById(`play-${previewingId}`);
-      if (playBtn) playBtn.textContent = '▶';
+      const pb = document.getElementById(`play-${previewingId}`);
+      if (pb) pb.textContent = '▶';
       previewingId = null;
     }
   }
 
   state.navHistory.pop();
   const prev = state.navHistory[state.navHistory.length - 1];
-
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(prev).classList.add('active');
+
+  // Restore feed nav tab active when we land back on feed
+  if (prev === 'screen-feed') setFeedTabActive();
 }
 
 function switchTab(tab, evt) {
   state.activeTab = tab;
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   if (evt?.currentTarget) evt.currentTarget.classList.add('active');
-
   const map = { feed: 'screen-feed', music: 'screen-music', settings: 'screen-settings' };
   const target = map[tab];
-
-  // Always reset history so back button works from non-feed tabs
-  if (tab === 'feed') {
-    state.navHistory = ['screen-feed'];
-  } else {
-    state.navHistory = ['screen-feed', target];
-  }
-
+  state.navHistory = tab === 'feed' ? ['screen-feed'] : ['screen-feed', target];
   navigateTo(target, false);
 }
 
@@ -2331,7 +1412,6 @@ async function handleConnect() {
   const token    = document.getElementById('input-token').value.trim();
   const email    = document.getElementById('input-email').value.trim();
   const errEl    = document.getElementById('setup-error');
-
   errEl.style.display = 'none';
 
   if (!username || !token) {
@@ -2346,17 +1426,14 @@ async function handleConnect() {
   const steps = ['step-1','step-2','step-3','step-4','step-5'];
   let stepIdx = 0;
 
-  function advanceStep(status = 'done') {
+  function advanceStep() {
     document.getElementById(steps[stepIdx]).classList.remove('active');
-    document.getElementById(steps[stepIdx]).classList.add(status);
+    document.getElementById(steps[stepIdx]).classList.add('done');
     stepIdx++;
-    if (stepIdx < steps.length) {
-      document.getElementById(steps[stepIdx]).classList.add('active');
-    }
+    if (stepIdx < steps.length) document.getElementById(steps[stepIdx]).classList.add('active');
   }
 
   function failStep(msg) {
-    document.getElementById(steps[stepIdx]).classList.add('active');
     document.getElementById('connecting-state').style.display = 'none';
     document.getElementById('setup-form').style.display = 'block';
     errEl.textContent = msg;
@@ -2366,26 +1443,19 @@ async function handleConnect() {
   try {
     document.getElementById(steps[0]).classList.add('active');
     state.auth = { username, repo, token, email };
-
     const user = await ghGet('/user');
     if (!user) throw new Error('Invalid token — could not authenticate.');
     advanceStep();
-
     const repoData = await ghGet(`/repos/${username}/${repo}`);
     advanceStep();
-
     await initRepoStructure(repoData === null);
     advanceStep();
-
     await initWorkflows(email);
     advanceStep();
-
     await saveAuth(state.auth);
     advanceStep();
-
     await new Promise(r => setTimeout(r, 400));
     launchApp();
-
   } catch (err) {
     failStep(err.message || 'Connection failed. Check your token and username.');
     state.auth = null;
@@ -2394,138 +1464,36 @@ async function handleConnect() {
 
 async function initRepoStructure(isNew) {
   if (isNew) {
-    await ghFetch('/user/repos', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: state.auth.repo,
-        private: true,
-        description: 'Memoir private archive',
-        auto_init: true
-      })
-    });
+    await ghFetch('/user/repos', { method: 'POST', body: JSON.stringify({ name: state.auth.repo, private: true, description: 'Memoir private archive', auto_init: true }) });
     await new Promise(r => setTimeout(r, 1500));
   }
-
-  const files = [
-    ['posts-index.json', []],
-    ['music/music-index.json', []],
-    ['logs/errors.json', []],
-    ['profile.json', {
-      username: state.auth.username,
-      email: state.auth.email,
-      joinedAt: new Date().toISOString()
-    }]
-  ];
-
-  for (const [path, defaultContent] of files) {
+  const files = [['posts-index.json', []], ['music/music-index.json', []], ['logs/errors.json', []], ['profile.json', { username: state.auth.username, email: state.auth.email, joinedAt: new Date().toISOString() }]];
+  for (const [path, def] of files) {
     try {
       const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
-      if (res.status === 404) {
-        await ghPutFile(path, defaultContent, null, `memoir: initialize ${path}`);
-      }
-    } catch (e) {}
+      if (res.status === 404) await ghPutFile(path, def, null, `memoir: initialize ${path}`);
+    } catch {}
   }
 }
 
 async function initWorkflows(email) {
-  const emailYml = `name: Email Error Alerts
-on:
-  push:
-    paths:
-      - 'logs/errors.json'
-jobs:
-  notify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Send error email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: \${{ secrets.GMAIL_USER }}
-          password: \${{ secrets.GMAIL_APP_PASSWORD }}
-          to: ${email || '${{ secrets.GMAIL_USER }}'}
-          subject: "Memoir Error — \${{ github.event.head_commit.message }}"
-          html_body: |
-            <h3>Memoir encountered an error</h3>
-            <p>Check <code>logs/errors.json</code> in your memoir-data repo for details.</p>
-            <p>Commit: \${{ github.event.head_commit.message }}</p>
-`;
-
-  const cleanupYml = `name: Monthly Log Cleanup
-on:
-  schedule:
-    - cron: '0 0 1 * *'
-  workflow_dispatch:
-jobs:
-  cleanup:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Archive and trim logs
-        run: python3 .github/scripts/cleanup_logs.py
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 'memoir: monthly log cleanup'
-`;
-
-  const cleanupPy = `import json, os, shutil
-from datetime import datetime
-
-log_path = 'logs/errors.json'
-archive_dir = 'logs/archive'
-os.makedirs(archive_dir, exist_ok=True)
-
-with open(log_path) as f:
-    logs = json.load(f)
-
-if not logs:
-    print('No logs to archive')
-    exit()
-
-month = datetime.now().strftime('%Y-%m')
-archive_path = f'{archive_dir}/{month}.json'
-
-existing_archive = []
-if os.path.exists(archive_path):
-    with open(archive_path) as f:
-        existing_archive = json.load(f)
-
-with open(archive_path, 'w') as f:
-    json.dump(existing_archive + logs, f, indent=2)
-
-with open(log_path, 'w') as f:
-    json.dump([], f)
-
-print(f'Archived {len(logs)} entries to {archive_path}')
-`;
-
-  const workflows = [
-    ['.github/workflows/email-errors.yml', emailYml],
-    ['.github/workflows/cleanup-logs.yml', cleanupYml],
-    ['.github/scripts/cleanup_logs.py', cleanupPy],
-  ];
-
-  for (const [path, content] of workflows) {
+  const emailYml = `name: Email Error Alerts\non:\n  push:\n    paths:\n      - 'logs/errors.json'\njobs:\n  notify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Send error email\n        uses: dawidd6/action-send-mail@v3\n        with:\n          server_address: smtp.gmail.com\n          server_port: 465\n          secure: true\n          username: \${{ secrets.GMAIL_USER }}\n          password: \${{ secrets.GMAIL_APP_PASSWORD }}\n          to: ${email || '${{ secrets.GMAIL_USER }}'}\n          subject: "Memoir Error"\n          html_body: "<h3>Memoir error — check logs/errors.json</h3>"\n`;
+  const cleanupYml = `name: Monthly Log Cleanup\non:\n  schedule:\n    - cron: '0 0 1 * *'\njobs:\n  cleanup:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: |\n          echo "[]" > logs/errors.json\n      - uses: stefanzweifel/git-auto-commit-action@v5\n        with:\n          commit_message: 'memoir: monthly log cleanup'\n`;
+  const wfs = [['.github/workflows/email-errors.yml', emailYml], ['.github/workflows/cleanup-logs.yml', cleanupYml]];
+  for (const [path, content] of wfs) {
     try {
       const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
       if (res.status === 404) {
-        const encoded = btoa(unescape(encodeURIComponent(content)));
-        await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
-          method: 'PUT',
-          body: JSON.stringify({ message: `memoir: add ${path}`, content: encoded })
-        });
+        await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify({ message: `memoir: add ${path}`, content: btoa(unescape(encodeURIComponent(content))) }) });
       }
-    } catch (e) {}
+    } catch {}
   }
 }
 
-// ── APP LAUNCH ───────────────────────────────────────────────────
 async function launchApp() {
   navigateTo('screen-feed', false);
   state.navHistory = ['screen-feed'];
+  setFeedTabActive();
   showInstallNudge();
   await loadFeed();
 }
@@ -2534,7 +1502,6 @@ async function launchApp() {
 async function loadFeed() {
   const container = document.getElementById('feed-content');
   container.innerHTML = renderSkeletons(3);
-
   try {
     const file = await ghGetFile('posts-index.json');
     state.posts = file ? (Array.isArray(file.content) ? file.content : []) : [];
@@ -2542,35 +1509,19 @@ async function loadFeed() {
     renderFeed(state.filteredPosts);
     logEvent('loadFeed', 'success', `${state.posts.length} posts`);
   } catch (err) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">⚠</div>
-        <div class="empty-title">Couldn't load feed</div>
-        <div class="empty-sub">${err.message}<br><br>Showing any cached data.</div>
-      </div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-title">Couldn't load feed</div><div class="empty-sub">${err.message}</div></div>`;
     showError('Feed load failed', err);
   }
 }
 
 function renderSkeletons(n) {
-  return Array(n).fill(0).map(() => `
-    <div class="skeleton-card">
-      <div class="skeleton skeleton-media"></div>
-      <div class="skeleton skeleton-line"></div>
-      <div class="skeleton skeleton-line-sm"></div>
-    </div>
-  `).join('');
+  return Array(n).fill(0).map(() => `<div class="skeleton-card"><div class="skeleton skeleton-media"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line-sm"></div></div>`).join('');
 }
 
 function renderFeed(posts) {
   const container = document.getElementById('feed-content');
   if (!posts.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">✦</div>
-        <div class="empty-title">No memories yet</div>
-        <div class="empty-sub">Tap + to create your first post</div>
-      </div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-title">No memories yet</div><div class="empty-sub">Tap + to create your first post</div></div>`;
     return;
   }
   container.innerHTML = posts.map(renderPostCard).join('');
@@ -2579,33 +1530,21 @@ function renderFeed(posts) {
 function renderPostCard(post) {
   const date = formatDate(post.date);
   const thumbUrl = post.thumbnail
-    ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}?token=${Date.now()}`
+    ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`
     : null;
-
   return `
     <div class="post-card" onclick="openPost('${post.id}')">
       <div class="post-media-wrap">
-        ${thumbUrl
-          ? `<img class="post-thumbnail" src="${thumbUrl}" loading="lazy" alt="" onerror="this.style.display='none'">`
-          : `<div style="width:100%;height:100%;background:var(--surface2)"></div>`
-        }
+        ${thumbUrl ? `<img class="post-thumbnail" src="${thumbUrl}" loading="lazy" alt="" onerror="this.style.display='none'">` : `<div style="width:100%;height:100%;background:var(--surface2)"></div>`}
         ${post.mediaCount > 1 ? `<div class="post-badge post-badge-count">1 / ${post.mediaCount}</div>` : ''}
         ${post.hasVideo ? `<div class="post-badge post-badge-video">▶ video</div>` : ''}
-        ${post.songTitle ? `
-          <div class="post-music-strip">
-            <div class="mini-disc" style="background:radial-gradient(circle at 35% 35%,${discColor(post.songTitle)[0]},${discColor(post.songTitle)[1]})"></div>
-            <div class="music-strip-info">
-              <div class="music-strip-title">${esc(post.songTitle)}</div>
-              <div class="music-strip-artist">${esc(post.songArtist || '')}</div>
-            </div>
-          </div>` : ''}
+        ${post.songTitle ? `<div class="post-music-strip"><div class="mini-disc" style="background:radial-gradient(circle at 35% 35%,${discColor(post.songTitle)[0]},${discColor(post.songTitle)[1]})"></div><div class="music-strip-info"><div class="music-strip-title">${esc(post.songTitle)}</div><div class="music-strip-artist">${esc(post.songArtist||'')}</div></div></div>` : ''}
       </div>
       <div class="post-body">
         <div class="post-date">${date}</div>
         ${post.captionPreview ? `<div class="post-caption">${esc(post.captionPreview)}</div>` : ''}
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 function handleSearch(query) {
@@ -2620,61 +1559,74 @@ function handleSearch(query) {
 async function openPost(postId) {
   navigateTo('screen-post');
   state.currentSlide = 0;
+  state.songUrl = null;
 
+  // Reset audio
   const audioEl = document.getElementById('audio-player');
   audioEl.pause();
   audioEl.src = '';
+  audioEl.ontimeupdate = null;
+  audioEl.onloadedmetadata = null;
+  audioEl.onplay = null;
+  audioEl.onpause = null;
 
+  // Reset UI
   document.getElementById('post-slides').innerHTML = '';
+  document.getElementById('post-slides').style.transform = '';
   document.getElementById('swipe-dots').innerHTML = '';
   document.getElementById('now-playing').style.display = 'none';
-  document.getElementById('np-unlock-hint').style.display = 'none';
   document.getElementById('post-view-caption').textContent = '';
   document.getElementById('post-view-date').textContent = '';
   document.getElementById('post-view-location').style.display = 'none';
+  document.getElementById('post-view-blur-bg').style.backgroundImage = '';
+  document.getElementById('np-play-btn').textContent = '▶';
+  document.getElementById('np-play-btn').classList.remove('loading');
+  document.getElementById('np-disc').classList.remove('playing');
+  document.getElementById('np-progress').style.width = '0%';
+  document.getElementById('np-current').textContent = '0:00';
+  document.getElementById('np-duration').textContent = '—:——';
 
   try {
-    const file = await ghGetFile(`posts/${postId}/meta.json`);
-    if (!file) throw new Error('Post not found');
-    const meta = file.content;
-    state.currentPost = { ...meta, sha: file.sha };
+    // Fetch meta and folder listing in parallel
+    const [metaFile, folderUrls] = await Promise.all([
+      ghGetFile(`posts/${postId}/meta.json`),
+      ghFolderUrls(`posts/${postId}`)
+    ]);
 
+    if (!metaFile) throw new Error('Post not found');
+    const meta = metaFile.content;
+    state.currentPost = { ...meta, sha: metaFile.sha };
+
+    const sortedMedia = [...meta.media].sort((a, b) => a.order - b.order);
     const slides = document.getElementById('post-slides');
-    const dots = document.getElementById('swipe-dots');
+    const dots   = document.getElementById('swipe-dots');
 
-    const sortedMedia = [...meta.media].sort((a,b) => a.order - b.order);
+    // Set blurred background from first image
+    const firstImg = sortedMedia.find(m => m.type === 'image');
+    if (firstImg) {
+      const bgUrl = folderUrls[firstImg.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${firstImg.filename}`;
+      document.getElementById('post-view-blur-bg').style.backgroundImage = `url(${bgUrl})`;
+    }
 
+    // Render slides using authenticated download_urls
     for (let i = 0; i < sortedMedia.length; i++) {
       const m = sortedMedia[i];
-      const url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${m.filename}`;
+      const url = folderUrls[m.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${m.filename}`;
 
+      let el;
       if (m.type === 'video') {
-        let videoUrl = url;
-        try {
-          const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
-          videoUrl = info?.download_url || url;
-        } catch {}
-        const v = document.createElement('video');
-        v.className = 'post-view-slide video-slide';
-        v.src = videoUrl;
-        v.controls = true;
-        v.playsInline = true;
-        slides.appendChild(v);
+        el = document.createElement('video');
+        el.className = 'post-view-slide video-slide';
+        el.src = url;
+        el.controls = true;
+        el.playsInline = true;
       } else {
-        const img = document.createElement('img');
-        img.className = 'post-view-slide';
-        img.src = url;
-        img.alt = '';
-        img.onerror = async function() {
-          if (this.dataset.tried) return;
-          this.dataset.tried = '1';
-          try {
-            const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
-            if (info?.download_url) this.src = info.download_url;
-          } catch {}
-        };
-        slides.appendChild(img);
+        el = document.createElement('img');
+        el.className = 'post-view-slide';
+        el.src = url;
+        el.alt = '';
       }
+      slides.appendChild(el);
 
       if (sortedMedia.length > 1) {
         const dot = document.createElement('div');
@@ -2683,25 +1635,18 @@ async function openPost(postId) {
       }
     }
 
+    // Post metadata
     document.getElementById('post-view-date').textContent = formatDate(meta.createdAt?.split('T')[0]);
     document.getElementById('post-view-caption').textContent = meta.caption || '';
-
     if (meta.location) {
       document.getElementById('post-view-location').style.display = 'flex';
       document.getElementById('post-view-location-text').textContent = meta.location;
     }
 
+    // Set up music player UI if song exists
     if (meta.song?.filename) {
-      const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${meta.song.filename}`;
-      setupAudio(rawUrl, meta.song.title, meta.song.artist, meta.song.title);
-      // Try to get better URL in background
-      ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${meta.song.filename}`)
-        .then(info => {
-          if (info?.download_url) {
-            const audio = document.getElementById('audio-player');
-            if (!audio.src || audio.paused) audio.src = info.download_url;
-          }
-        }).catch(() => {});
+      state.songUrl = folderUrls[meta.song.filename] || null;
+      setupAudioUI(meta.song.title, meta.song.artist, meta.song.title);
     }
 
     logEvent('openPost', 'success', postId);
@@ -2711,7 +1656,7 @@ async function openPost(postId) {
   }
 }
 
-// Swipe handling
+// Swipe
 let touchX = 0;
 function touchStart(e) { touchX = e.touches[0].clientX; }
 function touchEnd(e) {
@@ -2727,89 +1672,87 @@ function touchEnd(e) {
 function goToSlide(idx) {
   state.currentSlide = idx;
   document.getElementById('post-slides').style.transform = `translateX(-${idx * 100}%)`;
-  document.querySelectorAll('.swipe-dot').forEach((d, i) => {
-    d.classList.toggle('active', i === idx);
-  });
+  document.querySelectorAll('.swipe-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
 }
 
 // ── AUDIO ─────────────────────────────────────────────────────────
-function setupAudio(url, title, artist, songId) {
+function setupAudioUI(title, artist, colorKey) {
   const np = document.getElementById('now-playing');
-  const disc = document.getElementById('np-disc');
-  const hint = document.getElementById('np-unlock-hint');
-  const playBtn = document.getElementById('np-play-btn');
-
   document.getElementById('np-title').textContent = title || 'Unknown';
   document.getElementById('np-artist').textContent = artist || '';
-
-  const [c1, c2] = discColor(songId || title || '');
-  disc.style.background = `radial-gradient(circle at 35% 35%, ${c1}, ${c2})`;
-
+  const [c1, c2] = discColor(colorKey || title || '');
+  document.getElementById('np-disc').style.background = `radial-gradient(circle at 35% 35%, ${c1}, ${c2})`;
   np.style.display = 'flex';
-
-  const audio = document.getElementById('audio-player');
-  audio.src = url;
-  state.audio = audio;
-
-  audio.ontimeupdate = updateProgress;
-  audio.onloadedmetadata = () => {
-    document.getElementById('np-duration').textContent = fmtTime(audio.duration);
-    hint.style.display = 'none';
-    if (state.audioUnlocked) audio.play().catch(() => {});
-  };
-
-  audio.onplay = () => {
-    disc.classList.add('playing');
-    playBtn.textContent = '⏸';
-  };
-
-  audio.onpause = () => {
-    disc.classList.remove('playing');
-    playBtn.textContent = '▶';
-  };
-
-  audio.loop = true;
-
-  if (!state.audioUnlocked) {
-    hint.style.display = 'block';
-    const unlock = () => {
-      state.audioUnlocked = true;
-      hint.style.display = 'none';
-      audio.play().catch(() => {});
-      document.removeEventListener('touchstart', unlock);
-      document.removeEventListener('click', unlock);
-    };
-    document.addEventListener('touchstart', unlock, { once: true });
-    document.addEventListener('click', unlock, { once: true });
-  } else {
-    audio.play().catch(() => {});
-  }
 }
 
-function toggleAudio() {
+async function toggleAudio() {
   const audio = document.getElementById('audio-player');
-  if (!audio.src) return;
-  if (audio.paused) {
-    state.audioUnlocked = true;
-    audio.play().catch(() => {});
-  } else {
+  const btn   = document.getElementById('np-play-btn');
+  const disc  = document.getElementById('np-disc');
+
+  if (!audio.paused) {
     audio.pause();
+    disc.classList.remove('playing');
+    btn.textContent = '▶';
+    return;
   }
-}
 
-function updateProgress() {
-  const audio = document.getElementById('audio-player');
-  if (!audio.duration) return;
-  const pct = (audio.currentTime / audio.duration) * 100;
-  document.getElementById('np-progress').style.width = pct + '%';
-  document.getElementById('np-current').textContent = fmtTime(audio.currentTime);
+  // Need to play — fetch URL if not already set
+  if (!audio.src || audio.src === window.location.href) {
+    const meta = state.currentPost;
+    if (!meta?.song?.filename) return;
+
+    btn.classList.add('loading');
+    btn.textContent = '…';
+
+    let url = state.songUrl;
+    if (!url) {
+      try {
+        const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}/${meta.song.filename}`);
+        url = info?.download_url;
+      } catch {}
+    }
+
+    btn.classList.remove('loading');
+    btn.textContent = '▶';
+
+    if (!url) { showToast('Audio unavailable', 'Could not load file', 'error'); return; }
+    audio.src = url;
+  }
+
+  state.audioUnlocked = true;
+
+  // Wire up events once
+  if (!audio._eventsSet) {
+    audio._eventsSet = true;
+    audio.ontimeupdate = () => {
+      if (!audio.duration) return;
+      document.getElementById('np-progress').style.width = (audio.currentTime / audio.duration * 100) + '%';
+      document.getElementById('np-current').textContent = fmtTime(audio.currentTime);
+    };
+    audio.onloadedmetadata = () => {
+      document.getElementById('np-duration').textContent = fmtTime(audio.duration);
+    };
+    audio.onplay = () => {
+      document.getElementById('np-disc').classList.add('playing');
+      document.getElementById('np-play-btn').textContent = '⏸';
+    };
+    audio.onpause = () => {
+      document.getElementById('np-disc').classList.remove('playing');
+      document.getElementById('np-play-btn').textContent = '▶';
+    };
+  }
+
+  try {
+    await audio.play();
+  } catch (err) {
+    showToast('Playback blocked', 'Tap play again', 'warning');
+  }
 }
 
 function fmtTime(s) {
   if (!isFinite(s)) return '0:00';
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${sec.toString().padStart(2,'0')}`;
+  return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2,'0')}`;
 }
 
 // ── DELETE POST ───────────────────────────────────────────────────
@@ -2817,276 +1760,187 @@ async function confirmDelete() {
   closeSheet('sheet-delete');
   const meta = state.currentPost;
   if (!meta) return;
-
-  showToast('Deleting…', 'removing from GitHub', 'info', 10000);
-
+  showToast('Deleting…', '', 'info', 10000);
   try {
     const folder = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}`);
-    if (Array.isArray(folder)) {
-      for (const file of folder) {
-        await ghDeleteFile(file.path, file.sha);
-      }
-    }
-
+    if (Array.isArray(folder)) for (const file of folder) await ghDeleteFile(file.path, file.sha);
     const indexFile = await ghGetFile('posts-index.json');
     const updated = (indexFile?.content || []).filter(p => p.id !== meta.id);
     await ghPutFile('posts-index.json', updated, indexFile?.sha, `memoir: delete post ${meta.id}`);
-
     state.posts = updated;
     state.filteredPosts = updated;
-
     showToast('Deleted', '', 'success');
     logEvent('deletePost', 'success', meta.id);
     goBack();
     renderFeed(state.filteredPosts);
-  } catch (err) {
-    showError('Delete failed', err);
-  }
+  } catch (err) { showError('Delete failed', err); }
 }
 
 // ── CREATE POST ───────────────────────────────────────────────────
-function openMediaPicker() {
-  const input = document.getElementById('media-file-input');
-  input.value = '';
-  input.click();
-}
-
-function openMediaPickerAdd(e) {
-  e.stopPropagation();
-  const input = document.getElementById('media-file-input-add');
-  input.value = '';
-  input.click();
-}
+function openMediaPicker() { const i = document.getElementById('media-file-input'); i.value = ''; i.click(); }
+function openMediaPickerAdd(e) { e.stopPropagation(); const i = document.getElementById('media-file-input-add'); i.value = ''; i.click(); }
 
 async function handleMediaFiles(files) {
-  const arr = Array.from(files).slice(0, MAX_MEDIA);
-
-  for (const file of arr) {
-    const sizeMB = file.size / 1024 / 1024;
-    if (sizeMB > MAX_FILE_MB) {
-      showToast('Large file', `${file.name} is ${sizeMB.toFixed(0)}MB. GitHub limit is 25MB.`, 'warning');
-    }
-  }
-
+  const arr = Array.from(files);
+  for (const f of arr) { if (f.size / 1024 / 1024 > MAX_FILE_MB) showToast('Large file', `${f.name} exceeds 24MB limit`, 'warning'); }
   state.pendingMedia = [...(state.pendingMedia || []), ...arr].slice(0, MAX_MEDIA);
   renderMediaGrid();
-  document.getElementById('btn-post').disabled = state.pendingMedia.length === 0;
+  document.getElementById('btn-post').disabled = !state.pendingMedia.length;
 }
 
 function renderMediaGrid() {
   const grid = document.getElementById('media-grid');
   const addBtn = document.getElementById('media-add-btn');
   const files = state.pendingMedia;
-
   const iconEl = document.querySelector('#media-picker .media-picker-icon');
   const textEl = document.querySelector('#media-picker .media-picker-text');
   const subEl  = document.querySelector('#media-picker .media-picker-sub');
 
   if (!files.length) {
-    grid.style.display = 'none';
-    addBtn.style.display = 'none';
-    iconEl.style.display = '';
-    textEl.style.display = '';
-    subEl.style.display  = '';
+    grid.style.display = 'none'; addBtn.style.display = 'none';
+    iconEl.style.display = ''; textEl.style.display = ''; subEl.style.display = '';
     return;
   }
-
-  iconEl.style.display = 'none';
-  textEl.style.display = 'none';
-  subEl.style.display  = 'none';
-
-  grid.style.display = 'grid';
-  addBtn.style.display = 'flex';
+  iconEl.style.display = 'none'; textEl.style.display = 'none'; subEl.style.display = 'none';
+  grid.style.display = 'grid'; addBtn.style.display = 'flex';
   addBtn.onclick = openMediaPickerAdd;
 
   const show = files.slice(0, 3);
   const more = files.length - 3;
-
   grid.innerHTML = show.map((f, i) => {
     const url = URL.createObjectURL(f);
     const isVideo = f.type.startsWith('video/');
-    return `
-      <div class="media-grid-item" style="position:relative">
-        ${isVideo
-          ? `<video src="${url}" muted></video>`
-          : `<img src="${url}" alt="">`
-        }
-        <button class="media-remove-btn" onclick="event.stopPropagation();removeMedia(${i})" title="Remove">✕</button>
-        ${i === 2 && more > 0
-          ? `<div class="media-grid-more">+${more + 1}</div>`
-          : ''}
-      </div>`;
+    return `<div class="media-grid-item"><${isVideo ? 'video' : 'img'} src="${url}" ${isVideo ? 'muted' : 'alt=""'}><button class="media-remove-btn" onclick="event.stopPropagation();removeMedia(${i})">✕</button>${i === 2 && more > 0 ? `<div class="media-grid-more">+${more + 1}</div>` : ''}</div>`;
   }).join('');
 }
 
 function removeMedia(index) {
   state.pendingMedia.splice(index, 1);
   renderMediaGrid();
-  document.getElementById('btn-post').disabled = state.pendingMedia.length === 0;
+  document.getElementById('btn-post').disabled = !state.pendingMedia.length;
 }
 
 async function loadMusicForCreate() {
   const selector = document.getElementById('music-selector');
   if (!state.auth) return;
-
   try {
     const file = await ghGetFile('music/music-index.json');
     const newIndex = file?.content || [];
-    const changed = JSON.stringify(newIndex) !== JSON.stringify(state.musicIndex);
-    if (changed) state.musicIndex = newIndex;
+    if (JSON.stringify(newIndex) !== JSON.stringify(state.musicIndex)) state.musicIndex = newIndex;
+    if (!state.musicIndex.length) { selector.innerHTML = `<div style="font-size:10px;color:var(--text-faint);padding:8px 0">No songs yet — add some in the Music tab</div>`; return; }
+    renderMusicSelector(selector, state.selectedSongId, 'selectSong');
+  } catch { selector.innerHTML = `<div style="font-size:10px;color:var(--rose)">Couldn't load library</div>`; }
+}
 
-    if (!state.musicIndex.length) {
-      selector.innerHTML = `<div style="font-size:11px;color:var(--text-faint);padding:10px 0">No songs yet — add some in the Music tab</div>`;
-      return;
-    }
-
-    selector.innerHTML = state.musicIndex.map(song => {
-      const [c1, c2] = discColor(song.id || song.title);
-      const isSelected = state.selectedSongId === song.id;
-      return `
-        <div class="music-option${isSelected ? ' selected' : ''}" onclick="selectSong('${song.id}')" id="mo-${song.id}">
-          <div class="mo-disc" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div>
-          <div class="mo-info">
-            <div class="mo-title">${esc(song.title)}</div>
-            <div class="mo-artist">${esc(song.artist)}</div>
-          </div>
-          <div class="mo-check" id="mc-${song.id}">${isSelected ? '✓' : ''}</div>
-        </div>`;
-    }).join('');
-  } catch (err) {
-    selector.innerHTML = `<div style="font-size:11px;color:var(--rose)">Couldn't load library</div>`;
-  }
+function renderMusicSelector(container, selectedId, fnName) {
+  container.innerHTML = state.musicIndex.map(song => {
+    const [c1, c2] = discColor(song.id || song.title);
+    const sel = selectedId === song.id;
+    return `<div class="music-option${sel ? ' selected' : ''}" onclick="${fnName}('${song.id}')" id="${fnName}-mo-${song.id}"><div class="mo-disc" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div><div class="mo-info"><div class="mo-title">${esc(song.title)}</div><div class="mo-artist">${esc(song.artist)}</div></div><div class="mo-check" id="${fnName}-mc-${song.id}">${sel ? '✓' : ''}</div></div>`;
+  }).join('');
 }
 
 function selectSong(id) {
   state.selectedSongId = state.selectedSongId === id ? null : id;
-  document.querySelectorAll('.music-option').forEach(el => el.classList.remove('selected'));
-  document.querySelectorAll('[id^="mc-"]').forEach(el => el.textContent = '');
-  if (state.selectedSongId) {
-    document.getElementById(`mo-${state.selectedSongId}`)?.classList.add('selected');
-    const checkEl = document.getElementById(`mc-${state.selectedSongId}`);
-    if (checkEl) checkEl.textContent = '✓';
+  updateSelectorUI('selectSong', state.selectedSongId);
+}
+
+function updateSelectorUI(fnName, selectedId) {
+  document.querySelectorAll(`[id^="${fnName}-mo-"]`).forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll(`[id^="${fnName}-mc-"]`).forEach(el => el.textContent = '');
+  if (selectedId) {
+    document.getElementById(`${fnName}-mo-${selectedId}`)?.classList.add('selected');
+    const check = document.getElementById(`${fnName}-mc-${selectedId}`);
+    if (check) check.textContent = '✓';
   }
 }
 
 async function submitPost() {
   if (!state.pendingMedia?.length) return;
-
   const btn = document.getElementById('btn-post');
   btn.disabled = true;
-
   const progress = document.getElementById('upload-progress');
   progress.classList.add('visible');
 
   const postId = generatePostId();
   const caption = document.getElementById('caption-input').value.trim();
   const location = document.getElementById('location-input').value.trim();
-  const selectedSong = state.selectedSongId
-    ? state.musicIndex.find(s => s.id === state.selectedSongId)
-    : null;
+  const selectedSong = state.selectedSongId ? state.musicIndex.find(s => s.id === state.selectedSongId) : null;
 
   try {
     const mediaEntries = [];
     const total = state.pendingMedia.length + (selectedSong ? 1 : 0) + 1;
     let done = 0;
 
-    function updateProg(label, file, pct) {
+    const upd = (label, file, pct) => {
       document.getElementById('upload-label').textContent = label;
       document.getElementById('upload-pct').textContent = Math.round(pct) + '%';
       document.getElementById('upload-bar-fill').style.width = pct + '%';
       document.getElementById('upload-file').textContent = file;
-      document.getElementById('upload-count').textContent = `${done} / ${total} files`;
-    }
+      document.getElementById('upload-count').textContent = `${done} / ${total}`;
+    };
 
     for (let i = 0; i < state.pendingMedia.length; i++) {
       const file = state.pendingMedia[i];
       const isVideo = file.type.startsWith('video/');
-      let buffer = await file.arrayBuffer();
-      let ext = file.name.split('.').pop().toLowerCase();
-      let type = isVideo ? 'video' : 'image';
-      let filename = `media_${i + 1}.${ext}`;
-
-      updateProg(`Uploading ${isVideo ? 'video' : 'photo'} ${i+1}…`, file.name, (done / total) * 100);
-      await ghPutBinary(`posts/${postId}/${filename}`, buffer, null, `memoir: add media to ${postId}`);
-      mediaEntries.push({ filename, type, order: i + 1 });
+      const ext = file.name.split('.').pop().toLowerCase();
+      const filename = `media_${i + 1}.${ext}`;
+      upd(`Uploading ${isVideo ? 'video' : 'photo'} ${i + 1}…`, file.name, (done / total) * 100);
+      await ghPutBinary(`posts/${postId}/${filename}`, await file.arrayBuffer(), null, `memoir: add media to ${postId}`);
+      mediaEntries.push({ filename, type: isVideo ? 'video' : 'image', order: i + 1 });
       done++;
-      updateProg('Uploading…', file.name, (done / total) * 100);
     }
 
     let songMeta = null;
     if (selectedSong) {
-      updateProg('Adding music…', selectedSong.filename, (done / total) * 100);
+      upd('Adding music…', selectedSong.filename, (done / total) * 100);
+      const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
       let songBuffer;
       try {
-        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
-        const downloadUrl = fileInfo?.download_url;
-        if (!downloadUrl) throw new Error('No download URL');
-        const songRes = await fetch(downloadUrl);
-        if (!songRes.ok) throw new Error(`HTTP ${songRes.status}`);
-        songBuffer = await songRes.arrayBuffer();
-      } catch (e) {
-        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+        const r = await fetch(fileInfo?.download_url);
+        if (!r.ok) throw new Error('fetch failed');
+        songBuffer = await r.arrayBuffer();
+      } catch {
         const b64 = fileInfo?.content?.replace(/\n/g, '');
-        const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        songBuffer = bytes.buffer;
+        songBuffer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
       }
       await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: add song to ${postId}`);
       songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3' };
       done++;
     }
 
-    updateProg('Saving post…', 'meta.json', (done / total) * 100);
-    const meta = {
-      id: postId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      caption,
-      location,
-      media: mediaEntries,
-      song: songMeta
-    };
+    upd('Saving post…', 'meta.json', (done / total) * 100);
+    const meta = { id: postId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), caption, location, media: mediaEntries, song: songMeta };
     await ghPutFile(`posts/${postId}/meta.json`, meta, null, `memoir: create post ${postId}`);
     done++;
 
-    updateProg('Updating feed…', 'posts-index.json', 95);
+    upd('Updating feed…', 'posts-index.json', 95);
     const indexFile = await ghGetFile('posts-index.json');
-    const indexEntry = {
-      id: postId,
-      date: postId.split('-').slice(0,3).join('-'),
-      captionPreview: caption.slice(0, 120),
-      location,
-      thumbnail: (mediaEntries[0]?.type === 'image') ? `posts/${postId}/${mediaEntries[0].filename}` : null,
-      songTitle: songMeta?.title || null,
-      songArtist: songMeta?.artist || null,
-      mediaCount: mediaEntries.length,
-      hasVideo: mediaEntries.some(m => m.type === 'video')
-    };
+    const indexEntry = { id: postId, date: postId.split('-').slice(0,3).join('-'), captionPreview: caption.slice(0,120), location, thumbnail: mediaEntries[0]?.type === 'image' ? `posts/${postId}/${mediaEntries[0].filename}` : null, songTitle: songMeta?.title || null, songArtist: songMeta?.artist || null, mediaCount: mediaEntries.length, hasVideo: mediaEntries.some(m => m.type === 'video') };
     const updatedIndex = [indexEntry, ...(indexFile?.content || [])];
     await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: add post ${postId}`);
 
     state.posts = updatedIndex;
     state.filteredPosts = updatedIndex;
-
     showToast('Posted ✦', 'Memory saved to GitHub', 'success');
     logEvent('createPost', 'success', postId);
 
-    // Reset create screen
+    // Reset
     state.pendingMedia = [];
     state.selectedSongId = null;
     document.getElementById('caption-input').value = '';
     document.getElementById('location-input').value = '';
+    const mp = document.getElementById('media-picker');
     document.getElementById('media-grid').style.display = 'none';
     document.getElementById('media-add-btn').style.display = 'none';
-    document.querySelector('#media-picker .media-picker-icon').style.display = '';
-    document.querySelector('#media-picker .media-picker-text').style.display = '';
-    document.querySelector('#media-picker .media-picker-sub').style.display = '';
+    mp.querySelector('.media-picker-icon').style.display = '';
+    mp.querySelector('.media-picker-text').style.display = '';
+    mp.querySelector('.media-picker-sub').style.display = '';
     progress.classList.remove('visible');
     btn.disabled = false;
-
     loadMusicForCreate();
     renderFeed(state.filteredPosts);
     goBack();
-
   } catch (err) {
     showError('Post failed', err);
     btn.disabled = false;
@@ -3094,58 +1948,46 @@ async function submitPost() {
   }
 }
 
-function openPostMenu() {
-  showToast('Post options', 'Edit and delete available below', 'info');
-}
-
 // ── EDIT POST ─────────────────────────────────────────────────────
 async function openEditPost() {
   const meta = state.currentPost;
   if (!meta) return;
 
-  // Initialize edit state
   state.editPost = {
     postId: meta.id,
-    meta: JSON.parse(JSON.stringify(meta)),
-    originalCaption: meta.caption || '',
+    originalCaption:  meta.caption  || '',
     originalLocation: meta.location || '',
-    originalSong: meta.song ? JSON.parse(JSON.stringify(meta.song)) : null,
-    originalMedia: [...meta.media].sort((a,b) => a.order - b.order),
-    // working copies
-    currentMedia: [...meta.media].sort((a,b) => a.order - b.order).map(m => ({ ...m, _status: 'existing' })),
-    toDelete: [],    // {filename, sha} items to delete from GitHub
-    toAdd: [],       // {file, filename, type} new files to upload
-    selectedSongId: null,
-    songChanged: false,
+    originalSong:     meta.song ? JSON.parse(JSON.stringify(meta.song)) : null,
+    originalMedia:    [...meta.media].sort((a, b) => a.order - b.order),
+    currentMedia:     [...meta.media].sort((a, b) => a.order - b.order).map(m => ({ ...m, _status: 'existing' })),
+    selectedSongId:   null,
+    songChanged:      false,
   };
 
-  // Pre-select existing song (match by title+artist in musicIndex)
+  // Match existing song to library entry
   if (meta.song) {
     const match = state.musicIndex.find(s => s.title === meta.song.title && s.artist === meta.song.artist);
     if (match) state.editPost.selectedSongId = match.id;
   }
 
-  // Fill UI
+  // Fetch folder URLs for existing media thumbnails
+  state.editFolderUrls = await ghFolderUrls(`posts/${meta.id}`);
+
   document.getElementById('edit-date-value').textContent = formatDate(meta.createdAt?.split('T')[0]);
   document.getElementById('edit-caption-input').value = meta.caption || '';
   document.getElementById('edit-location-input').value = meta.location || '';
 
-  // Render media strip
-  await renderEditMediaStrip();
-
-  // Load music selector
+  renderEditMediaStrip();
   await loadMusicForEdit();
-
   navigateTo('screen-edit');
 }
 
-async function renderEditMediaStrip() {
+function renderEditMediaStrip() {
   const strip = document.getElementById('edit-media-strip');
   const ep = state.editPost;
   strip.innerHTML = '';
 
-  for (let i = 0; i < ep.currentMedia.length; i++) {
-    const m = ep.currentMedia[i];
+  ep.currentMedia.forEach((m, i) => {
     const thumb = document.createElement('div');
     thumb.className = 'edit-media-thumb' + (m._status === 'delete' ? ' to-delete' : '');
     thumb.dataset.index = i;
@@ -3154,44 +1996,18 @@ async function renderEditMediaStrip() {
     let mediaEl;
     if (m._status === 'new') {
       const url = URL.createObjectURL(m._file);
-      if (m.type === 'video') {
-        mediaEl = document.createElement('video');
-        mediaEl.src = url;
-        mediaEl.muted = true;
-      } else {
-        mediaEl = document.createElement('img');
-        mediaEl.src = url;
-        mediaEl.alt = '';
-      }
+      mediaEl = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
     } else {
-      const url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${ep.postId}/${m.filename}`;
-      if (m.type === 'video') {
-        mediaEl = document.createElement('video');
-        mediaEl.src = url;
-        mediaEl.muted = true;
-      } else {
-        mediaEl = document.createElement('img');
-        mediaEl.src = url;
-        mediaEl.alt = '';
-        mediaEl.onerror = async function() {
-          if (this.dataset.tried) return;
-          this.dataset.tried = '1';
-          try {
-            const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${ep.postId}/${m.filename}`);
-            if (info?.download_url) this.src = info.download_url;
-          } catch {}
-        };
-      }
+      const url = state.editFolderUrls[m.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${ep.postId}/${m.filename}`;
+      mediaEl = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
     }
 
-    // Remove / restore button
     const removeBtn = document.createElement('button');
     removeBtn.className = 'media-remove-btn';
     removeBtn.textContent = m._status === 'delete' ? '↩' : '✕';
     removeBtn.title = m._status === 'delete' ? 'Restore' : 'Remove';
     removeBtn.onclick = () => toggleEditMediaDelete(i);
 
-    // Drag handle
     const handle = document.createElement('div');
     handle.className = 'drag-handle';
     handle.textContent = '⠿';
@@ -3200,306 +2016,165 @@ async function renderEditMediaStrip() {
     thumb.appendChild(removeBtn);
     thumb.appendChild(handle);
     strip.appendChild(thumb);
+    setupEditDragEvents(thumb, i);
+  });
 
-    // Drag events for reordering
-    setupDragEvents(thumb, i);
-  }
-
-  // Add more button
   const addBtn = document.createElement('div');
   addBtn.className = 'edit-add-more';
   addBtn.innerHTML = `+ <span>Add more</span>`;
-  addBtn.onclick = () => {
-    const inp = document.getElementById('edit-media-input');
-    inp.value = '';
-    inp.click();
-  };
+  addBtn.onclick = () => { const inp = document.getElementById('edit-media-input'); inp.value = ''; inp.click(); };
   strip.appendChild(addBtn);
 }
 
 function toggleEditMediaDelete(index) {
   const m = state.editPost.currentMedia[index];
-  if (m._status === 'new') {
-    // Remove new file completely
-    state.editPost.currentMedia.splice(index, 1);
-  } else if (m._status === 'delete') {
-    m._status = 'existing';
-  } else {
-    m._status = 'delete';
-  }
+  if (m._status === 'new') { state.editPost.currentMedia.splice(index, 1); }
+  else if (m._status === 'delete') { m._status = 'existing'; }
+  else { m._status = 'delete'; }
   renderEditMediaStrip();
 }
 
-// Drag-and-drop reorder in edit strip
-let dragSrcIndex = null;
-
-function setupDragEvents(el, index) {
-  el.addEventListener('dragstart', () => {
-    dragSrcIndex = index;
-    setTimeout(() => el.classList.add('dragging'), 0);
-  });
-  el.addEventListener('dragend', () => {
-    el.classList.remove('dragging');
-    document.querySelectorAll('.edit-media-thumb').forEach(t => t.classList.remove('drag-over'));
-  });
-  el.addEventListener('dragover', e => {
-    e.preventDefault();
-    document.querySelectorAll('.edit-media-thumb').forEach(t => t.classList.remove('drag-over'));
-    el.classList.add('drag-over');
-  });
+let editDragSrc = null;
+function setupEditDragEvents(el, index) {
+  el.addEventListener('dragstart', () => { editDragSrc = index; setTimeout(() => el.classList.add('dragging'), 0); });
+  el.addEventListener('dragend', () => { el.classList.remove('dragging'); document.querySelectorAll('.edit-media-thumb').forEach(t => t.classList.remove('drag-over')); });
+  el.addEventListener('dragover', e => { e.preventDefault(); document.querySelectorAll('.edit-media-thumb').forEach(t => t.classList.remove('drag-over')); el.classList.add('drag-over'); });
   el.addEventListener('drop', e => {
     e.preventDefault();
-    if (dragSrcIndex === null || dragSrcIndex === index) return;
+    if (editDragSrc === null || editDragSrc === index) return;
     const items = state.editPost.currentMedia;
-    const [moved] = items.splice(dragSrcIndex, 1);
+    const [moved] = items.splice(editDragSrc, 1);
     items.splice(index, 0, moved);
-    dragSrcIndex = null;
+    editDragSrc = null;
     renderEditMediaStrip();
   });
 }
 
 function handleEditAddMedia(files) {
-  const arr = Array.from(files);
-  const existing = state.editPost.currentMedia.length;
-  const canAdd = MAX_MEDIA - existing;
-  if (canAdd <= 0) { showToast('Max media', 'Cannot add more than 10 items', 'warning'); return; }
-
-  const toAdd = arr.slice(0, canAdd);
-  let orderStart = (state.editPost.currentMedia.reduce((m, x) => Math.max(m, x.order || 0), 0)) + 1;
-
-  toAdd.forEach((file, i) => {
+  const canAdd = MAX_MEDIA - state.editPost.currentMedia.length;
+  if (canAdd <= 0) { showToast('Max media', 'Cannot exceed 10 items', 'warning'); return; }
+  let orderMax = state.editPost.currentMedia.reduce((m, x) => Math.max(m, x.order || 0), 0);
+  Array.from(files).slice(0, canAdd).forEach((file, i) => {
     const isVideo = file.type.startsWith('video/');
     const ext = file.name.split('.').pop().toLowerCase();
-    const newFilename = `media_new_${Date.now()}_${i}.${ext}`;
-    state.editPost.currentMedia.push({
-      filename: newFilename,
-      type: isVideo ? 'video' : 'image',
-      order: orderStart + i,
-      _status: 'new',
-      _file: file
-    });
+    state.editPost.currentMedia.push({ filename: `media_new_${Date.now()}_${i}.${ext}`, type: isVideo ? 'video' : 'image', order: ++orderMax, _status: 'new', _file: file });
   });
-
   renderEditMediaStrip();
 }
 
 async function loadMusicForEdit() {
   const selector = document.getElementById('edit-music-selector');
-  if (!state.auth) return;
-
   try {
     if (!state.musicIndex.length) {
       const file = await ghGetFile('music/music-index.json');
       state.musicIndex = file?.content || [];
     }
-
-    if (!state.musicIndex.length) {
-      selector.innerHTML = `<div style="font-size:11px;color:var(--text-faint);padding:10px 0">No songs yet</div>`;
-      return;
-    }
-
-    const currentSongId = state.editPost.selectedSongId;
-
-    selector.innerHTML = state.musicIndex.map(song => {
-      const [c1, c2] = discColor(song.id || song.title);
-      const isSelected = currentSongId === song.id;
-      return `
-        <div class="music-option${isSelected ? ' selected' : ''}" onclick="selectEditSong('${song.id}')" id="emo-${song.id}">
-          <div class="mo-disc" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div>
-          <div class="mo-info">
-            <div class="mo-title">${esc(song.title)}</div>
-            <div class="mo-artist">${esc(song.artist)}</div>
-          </div>
-          <div class="mo-check" id="emc-${song.id}">${isSelected ? '✓' : ''}</div>
-        </div>`;
-    }).join('');
-  } catch (err) {
-    selector.innerHTML = `<div style="font-size:11px;color:var(--rose)">Couldn't load library</div>`;
-  }
+    if (!state.musicIndex.length) { selector.innerHTML = `<div style="font-size:10px;color:var(--text-faint);padding:8px 0">No songs yet</div>`; return; }
+    renderMusicSelector(selector, state.editPost.selectedSongId, 'selectEditSong');
+  } catch { selector.innerHTML = `<div style="font-size:10px;color:var(--rose)">Couldn't load library</div>`; }
 }
 
 function selectEditSong(id) {
   state.editPost.selectedSongId = state.editPost.selectedSongId === id ? null : id;
   state.editPost.songChanged = true;
-  document.querySelectorAll('#edit-music-selector .music-option').forEach(el => el.classList.remove('selected'));
-  document.querySelectorAll('[id^="emc-"]').forEach(el => el.textContent = '');
-  if (state.editPost.selectedSongId) {
-    document.getElementById(`emo-${state.editPost.selectedSongId}`)?.classList.add('selected');
-    const checkEl = document.getElementById(`emc-${state.editPost.selectedSongId}`);
-    if (checkEl) checkEl.textContent = '✓';
-  }
+  updateSelectorUI('selectEditSong', state.editPost.selectedSongId);
 }
 
 async function submitEdit() {
   const ep = state.editPost;
   if (!ep) return;
-
   const btn = document.getElementById('btn-save-edit');
   btn.disabled = true;
-
   const progress = document.getElementById('edit-upload-progress');
   progress.classList.add('visible');
 
-  const postId = ep.postId;
-  const newCaption = document.getElementById('edit-caption-input').value.trim();
+  const newCaption  = document.getElementById('edit-caption-input').value.trim();
   const newLocation = document.getElementById('edit-location-input').value.trim();
+  const postId = ep.postId;
 
-  function updateProg(label, file, pct) {
+  const upd = (label, file, pct) => {
     document.getElementById('edit-upload-label').textContent = label;
     document.getElementById('edit-upload-pct').textContent = Math.round(pct) + '%';
     document.getElementById('edit-upload-bar-fill').style.width = pct + '%';
     document.getElementById('edit-upload-file').textContent = file || '';
-    document.getElementById('edit-upload-count').textContent = '';
-  }
+  };
 
   try {
-    let totalSteps = 0;
-    let doneSteps = 0;
-
     const toDeleteItems = ep.currentMedia.filter(m => m._status === 'delete');
-    const toAddItems = ep.currentMedia.filter(m => m._status === 'new');
-    const captionChanged = newCaption !== ep.originalCaption;
-    const locationChanged = newLocation !== ep.originalLocation;
-
-    totalSteps = toDeleteItems.length + toAddItems.length + 1; // +1 for meta
-    const selectedSong = ep.selectedSongId ? state.musicIndex.find(s => s.id === ep.selectedSongId) : null;
+    const toAddItems    = ep.currentMedia.filter(m => m._status === 'new');
+    const selectedSong  = ep.selectedSongId ? state.musicIndex.find(s => s.id === ep.selectedSongId) : null;
     const oldSong = ep.originalSong;
-    const songChanged = ep.songChanged;
 
-    if (songChanged && selectedSong && (!oldSong || selectedSong.title !== oldSong.title)) {
-      totalSteps += 1; // upload new song file
-    }
+    let step = 0;
+    const totalSteps = toDeleteItems.length + toAddItems.length + 2;
 
-    // 1. Delete removed media files
     for (const m of toDeleteItems) {
-      updateProg(`Removing ${m.filename}…`, m.filename, (doneSteps / totalSteps) * 90);
+      upd(`Removing ${m.filename}…`, m.filename, (step / totalSteps) * 90);
       try {
-        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
-        if (fileInfo?.sha) {
-          await ghDeleteFile(`posts/${postId}/${m.filename}`, fileInfo.sha, `memoir: remove media from ${postId}`);
-        }
-      } catch (e) {}
-      doneSteps++;
+        const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
+        if (fi?.sha) await ghDeleteFile(`posts/${postId}/${m.filename}`, fi.sha);
+      } catch {}
+      step++;
     }
 
-    // 2. Upload new media files
     for (const m of toAddItems) {
-      updateProg(`Uploading ${m.filename}…`, m.filename, (doneSteps / totalSteps) * 90);
-      const buffer = await m._file.arrayBuffer();
-      await ghPutBinary(`posts/${postId}/${m.filename}`, buffer, null, `memoir: add media to ${postId}`);
-      doneSteps++;
+      upd(`Uploading ${m.filename}…`, m.filename, (step / totalSteps) * 90);
+      await ghPutBinary(`posts/${postId}/${m.filename}`, await m._file.arrayBuffer(), null, `memoir: add media to ${postId}`);
+      step++;
     }
 
-    // 3. Handle song change
     let newSongMeta = oldSong;
-    if (songChanged) {
+    if (ep.songChanged) {
       if (!selectedSong) {
-        // Removed song — delete song file if it was a copy
         if (oldSong?.filename === 'song.mp3') {
-          try {
-            const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`);
-            if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha, `memoir: remove song from ${postId}`);
-          } catch {}
+          try { const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`); if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha); } catch {}
         }
         newSongMeta = null;
       } else if (!oldSong || selectedSong.title !== oldSong.title || selectedSong.artist !== oldSong.artist) {
-        // Upload new song
-        updateProg('Updating song…', selectedSong.filename, (doneSteps / totalSteps) * 90);
-        // Delete old song file first
+        upd('Updating song…', selectedSong.filename, (step / totalSteps) * 90);
         if (oldSong?.filename === 'song.mp3') {
-          try {
-            const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`);
-            if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha, `memoir: replace song in ${postId}`);
-          } catch {}
+          try { const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`); if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha); } catch {}
         }
+        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
         let songBuffer;
-        try {
-          const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
-          const downloadUrl = fileInfo?.download_url;
-          if (!downloadUrl) throw new Error('No download URL');
-          const songRes = await fetch(downloadUrl);
-          if (!songRes.ok) throw new Error(`HTTP ${songRes.status}`);
-          songBuffer = await songRes.arrayBuffer();
-        } catch {
-          const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
-          const b64 = fileInfo?.content?.replace(/\n/g, '');
-          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-          songBuffer = bytes.buffer;
+        try { const r = await fetch(fileInfo?.download_url); songBuffer = await r.arrayBuffer(); } catch {
+          songBuffer = Uint8Array.from(atob(fileInfo?.content?.replace(/\n/g,'')), c => c.charCodeAt(0)).buffer;
         }
         await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: update song in ${postId}`);
         newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3' };
-        doneSteps++;
+        step++;
       }
     }
 
-    // 4. Build updated media list (reordered, minus deleted, with new)
-    const finalMedia = ep.currentMedia
-      .filter(m => m._status !== 'delete')
-      .map((m, i) => ({ filename: m.filename, type: m.type, order: i + 1 }));
+    const finalMedia = ep.currentMedia.filter(m => m._status !== 'delete').map((m, i) => ({ filename: m.filename, type: m.type, order: i + 1 }));
 
-    // 5. Update meta.json
-    updateProg('Saving…', 'meta.json', 90);
+    upd('Saving…', 'meta.json', 90);
     const metaFile = await ghGetFile(`posts/${postId}/meta.json`);
-    const updatedMeta = {
-      ...metaFile.content,
-      caption: newCaption,
-      location: newLocation,
-      media: finalMedia,
-      song: newSongMeta,
-      updatedAt: new Date().toISOString()
-    };
+    const updatedMeta = { ...metaFile.content, caption: newCaption, location: newLocation, media: finalMedia, song: newSongMeta, updatedAt: new Date().toISOString() };
     await ghPutFile(`posts/${postId}/meta.json`, updatedMeta, metaFile.sha, `memoir: edit post ${postId}`);
 
-    // 6. Update posts-index.json if caption or thumbnail changed
     const firstImage = finalMedia.find(m => m.type === 'image');
-    const newThumbnail = firstImage ? `posts/${postId}/${firstImage.filename}` : null;
+    const newThumb = firstImage ? `posts/${postId}/${firstImage.filename}` : null;
     const oldEntry = state.posts.find(p => p.id === postId);
-    const oldThumbnail = oldEntry?.thumbnail;
 
-    const indexNeedsUpdate = captionChanged || locationChanged ||
-      newThumbnail !== oldThumbnail ||
-      (newSongMeta?.title !== oldSong?.title) ||
-      (newSongMeta?.artist !== oldSong?.artist) ||
-      finalMedia.length !== ep.originalMedia.length;
-
-    if (indexNeedsUpdate) {
-      updateProg('Updating feed…', 'posts-index.json', 96);
+    if (newCaption !== ep.originalCaption || newLocation !== ep.originalLocation || newThumb !== oldEntry?.thumbnail || newSongMeta?.title !== oldSong?.title || finalMedia.length !== ep.originalMedia.length) {
+      upd('Updating feed…', 'posts-index.json', 95);
       const indexFile = await ghGetFile('posts-index.json');
-      const updatedIndex = (indexFile?.content || []).map(p => {
-        if (p.id !== postId) return p;
-        return {
-          ...p,
-          captionPreview: newCaption.slice(0, 120),
-          location: newLocation,
-          thumbnail: newThumbnail,
-          songTitle: newSongMeta?.title || null,
-          songArtist: newSongMeta?.artist || null,
-          mediaCount: finalMedia.length,
-          hasVideo: finalMedia.some(m => m.type === 'video')
-        };
-      });
-      await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: update post index ${postId}`);
+      const updatedIndex = (indexFile?.content || []).map(p => p.id !== postId ? p : { ...p, captionPreview: newCaption.slice(0,120), location: newLocation, thumbnail: newThumb, songTitle: newSongMeta?.title || null, songArtist: newSongMeta?.artist || null, mediaCount: finalMedia.length, hasVideo: finalMedia.some(m => m.type === 'video') });
+      await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: update index ${postId}`);
       state.posts = updatedIndex;
       state.filteredPosts = updatedIndex;
       renderFeed(state.filteredPosts);
     }
 
-    // Update currentPost in state so post view is fresh
     state.currentPost = updatedMeta;
-
-    updateProg('Done', '', 100);
     showToast('Saved ✦', 'Memory updated', 'success');
     logEvent('editPost', 'success', postId);
-
     progress.classList.remove('visible');
     btn.disabled = false;
     state.editPost = null;
-
-    // Go back to post view, refreshing it
     goBack();
-    // Re-open post view to show updated content
-    setTimeout(() => openPost(postId), 50);
-
+    setTimeout(() => openPost(postId), 60);
   } catch (err) {
     showError('Save failed', err);
     btn.disabled = false;
@@ -3510,48 +2185,26 @@ async function submitEdit() {
 // ── MUSIC LIBRARY ─────────────────────────────────────────────────
 async function loadMusicLibrary() {
   const list = document.getElementById('music-list');
-  list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:11px">Loading…</div>`;
-
+  list.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:10px">Loading…</div>`;
   try {
     const file = await ghGetFile('music/music-index.json');
     state.musicIndex = file?.content || [];
-
     if (!state.musicIndex.length) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">♫</div>
-          <div class="empty-title">No songs yet</div>
-          <div class="empty-sub">Tap + to add a song, or upload mp3 files<br>directly to the music/ folder on GitHub</div>
-        </div>`;
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">♫</div><div class="empty-title">No songs yet</div><div class="empty-sub">Tap + to add a song</div></div>`;
       document.getElementById('music-storage-bar').style.display = 'none';
       return;
     }
-
     list.innerHTML = state.musicIndex.map(song => {
       const [c1, c2] = discColor(song.id || song.title);
-      const sizeMB = ((song.sizeBytes || 0) / 1024 / 1024).toFixed(1);
-      return `
-        <div class="music-item" onclick="previewSong('${song.id}')">
-          <div class="mi-disc" id="disc-${song.id}" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div>
-          <div class="mi-info">
-            <div class="mi-title">${esc(song.title)}</div>
-            <div class="mi-artist">${esc(song.artist)}</div>
-            <div class="mi-size">${sizeMB} MB</div>
-          </div>
-          <button class="mi-play" id="play-${song.id}" onclick="event.stopPropagation();previewSong('${song.id}')">▶</button>
-        </div>`;
+      return `<div class="music-item" onclick="previewSong('${song.id}')"><div class="mi-disc" id="disc-${song.id}" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div><div class="mi-info"><div class="mi-title">${esc(song.title)}</div><div class="mi-artist">${esc(song.artist)}</div><div class="mi-size">${((song.sizeBytes||0)/1024/1024).toFixed(1)} MB</div></div><button class="mi-play" id="play-${song.id}" onclick="event.stopPropagation();previewSong('${song.id}')">▶</button></div>`;
     }).join('');
-
     const totalBytes = state.musicIndex.reduce((s, m) => s + (m.sizeBytes || 0), 0);
-    const totalMB = (totalBytes / 1024 / 1024).toFixed(0);
-    const pct = (totalBytes / (1024*1024*1024)) * 100;
-    document.getElementById('msb-value').textContent = `${totalMB} MB / 1 GB`;
-    document.getElementById('msb-fill').style.width = Math.min(pct, 100) + '%';
+    document.getElementById('msb-value').textContent = `${(totalBytes/1024/1024).toFixed(0)} MB / 1 GB`;
+    document.getElementById('msb-fill').style.width = Math.min((totalBytes/(1024*1024*1024))*100, 100) + '%';
     document.getElementById('music-storage-bar').style.display = 'block';
-
   } catch (err) {
-    list.innerHTML = `<div style="padding:20px;color:var(--rose);font-size:11px">Failed to load: ${err.message}</div>`;
-    showError('Music library load failed', err);
+    list.innerHTML = `<div style="padding:16px;color:var(--rose);font-size:10px">Failed: ${err.message}</div>`;
+    showError('Music library failed', err);
   }
 }
 
@@ -3562,13 +2215,12 @@ async function previewSong(id) {
   const song = state.musicIndex.find(s => s.id === id);
   if (!song) return;
 
-  // Same song — toggle pause/play
   if (previewingId === id) {
-    if (previewAudio && !previewAudio.paused) {
+    if (previewAudio?.paused === false) {
       previewAudio.pause();
       document.getElementById(`disc-${id}`)?.classList.remove('playing');
       document.getElementById(`play-${id}`).textContent = '▶';
-    } else if (previewAudio && previewAudio.paused) {
+    } else if (previewAudio) {
       previewAudio.play().catch(() => {});
       document.getElementById(`disc-${id}`)?.classList.add('playing');
       document.getElementById(`play-${id}`).textContent = '⏸';
@@ -3577,80 +2229,53 @@ async function previewSong(id) {
   }
 
   // Stop previous
-  if (previewAudio) {
-    previewAudio.pause();
-    previewAudio.src = '';
-    previewAudio = null;
-  }
+  if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; }
   if (previewingId) {
     document.getElementById(`disc-${previewingId}`)?.classList.remove('playing');
     const pb = document.getElementById(`play-${previewingId}`);
     if (pb) pb.textContent = '▶';
   }
-
   previewingId = id;
 
-  // Start with raw URL immediately (preserves user gesture for autoplay)
+  // Use raw URL immediately to preserve user gesture for autoplay
   const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
   previewAudio = new Audio(rawUrl);
   state.audioUnlocked = true;
 
   previewAudio.addEventListener('play', () => {
     document.getElementById(`disc-${id}`)?.classList.add('playing');
-    const pb = document.getElementById(`play-${id}`);
-    if (pb) pb.textContent = '⏸';
+    const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '⏸';
   });
-
   previewAudio.addEventListener('pause', () => {
     document.getElementById(`disc-${id}`)?.classList.remove('playing');
-    const pb = document.getElementById(`play-${id}`);
-    if (pb) pb.textContent = '▶';
+    const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '▶';
   });
-
   previewAudio.addEventListener('ended', () => {
     document.getElementById(`disc-${id}`)?.classList.remove('playing');
-    const pb = document.getElementById(`play-${id}`);
-    if (pb) pb.textContent = '▶';
-    previewingId = null;
-    previewAudio = null;
+    const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '▶';
+    previewingId = null; previewAudio = null;
   });
-
   previewAudio.addEventListener('error', async () => {
-    // Raw URL failed — try API download_url
+    if (!previewAudio) return;
     try {
-      const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
-      if (fileInfo?.download_url && previewAudio) {
-        previewAudio.src = fileInfo.download_url;
-        previewAudio.play().catch(() => {});
-      }
+      const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
+      if (info?.download_url) { previewAudio.src = info.download_url; previewAudio.play().catch(() => {}); }
     } catch {}
   });
 
   previewAudio.play().catch(() => {
-    // Autoplay blocked — guide user to tap the play button again
-    const pb = document.getElementById(`play-${id}`);
-    if (pb) { pb.textContent = '▶'; pb.classList.add('playing'); }
+    const pb = document.getElementById(`play-${id}`); if (pb) pb.classList.add('playing');
   });
 }
 
-function openAddSong() {
-  document.getElementById('song-file-input').click();
-}
+function openAddSong() { document.getElementById('song-file-input').click(); }
 
 async function handleSongFile(file) {
   if (!file) return;
-  if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|m4a|wav)$/i)) {
-    showToast('Invalid file', 'Only audio files supported (mp3, m4a, wav)', 'error');
-    return;
-  }
-  if (file.size > 25 * 1024 * 1024) {
-    showToast('File too large', 'GitHub limit is 25MB per file', 'warning');
-  }
-
+  if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|m4a|wav)$/i)) { showToast('Invalid file', 'Only mp3, m4a, wav supported', 'error'); return; }
+  if (file.size > 25 * 1024 * 1024) showToast('File too large', 'GitHub limit is 25MB', 'warning');
   state.pendingSong = { file };
-
-  const name = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
-  document.getElementById('song-title-input').value = name;
+  document.getElementById('song-title-input').value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
   document.getElementById('song-artist-input').value = '';
   document.getElementById('sheet-song-filename').textContent = `File: ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
   openSheet('sheet-song-meta');
@@ -3660,77 +2285,48 @@ async function confirmAddSong() {
   const title  = document.getElementById('song-title-input').value.trim();
   const artist = document.getElementById('song-artist-input').value.trim();
   const file   = state.pendingSong?.file;
-
-  if (!title || !file) {
-    showToast('Title required', '', 'warning');
-    return;
-  }
-
+  if (!title || !file) { showToast('Title required', '', 'warning'); return; }
   closeSheet('sheet-song-meta');
-
   const ext = file.name.split('.').pop().toLowerCase();
   const id = slugify(`${title}-${artist}`);
   const filename = `${id}.${ext}`;
-
-  const existing = state.musicIndex.find(s => s.filename === filename);
-  if (existing) {
-    showToast('Duplicate', `A song called "${title}" already exists`, 'warning');
-    return;
-  }
-
+  if (state.musicIndex.find(s => s.filename === filename)) { showToast('Duplicate', `"${title}" already exists`, 'warning'); return; }
   showToast('Uploading song…', filename, 'info', 15000);
-
   try {
-    const buffer = await file.arrayBuffer();
-    await ghPutBinary(`music/${filename}`, buffer, null, `memoir: add song ${title}`);
-
+    await ghPutBinary(`music/${filename}`, await file.arrayBuffer(), null, `memoir: add song ${title}`);
     const indexFile = await ghGetFile('music/music-index.json');
-    const newEntry = {
-      id, title, artist, filename,
-      sizeBytes: file.size,
-      addedOn: new Date().toISOString().split('T')[0]
-    };
+    const newEntry = { id, title, artist, filename, sizeBytes: file.size, addedOn: new Date().toISOString().split('T')[0] };
     const updated = [...(indexFile?.content || []), newEntry];
     await ghPutFile('music/music-index.json', updated, indexFile?.sha, `memoir: add ${title} to index`);
-
     state.musicIndex = updated;
-    showToast('Song added', `${title} is now in your library`, 'success');
+    showToast('Song added', `${title} is in your library`, 'success');
     logEvent('addSong', 'success', title);
     loadMusicLibrary();
     state.pendingSong = null;
-  } catch (err) {
-    showError('Upload failed', err);
-  }
+  } catch (err) { showError('Upload failed', err); }
 }
 
 async function syncMusicLibrary() {
-  showToast('Syncing…', 'reading music/ folder from GitHub', 'info');
+  showToast('Syncing…', '', 'info');
   try {
     const folder = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music`);
     if (!Array.isArray(folder)) throw new Error('music/ folder not found');
-
     const audioFiles = folder.filter(f => /\.(mp3|m4a|wav)$/i.test(f.name));
-    const indexFile = await ghGetFile('music/music-index.json');
+    const indexFile  = await ghGetFile('music/music-index.json');
     const current = indexFile?.content || [];
-
     let added = 0;
     for (const f of audioFiles) {
-      const filename = f.name;
-      if (!current.find(s => s.filename === filename)) {
-        const name = filename.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
-        const id = slugify(name);
-        current.push({ id, title: name, artist: '', filename, sizeBytes: f.size, addedOn: new Date().toISOString().split('T')[0] });
+      if (!current.find(s => s.filename === f.name)) {
+        const name = f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+        current.push({ id: slugify(name), title: name, artist: '', filename: f.name, sizeBytes: f.size, addedOn: new Date().toISOString().split('T')[0] });
         added++;
       }
     }
-
-    await ghPutFile('music/music-index.json', current, indexFile?.sha, `memoir: sync music library (+${added})`);
+    await ghPutFile('music/music-index.json', current, indexFile?.sha, `memoir: sync music (+${added})`);
     state.musicIndex = current;
     showToast('Synced', `${added} new song${added !== 1 ? 's' : ''} added`, 'success');
     loadMusicLibrary();
-  } catch (err) {
-    showError('Sync failed', err);
-  }
+  } catch (err) { showError('Sync failed', err); }
 }
 
 // ── REORDER POSTS ─────────────────────────────────────────────────
@@ -3742,69 +2338,26 @@ function loadReorderScreen() {
 
 function renderReorderList() {
   const list = document.getElementById('reorder-list');
-  if (!state.reorderCurrent.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⊟</div><div class="empty-title">No posts yet</div></div>`;
-    return;
-  }
-
+  if (!state.reorderCurrent.length) { list.innerHTML = `<div class="empty-state"><div class="empty-icon">⊟</div><div class="empty-title">No posts yet</div></div>`; return; }
   list.innerHTML = state.reorderCurrent.map((post, i) => {
-    const thumbUrl = post.thumbnail
-      ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`
-      : null;
-    return `
-      <div class="reorder-card" draggable="true" data-index="${i}"
-           ondragstart="reorderDragStart(event,${i})"
-           ondragover="reorderDragOver(event)"
-           ondrop="reorderDrop(event,${i})"
-           ondragend="reorderDragEnd()">
-        <div class="reorder-handle">⠿</div>
-        <div class="reorder-thumb">
-          ${thumbUrl ? `<img src="${thumbUrl}" alt="" onerror="this.style.display='none'">` : ''}
-        </div>
-        <div class="reorder-info">
-          <div class="reorder-date">${formatDate(post.date)}</div>
-          <div class="reorder-caption">${esc(post.captionPreview || '(no caption)')}</div>
-        </div>
-      </div>`;
+    const thumbUrl = post.thumbnail ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}` : null;
+    return `<div class="reorder-card" draggable="true" data-index="${i}" ondragstart="reorderDragStart(event,${i})" ondragover="reorderDragOver(event)" ondrop="reorderDrop(event,${i})" ondragend="reorderDragEnd()"><div class="reorder-handle">⠿</div><div class="reorder-thumb">${thumbUrl ? `<img src="${thumbUrl}" alt="">` : ''}</div><div class="reorder-info"><div class="reorder-date">${formatDate(post.date)}</div><div class="reorder-caption">${esc(post.captionPreview || '(no caption)')}</div></div></div>`;
   }).join('');
 }
 
 let reorderDragIdx = null;
-
-function reorderDragStart(e, idx) {
-  reorderDragIdx = idx;
-  setTimeout(() => {
-    document.querySelectorAll('.reorder-card')[idx]?.classList.add('dragging');
-  }, 0);
-}
-
-function reorderDragOver(e) {
-  e.preventDefault();
-  document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
-}
-
+function reorderDragStart(e, idx) { reorderDragIdx = idx; setTimeout(() => document.querySelectorAll('.reorder-card')[idx]?.classList.add('dragging'), 0); }
+function reorderDragOver(e) { e.preventDefault(); document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('drag-over')); e.currentTarget.classList.add('drag-over'); }
 function reorderDrop(e, targetIdx) {
   e.preventDefault();
   if (reorderDragIdx === null || reorderDragIdx === targetIdx) return;
-  const items = state.reorderCurrent;
-  const [moved] = items.splice(reorderDragIdx, 1);
-  items.splice(targetIdx, 0, moved);
+  const [moved] = state.reorderCurrent.splice(reorderDragIdx, 1);
+  state.reorderCurrent.splice(targetIdx, 0, moved);
   reorderDragIdx = null;
   renderReorderList();
 }
-
-function reorderDragEnd() {
-  reorderDragIdx = null;
-  document.querySelectorAll('.reorder-card').forEach(c => {
-    c.classList.remove('dragging', 'drag-over');
-  });
-}
-
-function cancelReorder() {
-  state.reorderCurrent = [...state.reorderOriginal];
-  goBack();
-}
+function reorderDragEnd() { reorderDragIdx = null; document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('dragging', 'drag-over')); }
+function cancelReorder() { state.reorderCurrent = [...state.reorderOriginal]; goBack(); }
 
 async function saveReorder() {
   showToast('Saving order…', '', 'info', 8000);
@@ -3815,11 +2368,9 @@ async function saveReorder() {
     state.filteredPosts = [...state.reorderCurrent];
     renderFeed(state.filteredPosts);
     showToast('Order saved', '', 'success');
-    logEvent('reorderPosts', 'success', `${state.reorderCurrent.length} posts`);
+    logEvent('reorderPosts', 'success');
     goBack();
-  } catch (err) {
-    showError('Reorder failed', err);
-  }
+  } catch (err) { showError('Reorder failed', err); }
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────
@@ -3827,13 +2378,7 @@ async function loadSettings() {
   if (!state.auth) return;
   document.getElementById('si-username').textContent = state.auth.username;
   document.getElementById('si-repo').textContent = state.auth.repo;
-
-  ghGet(`/repos/${state.auth.username}/${state.auth.repo}`)
-    .then(data => {
-      if (data?.size) {
-        document.getElementById('si-storage').textContent = `${(data.size / 1024).toFixed(1)} MB`;
-      }
-    }).catch(() => {});
+  ghGet(`/repos/${state.auth.username}/${state.auth.repo}`).then(d => { if (d?.size) document.getElementById('si-storage').textContent = `${(d.size/1024).toFixed(1)} MB`; }).catch(() => {});
 }
 
 function handleSignOut() { openSheet('sheet-signout'); }
@@ -3841,10 +2386,7 @@ function handleSignOut() { openSheet('sheet-signout'); }
 function confirmSignOut() {
   localStorage.removeItem('memoir_auth');
   localStorage.removeItem('memoir_logs');
-  state.auth = null;
-  state.posts = [];
-  state.selectedSongId = null;
-  state.musicIndex = [];
+  state.auth = null; state.posts = []; state.selectedSongId = null; state.musicIndex = [];
   closeSheet('sheet-signout');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-setup').classList.add('active');
@@ -3855,8 +2397,7 @@ function confirmSignOut() {
 function showInstallNudge() {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  const dismissed = localStorage.getItem('memoir_nudge_dismissed');
-  if (isIOS && !isStandalone && !dismissed) {
+  if (isIOS && !isStandalone && !localStorage.getItem('memoir_nudge_dismissed')) {
     document.getElementById('ios-install-nudge').style.display = 'flex';
   }
 }
@@ -3869,59 +2410,35 @@ function dismissInstallNudge() {
 // ── QR EXPORT ────────────────────────────────────────────────────
 function showQRExport() {
   if (!state.auth) return;
-
   const wrap = document.getElementById('qr-canvas-wrap');
   wrap.innerHTML = '';
-
-  const payload = JSON.stringify({
-    u: state.auth.username,
-    r: state.auth.repo,
-    t: state.auth.token,
-    e: state.auth.email || ''
-  });
-
   try {
     new QRCode(wrap, {
-      text: payload,
-      width: 176,
-      height: 176,
-      colorDark: '#0e0c0a',
-      colorLight: '#ffffff',
+      text: JSON.stringify({ u: state.auth.username, r: state.auth.repo, t: state.auth.token, e: state.auth.email || '' }),
+      width: 160, height: 160,
+      colorDark: '#0e0c0a', colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M
     });
-  } catch (err) {
-    wrap.innerHTML = `<div style="color:var(--rose);font-size:10px;text-align:center">QR generation failed.<br>Try refreshing.</div>`;
-  }
-
+  } catch { wrap.innerHTML = `<div style="color:var(--rose);font-size:9px;text-align:center">QR generation failed</div>`; }
   document.getElementById('qr-overlay').classList.add('open');
 }
 
-function closeQRExport() {
-  document.getElementById('qr-overlay').classList.remove('open');
-}
+function closeQRExport() { document.getElementById('qr-overlay').classList.remove('open'); }
 
 // ── HELPERS ───────────────────────────────────────────────────────
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  } catch { return dateStr; }
+  try { return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { return dateStr; }
 }
 
 function generatePostId() {
   const d = new Date();
-  const date = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const rand = Math.random().toString(36).slice(2,6);
-  return `${date}-${rand}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${Math.random().toString(36).slice(2,6)}`;
 }
 
-function slugify(str) {
-  return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
-}
+function slugify(str) { return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0,60); }
 
 function discColor(str) {
   let hash = 0;
@@ -3931,25 +2448,19 @@ function discColor(str) {
 
 // ── BOOT ─────────────────────────────────────────────────────────
 async function boot() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(console.error);
-  }
-
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   const auth = await loadAuth();
   if (auth) {
     state.auth = auth;
     navigateTo('screen-feed', false);
     state.navHistory = ['screen-feed'];
+    setFeedTabActive();
     showInstallNudge();
     await loadFeed();
-    try {
-      const file = await ghGetFile('music/music-index.json');
-      state.musicIndex = file?.content || [];
-    } catch {}
+    try { const f = await ghGetFile('music/music-index.json'); state.musicIndex = f?.content || []; } catch {}
   } else {
     state.navHistory = ['screen-setup'];
   }
-
   window.addEventListener('popstate', goBack);
 }
 

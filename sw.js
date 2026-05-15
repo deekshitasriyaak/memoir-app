@@ -1,19 +1,15 @@
-const VERSION = 'memoir-v1';
+const VERSION = 'memoir-v4';
 
-// Only cache the app shell — never photos, videos, or audio
+// Only cache static assets — NEVER cache index.html so updates are instant
 const SHELL_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
 
-// Data cache — short lived
 const DATA_CACHE = 'memoir-data-v1';
-const DATA_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const DATA_TTL_MS = 5 * 60 * 1000;
 
-// ── INSTALL: cache shell ──────────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(VERSION)
@@ -22,7 +18,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// ── ACTIVATE: clean old caches ────────────────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
@@ -35,18 +30,22 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ── FETCH: serve shell from cache, data with TTL, media always fresh ──
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Always fetch media fresh — never cache photos/video/audio
-  // This is what keeps phone storage near zero
+  // index.html — always network-first so updates are instant
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(fetch(event.request).catch(() => caches.match('/index.html')));
+    return;
+  }
+
+  // Always fetch media fresh
   if (isMediaFile(url.pathname)) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // posts-index.json and music-index.json — short TTL cache
+  // Data files — short TTL cache
   if (isDataFile(url.pathname)) {
     event.respondWith(networkFirstWithTTL(event.request));
     return;
@@ -58,7 +57,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell — cache first
+  // Other shell assets — cache first
   event.respondWith(
     caches.match(event.request)
       .then(cached => cached || fetch(event.request))
@@ -70,8 +69,7 @@ function isMediaFile(pathname) {
 }
 
 function isDataFile(pathname) {
-  return pathname.includes('posts-index.json') ||
-         pathname.includes('music-index.json');
+  return pathname.includes('posts-index.json') || pathname.includes('music-index.json');
 }
 
 async function networkFirstWithTTL(request) {
@@ -81,7 +79,6 @@ async function networkFirstWithTTL(request) {
   if (cached) {
     const fetched = cached.headers.get('sw-fetched-at');
     if (fetched && Date.now() - parseInt(fetched) < DATA_TTL_MS) {
-      // Still fresh — return cached, revalidate in background
       fetch(request).then(fresh => {
         if (fresh.ok) putWithTimestamp(cache, request, fresh);
       }).catch(() => {});
