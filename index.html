@@ -1403,6 +1403,8 @@ function goBack() {
     const audio = document.getElementById('audio-player');
     audio.pause();
     audio.src = '';
+    if (audio._blobUrl) { URL.revokeObjectURL(audio._blobUrl); audio._blobUrl = null; }
+    audio._blobReady = false;
     state.songUrl = null;
   }
   if (leaving === 'screen-music') {
@@ -1630,6 +1632,8 @@ async function openPost(postId) {
   audioEl.onplay = null;
   audioEl.onpause = null;
   audioEl._eventsSet = false;
+  audioEl._blobReady = false;
+  if (audioEl._blobUrl) { URL.revokeObjectURL(audioEl._blobUrl); audioEl._blobUrl = null; }
 
   // Reset UI
   document.getElementById('post-slides').innerHTML = '';
@@ -1662,11 +1666,19 @@ async function openPost(postId) {
     const slides = document.getElementById('post-slides');
     const dots   = document.getElementById('swipe-dots');
 
-    // Set blurred background from first image
+    // Set blurred background from first image (use authenticated URL, retry if stale)
     const firstImg = sortedMedia.find(m => m.type === 'image');
     if (firstImg) {
-      const bgUrl = folderUrls[firstImg.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${postId}/${firstImg.filename}`;
-      document.getElementById('post-view-blur-bg').style.backgroundImage = `url(${bgUrl})`;
+      const bgEl = document.getElementById('post-view-blur-bg');
+      const bgUrl = folderUrls[firstImg.filename];
+      if (bgUrl) {
+        bgEl.style.backgroundImage = `url(${bgUrl})`;
+      } else {
+        // Fetch individually for private repos
+        ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${firstImg.filename}`)
+          .then(info => { if (info?.download_url) bgEl.style.backgroundImage = `url(${info.download_url})`; })
+          .catch(() => {});
+      }
     }
 
     // Render slides using authenticated download_urls
@@ -1685,7 +1697,7 @@ async function openPost(postId) {
       if (m.type === 'video') {
         el = createVideoSlide(url);
       } else {
-        el = createImageSlide(url);
+        el = createImageSlide(url, `posts/${postId}/${m.filename}`);
       }
       slides.appendChild(el);
 
@@ -1821,8 +1833,8 @@ function createVideoSlide(url) {
   return wrap;
 }
 
-// ── IMAGE SLIDE (with pinch/double-tap zoom) ───────────────────────
-function createImageSlide(url) {
+// ── IMAGE SLIDE (with pinch/double-tap zoom + stale-URL retry) ────
+function createImageSlide(url, filePath) {
   const wrap = document.createElement('div');
   wrap.className = 'zoomable-wrap';
 
@@ -1830,6 +1842,16 @@ function createImageSlide(url) {
   img.src = url;
   img.alt = '';
   img.draggable = false;
+  img._retried = false;
+  // If image fails (e.g. token expired after a GH Actions commit), re-fetch a fresh URL
+  img.onerror = async () => {
+    if (img._retried || !filePath || !state.auth) return;
+    img._retried = true;
+    try {
+      const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`);
+      if (info?.download_url) img.src = info.download_url;
+    } catch {}
+  };
   wrap.appendChild(img);
 
   let scale = 1, lastScale = 1;
@@ -1972,27 +1994,35 @@ async function toggleAudio() {
     return;
   }
 
-  // Need to play — fetch URL if not already set
-  if (!audio.src || audio.src === window.location.href) {
+  // Need to play — fetch as blob every time to avoid CORS / stale token issues
+  if (!audio._blobReady) {
     const meta = state.currentPost;
     if (!meta?.song?.filename) return;
 
     btn.classList.add('loading');
     btn.textContent = '…';
 
-    let url = state.songUrl;
-    if (!url) {
-      try {
-        const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}/${meta.song.filename}`);
-        url = info?.download_url;
-      } catch {}
+    try {
+      // Always fetch fresh: get authenticated download_url, then load as blob
+      // to avoid CORS & stale-token issues with private repos
+      let info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}/${meta.song.filename}`);
+      if (!info?.download_url) throw new Error('No download URL');
+      const resp = await ghFetch(info.download_url);
+      const blob = await resp.blob();
+      // Revoke any previous blob URL to free memory
+      if (audio._blobUrl) URL.revokeObjectURL(audio._blobUrl);
+      audio._blobUrl = URL.createObjectURL(blob);
+      audio.src = audio._blobUrl;
+      audio._blobReady = true;
+    } catch (err) {
+      btn.classList.remove('loading');
+      btn.textContent = '▶';
+      showToast('Audio unavailable', err.message || 'Could not load song', 'error');
+      return;
     }
 
     btn.classList.remove('loading');
     btn.textContent = '▶';
-
-    if (!url) { showToast('Audio unavailable', 'Could not load file', 'error'); return; }
-    audio.src = url;
   }
 
   state.audioUnlocked = true;
