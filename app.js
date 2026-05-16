@@ -161,17 +161,21 @@ function ghBlobUrl(filePath) {
 }
 async function _fetchBlobUrl(filePath) {
   try {
-    const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`);
-    if (!info?.sha) return null;
-    const res = await fetch(`${GITHUB_API}/repos/${state.auth.username}/${state.auth.repo}/git/blobs/${info.sha}`, {
-      headers: { Authorization: `Bearer ${state.auth.token}`, Accept: 'application/vnd.github.v3.raw' }
-    });
-    if (!res.ok) return null;
+    const buf = await ghFetchBuffer(filePath);
+    if (!buf) return null;
     const ext      = filePath.split('.').pop().toLowerCase();
     const mimeType = _MIME[ext] || 'application/octet-stream';
-    const blob     = new Blob([await res.arrayBuffer()], { type: mimeType });
-    return URL.createObjectURL(blob);
+    return URL.createObjectURL(new Blob([buf], { type: mimeType }));
   } catch { return null; }
+}
+async function ghFetchBuffer(filePath) {
+  const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`);
+  if (!info?.sha) return null;
+  const res = await fetch(`${GITHUB_API}/repos/${state.auth.username}/${state.auth.repo}/git/blobs/${info.sha}`, {
+    headers: { Authorization: `Bearer ${state.auth.token}`, Accept: 'application/vnd.github.v3.raw' }
+  });
+  if (!res.ok) return null;
+  return res.arrayBuffer();
 }
 function ghBlobCacheClear() {
   _blobCache.forEach(async p => { const u = await p; if (u) URL.revokeObjectURL(u); });
@@ -1182,16 +1186,8 @@ async function submitPost() {
     let songMeta = null;
     if (selectedSong) {
       upd('Adding music…', selectedSong.filename, (done / total) * 100);
-      const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
-      let songBuffer;
-      try {
-        const r = await fetch(fileInfo?.download_url);
-        if (!r.ok) throw new Error();
-        songBuffer = await r.arrayBuffer();
-      } catch {
-        const b64 = fileInfo?.content?.replace(/\n/g, '');
-        songBuffer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
-      }
+      const songBuffer = await ghFetchBuffer(`music/${selectedSong.filename}`);
+      if (!songBuffer) throw new Error('Could not download song from library');
       await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: add song to ${postId}`);
       songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: state.clipSheet.trimConfirmed ? (state.clipSheet.startTime || 0) : 0, endTime: state.clipSheet.trimConfirmed ? state.clipSheet.endTime : null };
       done++;
@@ -1415,10 +1411,8 @@ async function submitEdit() {
         if (oldSong?.filename === 'song.mp3') {
           try { const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`); if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha); } catch {}
         }
-        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
-        let songBuffer;
-        try { const r = await fetch(fileInfo?.download_url); songBuffer = await r.arrayBuffer(); }
-        catch { songBuffer = Uint8Array.from(atob(fileInfo?.content?.replace(/\n/g,'')), c => c.charCodeAt(0)).buffer; }
+        const songBuffer = await ghFetchBuffer(`music/${selectedSong.filename}`);
+        if (!songBuffer) throw new Error('Could not download song from library');
         await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: update song in ${postId}`);
         newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: state.clipSheet.trimConfirmed ? (state.clipSheet.startTime || 0) : (ep.songStartTime || 0), endTime: state.clipSheet.trimConfirmed ? state.clipSheet.endTime : (ep.songEndTime || null) };
         step++;
