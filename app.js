@@ -317,16 +317,18 @@ function renderPostCard(post) {
   }
 
   return `<div class="feed-card" onclick="openPost('${post.id}')">
-    ${thumbHtml}
-    <div class="feed-card-badges">
-      ${post.mediaCount > 1 ? `<div class="feed-badge">1/${post.mediaCount}</div>` : ''}
-      ${post.hasVideo     ? `<div class="feed-badge">▶</div>` : ''}
-      ${post.songTitle    ? `<div class="feed-badge feed-badge-music">♫</div>` : ''}
+    <div class="feed-card-photo">
+      ${thumbHtml}
+      <div class="feed-card-badges">
+        ${post.mediaCount > 1 ? `<div class="feed-badge">1/${post.mediaCount}</div>` : ''}
+        ${post.hasVideo     ? `<div class="feed-badge">▶</div>` : ''}
+        ${post.songTitle    ? `<div class="feed-badge feed-badge-music">♫</div>` : ''}
+      </div>
     </div>
-    <div class="feed-card-overlay">
-      <div class="feed-card-date">${date}</div>
-      ${post.location    ? `<div class="feed-card-location">📍 ${esc(post.location)}</div>` : ''}
+    <div class="feed-card-info">
       ${post.captionPreview ? `<div class="feed-card-caption">${esc(post.captionPreview)}</div>` : ''}
+      <div class="feed-card-date">${date}</div>
+      ${post.location ? `<div class="feed-card-location">📍 ${esc(post.location)}</div>` : ''}
     </div>
   </div>`;
 }
