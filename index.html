@@ -29,6 +29,9 @@
   --gold:        #c8a46a;
   --gold-dim:    #7a6040;
   --gold-faint:  #2a2015;
+  --teal:        #5ab8b0;        /* NEW contrast accent */
+  --teal-dim:    #2d7a74;
+  --teal-faint:  #0d2a28;
   --text:        #e8d8c0;
   --text-muted:  #6b5e4a;
   --text-faint:  #2e2820;
@@ -47,19 +50,19 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;           /* FIX: bumped from 12 */
   -webkit-font-smoothing: antialiased;
 }
 
 body { background: #060503; }
 
 /* ══════════════════════════════════════════════
-   APP CONTAINER — background decoration only
+   APP CONTAINER
 ══════════════════════════════════════════════ */
 #app { display: contents; }
 
 /* ══════════════════════════════════════════════
-   SCREEN SYSTEM — centred phone-width columns
+   SCREEN SYSTEM
 ══════════════════════════════════════════════ */
 .screen {
   position: fixed;
@@ -84,7 +87,6 @@ body { background: #060503; }
   to   { transform: translateX(-50%);              opacity: 1; }
 }
 
-/* Desktop: show dark gutter around the centred column */
 @media (min-width: 480px) {
   .screen { box-shadow: 0 0 0 1px #1a1610; }
 }
@@ -107,20 +109,20 @@ body { background: #060503; }
 
 .logo {
   font-family: var(--serif);
-  font-size: 24px;
+  font-size: 26px;            /* FIX: bumped */
   font-style: italic;
   color: var(--gold);
   letter-spacing: -0.5px;
 }
 
 .header-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: none;
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 17px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,7 +163,7 @@ body { background: #060503; }
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 0;
+  padding: 10px 0;
   border: none;
   background: none;
   color: var(--text-muted);
@@ -171,8 +173,8 @@ body { background: #060503; }
 }
 
 .nav-tab.active { color: var(--gold); }
-.nav-tab-icon { font-size: 18px; }
-.nav-tab-label { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; }
+.nav-tab-icon { font-size: 19px; }
+.nav-tab-label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
 
 /* Buttons */
 .btn {
@@ -180,9 +182,9 @@ body { background: #060503; }
   color: var(--gold);
   background: none;
   border-radius: 6px;
-  padding: 11px 18px;
+  padding: 12px 18px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;             /* FIX: bumped */
   letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
@@ -201,12 +203,16 @@ body { background: #060503; }
 .btn-danger { border-color: rgba(192,112,96,0.4); color: var(--rose); }
 .btn-danger:active, .btn-danger:hover { background: rgba(192,112,96,0.1); }
 
+/* Teal accent button */
+.btn-teal { border-color: var(--teal-dim); color: var(--teal); background: none; }
+.btn-teal:active, .btn-teal:hover { background: var(--teal-faint); }
+
 /* Form fields */
 .field { margin-bottom: 14px; }
 
 .field-label {
   display: block;
-  font-size: 8px;
+  font-size: 9px;              /* FIX: bumped */
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -218,10 +224,10 @@ body { background: #060503; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   color: var(--text);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;             /* FIX: bumped */
   outline: none;
   transition: border-color 0.15s;
   -webkit-appearance: none;
@@ -230,7 +236,7 @@ body { background: #060503; }
 .field-input:focus { border-color: var(--gold-dim); }
 .field-input::placeholder { color: var(--text-faint); }
 
-.field-hint { margin-top: 5px; font-size: 9px; color: var(--text-muted); line-height: 1.6; }
+.field-hint { margin-top: 5px; font-size: 10px; color: var(--text-muted); line-height: 1.6; }
 .field-hint a { color: var(--gold-dim); text-decoration: none; }
 
 /* Toast */
@@ -265,11 +271,11 @@ body { background: #060503; }
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-.toast-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.toast-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
 .toast-body { flex: 1; }
-.toast-title { font-size: 11px; color: var(--text); margin-bottom: 2px; }
-.toast-msg { font-size: 9px; color: var(--text-muted); line-height: 1.5; }
-.toast-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; flex-shrink: 0; padding: 0; font-family: var(--mono); }
+.toast-title { font-size: 12px; color: var(--text); margin-bottom: 2px; }
+.toast-msg { font-size: 10px; color: var(--text-muted); line-height: 1.5; }
+.toast-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 15px; flex-shrink: 0; padding: 0; font-family: var(--mono); }
 
 /* Loading skeleton */
 .skeleton {
@@ -304,12 +310,12 @@ body { background: #060503; }
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .sheet-handle { width: 32px; height: 3px; background: var(--border2); border-radius: 2px; margin: 10px auto 16px; }
-.sheet-title { font-family: var(--serif); font-size: 18px; font-style: italic; color: var(--text); margin-bottom: 6px; }
-.sheet-msg { font-size: 10px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+.sheet-title { font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--text); margin-bottom: 6px; }
+.sheet-msg { font-size: 11px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
 .sheet-actions { display: flex; flex-direction: column; gap: 8px; }
 
 .section-label {
-  font-size: 8px;
+  font-size: 9px;              /* FIX: bumped */
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -318,10 +324,9 @@ body { background: #060503; }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 32px; text-align: center; gap: 10px; }
 .empty-icon { font-size: 36px; opacity: 0.18; }
-.empty-title { font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--text-muted); }
-.empty-sub { font-size: 10px; color: var(--text-faint); line-height: 1.6; }
+.empty-title { font-family: var(--serif); font-size: 22px; font-style: italic; color: var(--text-muted); }
+.empty-sub { font-size: 11px; color: var(--text-faint); line-height: 1.6; }
 
-/* Spin utility */
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ══════════════════════════════════════════════
@@ -346,17 +351,17 @@ body { background: #060503; }
   pointer-events: none;
 }
 
-.setup-logo { font-family: var(--serif); font-size: 48px; font-style: italic; color: var(--gold); letter-spacing: -2px; line-height: 1; margin-bottom: 3px; }
-.setup-tagline { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 40px; }
+.setup-logo { font-family: var(--serif); font-size: 52px; font-style: italic; color: var(--gold); letter-spacing: -2px; line-height: 1; margin-bottom: 3px; }
+.setup-tagline { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 40px; }
 
-.setup-section-title { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 14px; }
+.setup-section-title { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 14px; }
 
 .setup-note {
   background: var(--gold-faint);
   border: 1px solid rgba(200,164,106,0.15);
   border-radius: 8px;
-  padding: 11px 13px;
-  font-size: 10px;
+  padding: 12px 14px;
+  font-size: 11px;
   color: var(--text-muted);
   line-height: 1.7;
   margin-bottom: 18px;
@@ -367,8 +372,8 @@ body { background: #060503; }
   background: rgba(192,112,96,0.08);
   border: 1px solid rgba(192,112,96,0.3);
   border-radius: 8px;
-  padding: 11px 13px;
-  font-size: 10px;
+  padding: 12px 14px;
+  font-size: 11px;
   color: var(--rose);
   line-height: 1.6;
   margin-bottom: 14px;
@@ -377,7 +382,7 @@ body { background: #060503; }
 
 .connecting-state { display: none; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0; }
 .connecting-spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
-.connecting-steps { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 2; }
+.connecting-steps { font-size: 11px; color: var(--text-muted); text-align: center; line-height: 2; }
 .connecting-steps .step { opacity: 0.3; transition: opacity 0.3s; }
 .connecting-steps .step.done { opacity: 1; color: var(--green); }
 .connecting-steps .step.active { opacity: 1; color: var(--gold); }
@@ -387,8 +392,8 @@ body { background: #060503; }
 ══════════════════════════════════════════════ */
 .search-bar { padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .search-input-wrap { position: relative; }
-.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; pointer-events: none; }
-.search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px 8px 30px; color: var(--text); font-family: var(--mono); font-size: 11px; outline: none; -webkit-appearance: none; }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; pointer-events: none; }
+.search-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px 9px 32px; color: var(--text); font-family: var(--mono); font-size: 12px; outline: none; -webkit-appearance: none; }
 .search-input:focus { border-color: var(--border2); }
 .search-input::placeholder { color: var(--text-faint); }
 
@@ -404,37 +409,70 @@ body { background: #060503; }
 }
 .post-card:active { transform: scale(0.985); border-color: var(--border2); }
 
-.post-media-wrap { position: relative; width: 100%; aspect-ratio: 4/3; overflow: hidden; background: var(--surface2); }
-.post-thumbnail { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* FIX: Use contain + dark bg so full image shows without crop */
+.post-media-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-.post-badge { position: absolute; top: 8px; border-radius: 16px; padding: 2px 8px; font-size: 8px; letter-spacing: 1px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background: rgba(14,12,10,0.7); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); }
+/* Blurred background fill for letterboxed images */
+.post-thumb-blur-bg {
+  position: absolute;
+  inset: -4px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(18px);
+  transform: scale(1.1);
+  opacity: 0.45;
+  z-index: 0;
+}
+
+.post-thumbnail {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;          /* FIX: was cover, now contain */
+  display: block;
+  transition: opacity 0.3s;
+}
+
+.post-badge { position: absolute; top: 8px; border-radius: 16px; padding: 3px 9px; font-size: 9px; letter-spacing: 1px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); background: rgba(14,12,10,0.7); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); z-index: 2; }
 .post-badge-count { right: 8px; }
 .post-badge-video { left: 8px; color: var(--gold); border-color: rgba(200,164,106,0.3); }
 
-.post-music-strip { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(14,12,10,0.88)); padding: 20px 10px 8px; display: flex; align-items: center; gap: 7px; }
+.post-music-strip { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(14,12,10,0.88)); padding: 20px 10px 8px; display: flex; align-items: center; gap: 7px; z-index: 2; }
 
 .mini-disc { width: 20px; height: 20px; border-radius: 50%; background: var(--gold); flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
 .mini-disc::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--bg); position: absolute; }
 .mini-disc.spinning { animation: spin 3s linear infinite; }
 
 .music-strip-info { flex: 1; overflow: hidden; }
-.music-strip-title { font-size: 9px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.music-strip-artist { font-size: 8px; color: var(--text-muted); }
+.music-strip-title { font-size: 10px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.music-strip-artist { font-size: 9px; color: var(--text-muted); }
 
-.post-body { padding: 8px 12px 12px; }
-.post-date { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
-.post-caption { font-family: var(--sans); font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.post-body { padding: 9px 12px 13px; }
+.post-date { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.post-caption { font-family: var(--sans); font-size: 13px; font-weight: 300; color: var(--text); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .skeleton-card { margin: 0 10px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .skeleton-media { width: 100%; aspect-ratio: 4/3; }
-.skeleton-line { height: 9px; margin: 10px 12px 5px; }
-.skeleton-line-sm { height: 8px; margin: 0 12px 12px; width: 55%; }
+.skeleton-line { height: 10px; margin: 10px 12px 5px; }
+.skeleton-line-sm { height: 9px; margin: 0 12px 12px; width: 55%; }
 
 /* iOS install nudge */
 #ios-install-nudge { margin: 10px 10px 0; background: var(--gold-faint); border: 1px solid rgba(200,164,106,0.2); border-radius: 9px; padding: 10px 12px; display: none; align-items: center; gap: 10px; }
-.nudge-text { flex: 1; font-size: 9px; color: var(--text-muted); line-height: 1.6; }
+.nudge-text { flex: 1; font-size: 10px; color: var(--text-muted); line-height: 1.6; }
 .nudge-text strong { color: var(--gold-dim); }
-.nudge-close { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 0; }
+.nudge-close { background: none; border: none; color: var(--text-muted); font-size: 17px; cursor: pointer; padding: 0; }
 
 /* ══════════════════════════════════════════════
    SCREEN: POST VIEW
@@ -500,8 +538,8 @@ body { background: #060503; }
 }
 
 .np-disc {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
@@ -509,26 +547,26 @@ body { background: #060503; }
   justify-content: center;
   position: relative;
 }
-.np-disc::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); position: absolute; }
+.np-disc::after { content: ''; width: 11px; height: 11px; border-radius: 50%; background: var(--bg); position: absolute; }
 .np-disc.playing { animation: spin 3s linear infinite; }
 
 .np-info { flex: 1; overflow: hidden; }
-.np-title { font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.np-artist { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+.np-title { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-artist { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 
 .np-progress-wrap { margin-top: 7px; }
-.np-progress-bar { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+.np-progress-bar { height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; cursor: pointer; touch-action: none; }
 .np-progress-fill { height: 100%; background: var(--gold); border-radius: 2px; width: 0%; transition: width 0.5s linear; }
-.np-time { display: flex; justify-content: space-between; margin-top: 3px; font-size: 8px; color: var(--text-muted); }
+.np-time { display: flex; justify-content: space-between; margin-top: 3px; font-size: 9px; color: var(--text-muted); }
 
 .np-play-btn {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: 1.5px solid var(--gold-dim);
   border-radius: 50%;
   background: none;
   color: var(--gold);
-  font-size: 13px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -539,13 +577,13 @@ body { background: #060503; }
 .np-play-btn:active { background: var(--gold-faint); }
 .np-play-btn.loading { opacity: 0.5; pointer-events: none; }
 
-.post-view-date { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-top: 14px; margin-bottom: 7px; }
-.post-view-caption { font-family: var(--serif); font-size: 15px; font-style: italic; color: var(--text); line-height: 1.7; }
+.post-view-date { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-top: 14px; margin-bottom: 7px; }
+.post-view-caption { font-family: var(--serif); font-size: 16px; font-style: italic; color: var(--text); line-height: 1.7; }
 
-.post-view-location { font-size: 10px; color: var(--text-muted); margin-top: 7px; display: flex; align-items: center; gap: 4px; }
+.post-view-location { font-size: 11px; color: var(--text-muted); margin-top: 7px; display: flex; align-items: center; gap: 4px; }
 
 .post-view-actions { display: flex; gap: 8px; margin-top: 16px; }
-.post-view-actions .btn { flex: 1; padding: 10px; font-size: 9px; }
+.post-view-actions .btn { flex: 1; padding: 11px; font-size: 10px; }
 
 /* ══════════════════════════════════════════════
    SCREEN: CREATE / EDIT POST
@@ -560,7 +598,7 @@ body { background: #060503; }
   min-height: 52px;
 }
 
-.create-title { flex: 1; font-family: var(--serif); font-size: 18px; font-style: italic; color: var(--text); }
+.create-title { flex: 1; font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--text); }
 .create-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
 /* Media picker */
@@ -580,9 +618,9 @@ body { background: #060503; }
   background: var(--surface);
 }
 .media-picker:active { border-color: var(--gold); background: var(--gold-faint); }
-.media-picker-icon { font-size: 28px; opacity: 0.22; }
-.media-picker-text { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
-.media-picker-sub { font-size: 8px; color: var(--text-faint); }
+.media-picker-icon { font-size: 30px; opacity: 0.22; }
+.media-picker-text { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+.media-picker-sub { font-size: 9px; color: var(--text-faint); }
 
 .media-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; }
 .media-grid-item { position: relative; overflow: hidden; background: var(--surface2); }
@@ -612,16 +650,16 @@ body { background: #060503; }
 }
 .media-remove-btn:active { background: rgba(192,112,96,0.3); }
 
-.media-add-btn { position: absolute; bottom: 8px; right: 8px; width: 28px; height: 28px; background: rgba(14,12,10,0.8); border: 1px solid var(--gold-dim); border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 16px; }
+.media-add-btn { position: absolute; bottom: 8px; right: 8px; width: 30px; height: 30px; background: rgba(14,12,10,0.8); border: 1px solid var(--gold-dim); border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 18px; }
 
 .caption-textarea {
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 7px;
-  padding: 11px 12px;
+  padding: 12px 12px;
   font-family: var(--serif);
-  font-size: 14px;
+  font-size: 15px;
   font-style: italic;
   color: var(--text);
   resize: none;
@@ -635,23 +673,78 @@ body { background: #060503; }
 .caption-textarea::placeholder { color: var(--text-faint); }
 
 .music-selector { display: flex; flex-direction: column; gap: 6px; }
-.music-option { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.15s; }
+.music-option { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 10px 11px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.15s; }
 .music-option.selected { border-color: var(--gold-dim); background: var(--gold-faint); }
 .music-option:active { transform: scale(0.98); }
-.mo-disc { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+.mo-disc { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; }
 .mo-info { flex: 1; overflow: hidden; }
-.mo-title { font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mo-artist { font-size: 8px; color: var(--text-muted); }
-.mo-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; transition: all 0.15s; }
+.mo-title { font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mo-artist { font-size: 9px; color: var(--text-muted); }
+.mo-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all 0.15s; }
 .music-option.selected .mo-check { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+
+/* Song trim UI */
+.song-trim-wrap {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+.song-trim-wrap.visible { display: flex; }
+.song-trim-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--teal-dim); }
+.song-trim-waveform {
+  height: 36px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+}
+.song-trim-waveform-bars {
+  position: absolute;
+  inset: 2px;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+}
+.song-trim-waveform-bar {
+  flex: 1;
+  background: var(--teal-dim);
+  border-radius: 1px;
+  min-height: 3px;
+}
+.song-trim-selection {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: rgba(90,184,176,0.2);
+  border-left: 2px solid var(--teal);
+  border-right: 2px solid var(--teal);
+  pointer-events: none;
+}
+.song-trim-scrub {
+  cursor: pointer;
+  touch-action: none;
+}
+.song-trim-range-row { display: flex; gap: 10px; }
+.song-trim-range-group { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.song-trim-range-title { font-size: 8px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+.song-trim-time-display { font-size: 12px; color: var(--teal); font-family: var(--mono); }
+.song-trim-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 2px; background: var(--border2); border-radius: 2px; outline: none; }
+.song-trim-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--teal); cursor: pointer; }
+.song-trim-preview-btn { display: flex; align-items: center; justify-content: center; gap: 6px; background: none; border: 1px solid var(--teal-dim); color: var(--teal); border-radius: 6px; padding: 7px 12px; font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
+.song-trim-preview-btn:active { background: var(--teal-faint); }
 
 .upload-progress { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 13px; display: none; flex-direction: column; gap: 10px; }
 .upload-progress.visible { display: flex; }
 .upload-row { display: flex; justify-content: space-between; align-items: center; }
-.upload-label { font-size: 10px; color: var(--text-muted); }
-.upload-pct { font-size: 10px; color: var(--gold); }
-.upload-file { font-size: 8px; color: var(--text-faint); }
-.upload-count { font-size: 8px; color: var(--text-muted); }
+.upload-label { font-size: 11px; color: var(--text-muted); }
+.upload-pct { font-size: 11px; color: var(--gold); }
+.upload-file { font-size: 9px; color: var(--text-faint); }
+.upload-count { font-size: 9px; color: var(--text-muted); }
 .upload-bar { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
 .upload-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 2px; transition: width 0.3s ease; }
 
@@ -675,40 +768,40 @@ body { background: #060503; }
 .edit-media-thumb.drag-over { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-faint); }
 .edit-media-thumb.to-delete { opacity: 0.28; }
 .edit-media-thumb img, .edit-media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
-.edit-media-thumb .media-remove-btn { top: 3px; right: 3px; width: 16px; height: 16px; font-size: 7px; }
+.edit-media-thumb .media-remove-btn { top: 3px; right: 3px; width: 16px; height: 16px; font-size: 8px; }
 .drag-handle { position: absolute; bottom: 3px; left: 3px; width: 16px; height: 16px; background: rgba(14,12,10,0.7); border-radius: 3px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 8px; }
 
-.edit-add-more { flex-shrink: 0; width: 82px; height: 82px; border-radius: 7px; border: 1.5px dashed var(--gold-dim); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; color: var(--gold-dim); font-size: 20px; }
-.edit-add-more span { font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); }
+.edit-add-more { flex-shrink: 0; width: 82px; height: 82px; border-radius: 7px; border: 1.5px dashed var(--gold-dim); background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; color: var(--gold-dim); font-size: 22px; }
+.edit-add-more span { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); }
 
 .edit-date-row { padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; display: flex; align-items: center; justify-content: space-between; }
-.edit-date-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
-.edit-date-value { font-size: 11px; color: var(--text-faint); }
+.edit-date-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+.edit-date-value { font-size: 12px; color: var(--text-faint); }
 
 /* ══════════════════════════════════════════════
    SCREEN: MUSIC LIBRARY
 ══════════════════════════════════════════════ */
 .music-list { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
 
-.music-item { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 11px 12px; display: flex; align-items: center; gap: 11px; cursor: pointer; transition: all 0.15s; }
+.music-item { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 12px 12px; display: flex; align-items: center; gap: 11px; cursor: pointer; transition: all 0.15s; }
 .music-item:active { transform: scale(0.98); border-color: var(--border2); }
 
-.mi-disc { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; }
-.mi-disc::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--bg); position: absolute; }
+.mi-disc { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; }
+.mi-disc::after { content: ''; width: 11px; height: 11px; border-radius: 50%; background: var(--bg); position: absolute; }
 .mi-disc.playing { animation: spin 3s linear infinite; }
 
 .mi-info { flex: 1; overflow: hidden; }
-.mi-title { font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mi-artist { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
-.mi-size { font-size: 8px; color: var(--text-faint); }
+.mi-title { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mi-artist { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.mi-size { font-size: 9px; color: var(--text-faint); }
 
-.mi-play { width: 30px; height: 30px; border: 1px solid var(--border2); border-radius: 50%; background: none; color: var(--text-muted); font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
+.mi-play { width: 32px; height: 32px; border: 1px solid var(--border2); border-radius: 50%; background: none; color: var(--text-muted); font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all 0.15s; }
 .mi-play:active, .mi-play.playing { border-color: var(--gold-dim); color: var(--gold); }
 
 .music-storage-bar { margin: 0 12px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; }
 .msb-label { display: flex; justify-content: space-between; margin-bottom: 7px; }
-.msb-text { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
-.msb-value { font-size: 8px; color: var(--gold-dim); }
+.msb-text { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
+.msb-value { font-size: 9px; color: var(--gold-dim); }
 .msb-bar { height: 2px; background: var(--border2); border-radius: 2px; overflow: hidden; }
 .msb-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 2px; }
 
@@ -716,32 +809,44 @@ body { background: #060503; }
    SCREEN: SETTINGS
 ══════════════════════════════════════════════ */
 .settings-section { padding: 16px 14px 0; }
-.settings-section-title { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; }
+.settings-section-title { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 8px; }
 .settings-row { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; margin-bottom: 12px; }
-.settings-item { padding: 13px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+.settings-item { padding: 14px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
 .settings-item:last-child { border-bottom: none; }
 .settings-item:active { background: var(--surface2); }
-.si-label { font-size: 12px; color: var(--text); }
-.si-value { font-size: 10px; color: var(--text-muted); }
-.si-arrow { color: var(--text-faint); font-size: 11px; }
+.si-label { font-size: 13px; color: var(--text); }
+.si-value { font-size: 11px; color: var(--text-muted); }
+.si-arrow { color: var(--text-faint); font-size: 12px; }
 .si-danger .si-label { color: var(--rose); }
 
 /* ══════════════════════════════════════════════
    SCREEN: REORDER POSTS
 ══════════════════════════════════════════════ */
 .reorder-list { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
-.reorder-card { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; transition: all 0.15s; touch-action: none; user-select: none; -webkit-user-select: none; }
-.reorder-card.dragging { opacity: 0.45; border-color: var(--gold-dim); transform: scale(1.02); }
+.reorder-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.15s, background 0.15s;
+  /* FIX: removed touch-action:none from here — it broke scrolling. Handle it per-element. */
+  user-select: none;
+  -webkit-user-select: none;
+}
 .reorder-card.drag-over { border-color: var(--gold); background: var(--gold-faint); }
-.reorder-handle { color: var(--text-faint); font-size: 15px; cursor: grab; padding: 3px; flex-shrink: 0; }
+.reorder-card.dragging-source { opacity: 0.4; }
+.reorder-handle { color: var(--text-faint); font-size: 17px; cursor: grab; padding: 4px; flex-shrink: 0; touch-action: none; }
 .reorder-handle:active { cursor: grabbing; }
 .reorder-thumb { width: 40px; height: 40px; border-radius: 5px; overflow: hidden; flex-shrink: 0; background: var(--surface2); }
 .reorder-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .reorder-info { flex: 1; overflow: hidden; }
-.reorder-date { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
-.reorder-caption { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reorder-date { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+.reorder-caption { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .reorder-footer { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid var(--border); flex-shrink: 0; }
-.reorder-footer .btn { flex: 1; padding: 11px; font-size: 9px; }
+.reorder-footer .btn { flex: 1; padding: 11px; font-size: 10px; }
 
 /* ══════════════════════════════════════════════
    VIDEO PLAYER (CUSTOM)
@@ -752,8 +857,8 @@ body { background: #060503; }
 .video-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.78)); padding: 24px 12px 12px; z-index: 3; opacity: 1; transition: opacity 0.35s; }
 .video-controls.v-hidden { opacity: 0; pointer-events: none; }
 .video-ctrl-row { display: flex; align-items: center; gap: 10px; }
-.video-play-btn { width: 26px; height: 26px; border: 1px solid rgba(255,255,255,0.45); border-radius: 50%; background: none; color: white; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
-.video-time { font-size: 8px; color: rgba(255,255,255,0.65); font-family: var(--mono); white-space: nowrap; flex-shrink: 0; min-width: 68px; text-align: right; }
+.video-play-btn { width: 28px; height: 28px; border: 1px solid rgba(255,255,255,0.45); border-radius: 50%; background: none; color: white; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+.video-time { font-size: 9px; color: rgba(255,255,255,0.65); font-family: var(--mono); white-space: nowrap; flex-shrink: 0; min-width: 68px; text-align: right; }
 .video-scrub-wrap { flex: 1; padding: 9px 0; cursor: pointer; touch-action: none; }
 .video-scrub-track { height: 2px; background: rgba(255,255,255,0.25); border-radius: 2px; position: relative; }
 .video-scrub-fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--gold); border-radius: 2px; width: 0%; pointer-events: none; }
@@ -762,14 +867,9 @@ body { background: #060503; }
 .video-center-btn.flash { opacity: 1; }
 
 /* ══════════════════════════════════════════════
-   MUSIC SCRUB (DRAGGABLE)
-══════════════════════════════════════════════ */
-.np-progress-bar { cursor: pointer; touch-action: none; }
-
-/* ══════════════════════════════════════════════
    FEED CARD LOCATION
 ══════════════════════════════════════════════ */
-.post-card-location { display: flex; align-items: center; gap: 3px; font-size: 8px; color: var(--text-muted); margin-top: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
+.post-card-location { display: flex; align-items: center; gap: 3px; font-size: 9px; color: var(--text-muted); margin-top: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
 
 /* ══════════════════════════════════════════════
    IMAGE ZOOM
@@ -783,19 +883,17 @@ body { background: #060503; }
 #qr-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 600; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 #qr-overlay.open { display: flex; }
 .qr-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 24px 20px 20px; width: 100%; max-width: 280px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.qr-title { font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--gold); text-align: center; }
-.qr-subtitle { font-size: 9px; color: var(--text-muted); text-align: center; line-height: 1.6; }
+.qr-title { font-family: var(--serif); font-size: 22px; font-style: italic; color: var(--gold); text-align: center; }
+.qr-subtitle { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.6; }
 #qr-canvas-wrap { background: #fff; padding: 10px; border-radius: 8px; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; }
-.qr-warning { background: rgba(192,112,96,0.08); border: 1px solid rgba(192,112,96,0.3); border-radius: 7px; padding: 9px 11px; font-size: 9px; color: var(--rose); text-align: center; line-height: 1.6; width: 100%; }
+.qr-warning { background: rgba(192,112,96,0.08); border: 1px solid rgba(192,112,96,0.3); border-radius: 7px; padding: 9px 11px; font-size: 10px; color: var(--rose); text-align: center; line-height: 1.6; width: 100%; }
 .qr-close { width: 100%; }
 </style>
 </head>
 <body>
 <div id="app">
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: SETUP
-══════════════════════════════════════════════ -->
+<!-- SCREEN: SETUP -->
 <div id="screen-setup" class="screen active">
   <div class="setup-wrap">
     <div class="setup-glow"></div>
@@ -844,9 +942,7 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: FEED
-══════════════════════════════════════════════ -->
+<!-- SCREEN: FEED -->
 <div id="screen-feed" class="screen">
   <div class="app-header">
     <div class="logo">Memoir</div>
@@ -884,9 +980,7 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: POST VIEW
-══════════════════════════════════════════════ -->
+<!-- SCREEN: POST VIEW -->
 <div id="screen-post" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="goBack()" style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7)">←</button>
@@ -907,7 +1001,7 @@ body { background: #060503; }
           <div class="np-title" id="np-title"></div>
           <div class="np-artist" id="np-artist"></div>
           <div class="np-progress-wrap">
-            <div class="np-progress-bar">
+            <div class="np-progress-bar" id="np-progress-bar">
               <div class="np-progress-fill" id="np-progress"></div>
             </div>
             <div class="np-time">
@@ -933,14 +1027,12 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: CREATE POST
-══════════════════════════════════════════════ -->
+<!-- SCREEN: CREATE POST -->
 <div id="screen-create" class="screen">
   <div class="create-header">
     <button class="header-btn" onclick="goBack()">✕</button>
     <div class="create-title">New Memory</div>
-    <button class="btn btn-primary" id="btn-post" onclick="submitPost()" style="width:auto;padding:7px 14px;font-size:9px" disabled>Post</button>
+    <button class="btn btn-primary" id="btn-post" onclick="submitPost()" style="width:auto;padding:8px 14px;font-size:10px" disabled>Post</button>
   </div>
   <div class="scroll-body">
     <div class="create-body">
@@ -967,7 +1059,28 @@ body { background: #060503; }
       <div>
         <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
         <div class="music-selector" id="music-selector">
-          <div style="font-size:10px;color:var(--text-faint);padding:8px 0">Loading your library…</div>
+          <div style="font-size:11px;color:var(--text-faint);padding:8px 0">Loading your library…</div>
+        </div>
+        <!-- Song trim for create -->
+        <div class="song-trim-wrap" id="create-trim-wrap">
+          <div class="song-trim-label">Clip — choose which part plays</div>
+          <div class="song-trim-waveform song-trim-scrub" id="create-waveform">
+            <div class="song-trim-waveform-bars" id="create-waveform-bars"></div>
+            <div class="song-trim-selection" id="create-trim-selection"></div>
+          </div>
+          <div class="song-trim-range-row">
+            <div class="song-trim-range-group">
+              <div class="song-trim-range-title">Start</div>
+              <div class="song-trim-time-display" id="create-trim-start-label">0:00</div>
+              <input type="range" class="song-trim-slider" id="create-trim-start" min="0" max="100" value="0" step="0.1">
+            </div>
+            <div class="song-trim-range-group">
+              <div class="song-trim-range-title">End</div>
+              <div class="song-trim-time-display" id="create-trim-end-label">—:——</div>
+              <input type="range" class="song-trim-slider" id="create-trim-end" min="0" max="100" value="100" step="0.1">
+            </div>
+          </div>
+          <button class="song-trim-preview-btn" id="create-trim-preview-btn" onclick="previewTrimCreate()">▶ Preview clip</button>
         </div>
       </div>
       <div class="upload-progress" id="upload-progress">
@@ -986,14 +1099,12 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: EDIT POST
-══════════════════════════════════════════════ -->
+<!-- SCREEN: EDIT POST -->
 <div id="screen-edit" class="screen">
   <div class="create-header">
     <button class="header-btn" onclick="goBack()">✕</button>
     <div class="create-title">Edit Memory</div>
-    <button class="btn btn-primary" id="btn-save-edit" onclick="submitEdit()" style="width:auto;padding:7px 14px;font-size:9px">Save</button>
+    <button class="btn btn-primary" id="btn-save-edit" onclick="submitEdit()" style="width:auto;padding:8px 14px;font-size:10px">Save</button>
   </div>
   <div class="scroll-body">
     <div class="create-body">
@@ -1005,7 +1116,7 @@ body { background: #060503; }
         </div>
       </div>
       <div>
-        <div class="section-label">Photos & Video <span style="color:var(--text-faint);font-size:7px">drag to reorder · tap ✕ to remove</span></div>
+        <div class="section-label">Photos & Video <span style="color:var(--text-faint);font-size:8px">drag to reorder · tap ✕ to remove</span></div>
         <div class="edit-media-strip" id="edit-media-strip"></div>
         <input type="file" id="edit-media-input" accept="image/*,video/*" multiple style="display:none" onchange="handleEditAddMedia(this.files)">
       </div>
@@ -1020,7 +1131,28 @@ body { background: #060503; }
       <div>
         <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
         <div class="music-selector" id="edit-music-selector">
-          <div style="font-size:10px;color:var(--text-faint);padding:8px 0">Loading…</div>
+          <div style="font-size:11px;color:var(--text-faint);padding:8px 0">Loading…</div>
+        </div>
+        <!-- Song trim for edit -->
+        <div class="song-trim-wrap" id="edit-trim-wrap">
+          <div class="song-trim-label">Clip — choose which part plays</div>
+          <div class="song-trim-waveform song-trim-scrub" id="edit-waveform">
+            <div class="song-trim-waveform-bars" id="edit-waveform-bars"></div>
+            <div class="song-trim-selection" id="edit-trim-selection"></div>
+          </div>
+          <div class="song-trim-range-row">
+            <div class="song-trim-range-group">
+              <div class="song-trim-range-title">Start</div>
+              <div class="song-trim-time-display" id="edit-trim-start-label">0:00</div>
+              <input type="range" class="song-trim-slider" id="edit-trim-start" min="0" max="100" value="0" step="0.1">
+            </div>
+            <div class="song-trim-range-group">
+              <div class="song-trim-range-title">End</div>
+              <div class="song-trim-time-display" id="edit-trim-end-label">—:——</div>
+              <input type="range" class="song-trim-slider" id="edit-trim-end" min="0" max="100" value="100" step="0.1">
+            </div>
+          </div>
+          <button class="song-trim-preview-btn" id="edit-trim-preview-btn" onclick="previewTrimEdit()">▶ Preview clip</button>
         </div>
       </div>
       <div class="upload-progress" id="edit-upload-progress">
@@ -1039,13 +1171,11 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: MUSIC LIBRARY
-══════════════════════════════════════════════ -->
+<!-- SCREEN: MUSIC LIBRARY -->
 <div id="screen-music" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="goBack()">←</button>
-    <div class="logo" style="font-size:20px">Soundtrack</div>
+    <div class="logo" style="font-size:22px">Soundtrack</div>
     <button class="header-btn" onclick="openAddSong()" title="Add song">+</button>
   </div>
   <div class="scroll-body">
@@ -1068,14 +1198,12 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: SETTINGS
-══════════════════════════════════════════════ -->
+<!-- SCREEN: SETTINGS -->
 <div id="screen-settings" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="goBack()">←</button>
-    <div class="logo" style="font-size:20px">Settings</div>
-    <div style="width:32px"></div>
+    <div class="logo" style="font-size:22px">Settings</div>
+    <div style="width:34px"></div>
   </div>
   <div class="scroll-body">
     <div class="settings-section">
@@ -1129,16 +1257,14 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SCREEN: REORDER POSTS
-══════════════════════════════════════════════ -->
+<!-- SCREEN: REORDER POSTS -->
 <div id="screen-reorder" class="screen">
   <div class="app-header">
     <button class="header-btn" onclick="cancelReorder()">✕</button>
-    <div class="logo" style="font-size:20px">Reorder</div>
-    <div style="width:32px"></div>
+    <div class="logo" style="font-size:22px">Reorder</div>
+    <div style="width:34px"></div>
   </div>
-  <div class="scroll-body">
+  <div class="scroll-body" id="reorder-scroll">
     <div class="reorder-list" id="reorder-list"></div>
   </div>
   <div class="reorder-footer">
@@ -1148,9 +1274,7 @@ body { background: #060503; }
 </div>
 
 
-<!-- ══════════════════════════════════════════════
-     SHEETS / OVERLAYS
-══════════════════════════════════════════════ -->
+<!-- SHEETS / OVERLAYS -->
 <div class="sheet-overlay" id="sheet-delete" onclick="closeSheet('sheet-delete')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -1196,8 +1320,8 @@ body { background: #060503; }
 </div>
 
 <div id="toast-container"></div>
-
 <audio id="audio-player" loop></audio>
+<audio id="trim-preview-audio"></audio>
 
 <div id="qr-overlay" onclick="closeQRExport()">
   <div class="qr-box" onclick="event.stopPropagation()">
@@ -1212,9 +1336,6 @@ body { background: #060503; }
 </div><!-- end #app -->
 
 
-<!-- ══════════════════════════════════════════════
-     JAVASCRIPT
-══════════════════════════════════════════════ -->
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────
 const GITHUB_API  = 'https://api.github.com';
@@ -1225,7 +1346,7 @@ const DISC_COLORS = [
   ['#c8a46a','#7a5030'], ['#6a8ac8','#304080'],
   ['#c86a8a','#803060'], ['#6ac88a','#305040'],
   ['#c8c86a','#807030'], ['#8a6ac8','#403080'],
-  ['#c88a6a','#805030'], ['#6ac8c8','#306060'],
+  ['#c88a6a','#805030'], ['#5ab8b0','#2d7a74'],  // teal disc
 ];
 
 // ── STATE ────────────────────────────────────────────────────────
@@ -1245,8 +1366,13 @@ const state = {
   editPost: null,
   reorderOriginal: [],
   reorderCurrent: [],
-  songUrl: null,         // download_url for current post's song
-  editFolderUrls: {},    // filename → download_url for edit screen
+  // Song trim state
+  createTrimDuration: 0,
+  createTrimStart: 0,
+  createTrimEnd: 0,
+  editTrimDuration: 0,
+  editTrimStart: 0,
+  editTrimEnd: 0,
 };
 
 // ── CRYPTO ───────────────────────────────────────────────────────
@@ -1334,7 +1460,14 @@ async function ghDeleteFile(path, sha, message = null) {
   return res.json();
 }
 
-// Build a filename→download_url map from a folder listing
+// FIX: Always fetch fresh authenticated download_url — never cache them.
+// GitHub raw/download_urls for private repos expire after ~10 minutes.
+async function ghGetFreshUrl(repoPath) {
+  const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${repoPath}`);
+  return info?.download_url || null;
+}
+
+// Build filename→download_url map from a folder listing (fresh each time)
 async function ghFolderUrls(folderPath) {
   try {
     const items = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${folderPath}`);
@@ -1342,6 +1475,40 @@ async function ghFolderUrls(folderPath) {
     if (Array.isArray(items)) items.forEach(f => { if (f.download_url) map[f.name] = f.download_url; });
     return map;
   } catch { return {}; }
+}
+
+// ── THUMBNAIL GENERATION ─────────────────────────────────────────
+// FIX: Generate a small (120×90) JPEG thumbnail client-side using canvas.
+// This avoids loading full-res images in the feed, and gives us a blob
+// we can upload alongside the post.
+function generateThumbnail(file, maxW = 120, maxH = 90, quality = 0.6) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) { resolve(null); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+async function blobToArrayBuffer(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsArrayBuffer(blob);
+  });
 }
 
 // ── LOGGING ───────────────────────────────────────────────────────
@@ -1405,7 +1572,7 @@ function goBack() {
     audio.src = '';
     if (audio._blobUrl) { URL.revokeObjectURL(audio._blobUrl); audio._blobUrl = null; }
     audio._blobReady = false;
-    state.songUrl = null;
+    audio._eventsSet = false;
   }
   if (leaving === 'screen-music') {
     if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; }
@@ -1416,13 +1583,15 @@ function goBack() {
       previewingId = null;
     }
   }
+  if (leaving === 'screen-create' || leaving === 'screen-edit') {
+    stopTrimPreview();
+  }
 
   state.navHistory.pop();
   const prev = state.navHistory[state.navHistory.length - 1];
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(prev).classList.add('active');
 
-  // Restore feed nav tab active when we land back on feed
   if (prev === 'screen-feed') setFeedTabActive();
 }
 
@@ -1566,12 +1735,14 @@ function renderFeed(posts) {
 
 function renderPostCard(post) {
   const date = formatDate(post.date);
+  // FIX: Use thumb path if available (low-res thumbnail), else use full image
   const thumbPath = post.thumbnail || null;
   return `
     <div class="post-card" onclick="openPost('${post.id}')">
-      <div class="post-media-wrap">
+      <div class="post-media-wrap" id="media-wrap-${post.id}">
+        <div class="post-thumb-blur-bg" id="blur-bg-${post.id}"></div>
         ${thumbPath
-          ? `<img class="post-thumbnail" data-thumb-path="${thumbPath}" alt="" style="opacity:0;transition:opacity 0.3s" onerror="this.style.display='none'">`
+          ? `<img class="post-thumbnail" id="thumb-${post.id}" data-post-id="${post.id}" data-thumb-path="${thumbPath}" alt="" style="opacity:0" onerror="this.style.display='none'">`
           : `<div style="width:100%;height:100%;background:var(--surface2)"></div>`}
         ${post.mediaCount > 1 ? `<div class="post-badge post-badge-count">1 / ${post.mediaCount}</div>` : ''}
         ${post.hasVideo ? `<div class="post-badge post-badge-video">▶ video</div>` : ''}
@@ -1585,27 +1756,38 @@ function renderPostCard(post) {
     </div>`;
 }
 
+// FIX: Feed thumbnails — always re-fetch download_url from GitHub API
+// because private repo URLs expire. Never store them in the index.
 function loadFeedThumbnails() {
   if (!state.auth) return;
   const imgs = document.querySelectorAll('.post-thumbnail[data-thumb-path]');
   if (!imgs.length) return;
+
   const obs = new IntersectionObserver((entries) => {
     entries.forEach(async (entry) => {
       if (!entry.isIntersecting) return;
       const img = entry.target;
       obs.unobserve(img);
       const path = img.dataset.thumbPath;
+      const postId = img.dataset.postId;
       if (!path || img.dataset.loaded) return;
       img.dataset.loaded = '1';
       try {
-        const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
-        if (info?.download_url) {
-          img.onload = () => { img.style.opacity = '1'; };
-          img.src = info.download_url;
+        // Always fetch a fresh authenticated download_url
+        const url = await ghGetFreshUrl(path);
+        if (url) {
+          img.onload = () => {
+            img.style.opacity = '1';
+            // Also set blur bg for a nice letterbox effect
+            const blurEl = document.getElementById(`blur-bg-${postId}`);
+            if (blurEl) blurEl.style.backgroundImage = `url(${url})`;
+          };
+          img.src = url;
         }
       } catch {}
     });
-  }, { rootMargin: '300px' });
+  }, { rootMargin: '400px' });
+
   imgs.forEach(img => obs.observe(img));
 }
 
@@ -1621,9 +1803,8 @@ function handleSearch(query) {
 async function openPost(postId) {
   navigateTo('screen-post');
   state.currentSlide = 0;
-  state.songUrl = null;
 
-  // Reset audio
+  // Reset audio completely
   const audioEl = document.getElementById('audio-player');
   audioEl.pause();
   audioEl.src = '';
@@ -1652,7 +1833,7 @@ async function openPost(postId) {
   document.getElementById('np-duration').textContent = '—:——';
 
   try {
-    // Fetch meta and folder listing in parallel
+    // FIX: Always fetch a fresh folder listing — URLs expire with private repos
     const [metaFile, folderUrls] = await Promise.all([
       ghGetFile(`posts/${postId}/meta.json`),
       ghFolderUrls(`posts/${postId}`)
@@ -1666,30 +1847,20 @@ async function openPost(postId) {
     const slides = document.getElementById('post-slides');
     const dots   = document.getElementById('swipe-dots');
 
-    // Set blurred background from first image (use authenticated URL, retry if stale)
+    // Set blurred background from first image
     const firstImg = sortedMedia.find(m => m.type === 'image');
-    if (firstImg) {
-      const bgEl = document.getElementById('post-view-blur-bg');
-      const bgUrl = folderUrls[firstImg.filename];
-      if (bgUrl) {
-        bgEl.style.backgroundImage = `url(${bgUrl})`;
-      } else {
-        // Fetch individually for private repos
-        ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${firstImg.filename}`)
-          .then(info => { if (info?.download_url) bgEl.style.backgroundImage = `url(${info.download_url})`; })
-          .catch(() => {});
-      }
+    if (firstImg && folderUrls[firstImg.filename]) {
+      document.getElementById('post-view-blur-bg').style.backgroundImage = `url(${folderUrls[firstImg.filename]})`;
     }
 
-    // Render slides using authenticated download_urls
+    // Render slides
     for (let i = 0; i < sortedMedia.length; i++) {
       const m = sortedMedia[i];
+      // Use fresh URL from folder listing; if missing, fetch individually
       let url = folderUrls[m.filename];
       if (!url) {
-        // Fetch individually to get an authenticated download_url
         try {
-          const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
-          url = info?.download_url || '';
+          url = await ghGetFreshUrl(`posts/${postId}/${m.filename}`);
         } catch { url = ''; }
       }
 
@@ -1708,7 +1879,6 @@ async function openPost(postId) {
       }
     }
 
-    // Post metadata
     document.getElementById('post-view-date').textContent = formatDate(meta.createdAt?.split('T')[0]);
     document.getElementById('post-view-caption').textContent = meta.caption || '';
     if (meta.location) {
@@ -1716,9 +1886,7 @@ async function openPost(postId) {
       document.getElementById('post-view-location-text').textContent = meta.location;
     }
 
-    // Set up music player UI if song exists
     if (meta.song?.filename) {
-      state.songUrl = folderUrls[meta.song.filename] || null;
       setupAudioUI(meta.song.title, meta.song.artist, meta.song.title);
     }
 
@@ -1795,7 +1963,6 @@ function createVideoSlide(url) {
   video.addEventListener('pause', () => { playBtn.textContent = '▶'; showControls(); });
   video.addEventListener('ended', () => { playBtn.textContent = '▶'; controls.classList.remove('v-hidden'); });
 
-  // Tap on video area toggles play/pause
   const tapArea = document.createElement('div');
   tapArea.className = 'video-tap-area';
   wrap.appendChild(tapArea);
@@ -1812,7 +1979,6 @@ function createVideoSlide(url) {
     showControls();
   });
 
-  // Scrubbing
   let isScrubbing = false;
   function seekTo(clientX) {
     const rect = scrubWrap.querySelector('.video-scrub-track').getBoundingClientRect();
@@ -1833,7 +1999,8 @@ function createVideoSlide(url) {
   return wrap;
 }
 
-// ── IMAGE SLIDE (with pinch/double-tap zoom + stale-URL retry) ────
+// ── IMAGE SLIDE ────────────────────────────────────────────────────
+// FIX: On error, re-fetch a fresh authenticated download_url
 function createImageSlide(url, filePath) {
   const wrap = document.createElement('div');
   wrap.className = 'zoomable-wrap';
@@ -1843,20 +2010,19 @@ function createImageSlide(url, filePath) {
   img.alt = '';
   img.draggable = false;
   img._retried = false;
-  // If image fails (e.g. token expired after a GH Actions commit), re-fetch a fresh URL
   img.onerror = async () => {
     if (img._retried || !filePath || !state.auth) return;
     img._retried = true;
     try {
-      const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`);
-      if (info?.download_url) img.src = info.download_url;
+      const freshUrl = await ghGetFreshUrl(filePath);
+      if (freshUrl) img.src = freshUrl;
     } catch {}
   };
   wrap.appendChild(img);
 
+  // Pinch/zoom logic
   let scale = 1, lastScale = 1;
-  let originX = 0, originY = 0;
-  let panX = 0, panY = 0, lastPanX = 0, lastPanY = 0;
+  let panX = 0, panY = 0;
   let lastTap = 0;
   let isPinching = false;
   let initialPinchDist = 0;
@@ -1892,7 +2058,6 @@ function createImageSlide(url, filePath) {
       isPinching = false;
       const now = Date.now();
       if (now - lastTap < 280) {
-        // Double tap
         if (scale > 1) { resetZoom(); } else { scale = 2.5; clampPan(); applyTransform(true); }
         lastTap = 0;
         return;
@@ -1923,7 +2088,6 @@ function createImageSlide(url, filePath) {
     if (scale < 1.05) resetZoom();
   }, { passive: true });
 
-  // Block parent swipe when zoomed in
   wrap.addEventListener('touchstart', (e) => {
     if (scale > 1) e.stopPropagation();
   }, { passive: true });
@@ -1931,7 +2095,7 @@ function createImageSlide(url, filePath) {
   return wrap;
 }
 
-// Swipe
+// Swipe between slides
 let touchX = 0;
 function touchStart(e) { touchX = e.touches[0].clientX; }
 function touchEnd(e) {
@@ -1952,15 +2116,14 @@ function goToSlide(idx) {
 
 // ── AUDIO ─────────────────────────────────────────────────────────
 function setupAudioUI(title, artist, colorKey) {
-  const np = document.getElementById('now-playing');
   document.getElementById('np-title').textContent = title || 'Unknown';
   document.getElementById('np-artist').textContent = artist || '';
   const [c1, c2] = discColor(colorKey || title || '');
   document.getElementById('np-disc').style.background = `radial-gradient(circle at 35% 35%, ${c1}, ${c2})`;
-  np.style.display = 'flex';
+  document.getElementById('now-playing').style.display = 'flex';
 
-  // Wire up draggable music progress bar
-  const bar = document.getElementById('np-progress').parentElement;
+  // Wire draggable progress bar
+  const bar = document.getElementById('np-progress-bar');
   if (bar && !bar._scrubWired) {
     bar._scrubWired = true;
     let scrubbing = false;
@@ -1985,16 +2148,15 @@ function setupAudioUI(title, artist, colorKey) {
 async function toggleAudio() {
   const audio = document.getElementById('audio-player');
   const btn   = document.getElementById('np-play-btn');
-  const disc  = document.getElementById('np-disc');
 
   if (!audio.paused) {
     audio.pause();
-    disc.classList.remove('playing');
+    document.getElementById('np-disc').classList.remove('playing');
     btn.textContent = '▶';
     return;
   }
 
-  // Need to play — fetch as blob every time to avoid CORS / stale token issues
+  // FIX: Always fetch fresh blob — never reuse cached src for private repos
   if (!audio._blobReady) {
     const meta = state.currentPost;
     if (!meta?.song?.filename) return;
@@ -2003,17 +2165,49 @@ async function toggleAudio() {
     btn.textContent = '…';
 
     try {
-      // Always fetch fresh: get authenticated download_url, then load as blob
-      // to avoid CORS & stale-token issues with private repos
-      let info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}/${meta.song.filename}`);
-      if (!info?.download_url) throw new Error('No download URL');
-      const resp = await ghFetch(info.download_url);
+      // Step 1: get fresh authenticated download_url
+      const freshUrl = await ghGetFreshUrl(`posts/${meta.id}/${meta.song.filename}`);
+      if (!freshUrl) throw new Error('No download URL');
+
+      // Step 2: fetch as blob via authenticated ghFetch (handles CORS for private repos)
+      const resp = await ghFetch(freshUrl);
       const blob = await resp.blob();
-      // Revoke any previous blob URL to free memory
+
       if (audio._blobUrl) URL.revokeObjectURL(audio._blobUrl);
       audio._blobUrl = URL.createObjectURL(blob);
       audio.src = audio._blobUrl;
       audio._blobReady = true;
+
+      // Handle song trim: seek to start point if set
+      const trimStart = meta.song.trimStart || 0;
+      const trimEnd   = meta.song.trimEnd   || null;
+
+      if (!audio._eventsSet) {
+        audio._eventsSet = true;
+        audio.addEventListener('loadedmetadata', () => {
+          if (trimStart > 0) audio.currentTime = trimStart;
+          document.getElementById('np-duration').textContent = fmtTime(trimEnd || audio.duration);
+        });
+        audio.ontimeupdate = () => {
+          if (!audio.duration) return;
+          const start = meta.song.trimStart || 0;
+          const end   = meta.song.trimEnd   || audio.duration;
+          // Loop within trim region
+          if (audio.currentTime >= end) { audio.currentTime = start; }
+          const elapsed = audio.currentTime - start;
+          const total   = end - start;
+          document.getElementById('np-progress').style.width = (elapsed / total * 100) + '%';
+          document.getElementById('np-current').textContent = fmtTime(elapsed);
+        };
+        audio.onplay = () => {
+          document.getElementById('np-disc').classList.add('playing');
+          document.getElementById('np-play-btn').textContent = '⏸';
+        };
+        audio.onpause = () => {
+          document.getElementById('np-disc').classList.remove('playing');
+          document.getElementById('np-play-btn').textContent = '▶';
+        };
+      }
     } catch (err) {
       btn.classList.remove('loading');
       btn.textContent = '▶';
@@ -2026,28 +2220,6 @@ async function toggleAudio() {
   }
 
   state.audioUnlocked = true;
-
-  // Wire up events once
-  if (!audio._eventsSet) {
-    audio._eventsSet = true;
-    audio.ontimeupdate = () => {
-      if (!audio.duration) return;
-      document.getElementById('np-progress').style.width = (audio.currentTime / audio.duration * 100) + '%';
-      document.getElementById('np-current').textContent = fmtTime(audio.currentTime);
-    };
-    audio.onloadedmetadata = () => {
-      document.getElementById('np-duration').textContent = fmtTime(audio.duration);
-    };
-    audio.onplay = () => {
-      document.getElementById('np-disc').classList.add('playing');
-      document.getElementById('np-play-btn').textContent = '⏸';
-    };
-    audio.onpause = () => {
-      document.getElementById('np-disc').classList.remove('playing');
-      document.getElementById('np-play-btn').textContent = '▶';
-    };
-  }
-
   try {
     await audio.play();
   } catch (err) {
@@ -2056,7 +2228,7 @@ async function toggleAudio() {
 }
 
 function fmtTime(s) {
-  if (!isFinite(s)) return '0:00';
+  if (!isFinite(s) || s < 0) return '0:00';
   return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2,'0')}`;
 }
 
@@ -2125,16 +2297,144 @@ function removeMedia(index) {
   document.getElementById('btn-post').disabled = !state.pendingMedia.length;
 }
 
+// ── SONG TRIM ────────────────────────────────────────────────────
+let trimPreviewAudio = null;
+
+function stopTrimPreview() {
+  if (trimPreviewAudio) {
+    trimPreviewAudio.pause();
+    trimPreviewAudio.src = '';
+    trimPreviewAudio = null;
+  }
+  const cb = document.getElementById('create-trim-preview-btn');
+  const eb = document.getElementById('edit-trim-preview-btn');
+  if (cb) cb.textContent = '▶ Preview clip';
+  if (eb) eb.textContent = '▶ Preview clip';
+}
+
+function renderWaveformBars(containerId, numBars = 40) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = Array(numBars).fill(0).map(() => {
+    const h = Math.random() * 80 + 10;
+    return `<div class="song-trim-waveform-bar" style="height:${h}%"></div>`;
+  }).join('');
+}
+
+function updateTrimSelection(prefix) {
+  const startSlider = document.getElementById(`${prefix}-trim-start`);
+  const endSlider   = document.getElementById(`${prefix}-trim-end`);
+  const selEl       = document.getElementById(`${prefix}-trim-selection`);
+  const startLabel  = document.getElementById(`${prefix}-trim-start-label`);
+  const endLabel    = document.getElementById(`${prefix}-trim-end-label`);
+
+  const startPct = parseFloat(startSlider.value);
+  const endPct   = parseFloat(endSlider.value);
+  const dur = prefix === 'create' ? state.createTrimDuration : state.editTrimDuration;
+
+  selEl.style.left  = startPct + '%';
+  selEl.style.width = Math.max(0, endPct - startPct) + '%';
+  startLabel.textContent = fmtTime(dur * startPct / 100);
+  endLabel.textContent   = fmtTime(dur * endPct   / 100);
+
+  if (prefix === 'create') {
+    state.createTrimStart = dur * startPct / 100;
+    state.createTrimEnd   = dur * endPct   / 100;
+  } else {
+    state.editTrimStart = dur * startPct / 100;
+    state.editTrimEnd   = dur * endPct   / 100;
+  }
+}
+
+function initTrimUI(prefix, duration) {
+  if (prefix === 'create') {
+    state.createTrimDuration = duration;
+    state.createTrimStart = 0;
+    state.createTrimEnd   = duration;
+  } else {
+    state.editTrimDuration = duration;
+    state.editTrimStart = 0;
+    state.editTrimEnd   = duration;
+  }
+
+  const startSlider = document.getElementById(`${prefix}-trim-start`);
+  const endSlider   = document.getElementById(`${prefix}-trim-end`);
+  startSlider.value = 0;
+  endSlider.value   = 100;
+
+  renderWaveformBars(`${prefix}-waveform-bars`);
+  updateTrimSelection(prefix);
+
+  startSlider.oninput = () => {
+    if (parseFloat(startSlider.value) >= parseFloat(endSlider.value)) startSlider.value = parseFloat(endSlider.value) - 1;
+    updateTrimSelection(prefix);
+  };
+  endSlider.oninput = () => {
+    if (parseFloat(endSlider.value) <= parseFloat(startSlider.value)) endSlider.value = parseFloat(startSlider.value) + 1;
+    updateTrimSelection(prefix);
+  };
+
+  document.getElementById(`${prefix}-trim-wrap`).classList.add('visible');
+}
+
+async function previewTrimCreate() {
+  const song = state.selectedSongId ? state.musicIndex.find(s => s.id === state.selectedSongId) : null;
+  if (!song) return;
+  await previewTrim('create', `music/${song.filename}`, state.createTrimStart, state.createTrimEnd);
+}
+
+async function previewTrimEdit() {
+  await previewTrim('edit', null, state.editTrimStart, state.editTrimEnd);
+}
+
+async function previewTrim(prefix, repoPath, startSec, endSec) {
+  const btn = document.getElementById(`${prefix}-trim-preview-btn`);
+
+  if (trimPreviewAudio && !trimPreviewAudio.paused) {
+    stopTrimPreview();
+    return;
+  }
+
+  btn.textContent = '… loading';
+  try {
+    let url;
+    if (repoPath) {
+      url = await ghGetFreshUrl(repoPath);
+    } else if (state.editPost?.postId) {
+      const song = state.editPost.selectedSongId ? state.musicIndex.find(s => s.id === state.editPost.selectedSongId) : null;
+      if (!song) throw new Error('No song selected');
+      url = await ghGetFreshUrl(`music/${song.filename}`);
+    }
+    if (!url) throw new Error('Could not get URL');
+
+    stopTrimPreview();
+    trimPreviewAudio = new Audio(url);
+    trimPreviewAudio.currentTime = startSec;
+    trimPreviewAudio.ontimeupdate = () => {
+      if (trimPreviewAudio.currentTime >= endSec) { stopTrimPreview(); }
+    };
+    trimPreviewAudio.onended = () => stopTrimPreview();
+    await trimPreviewAudio.play();
+    btn.textContent = '■ Stop preview';
+  } catch (err) {
+    showToast('Preview failed', err.message, 'error');
+    btn.textContent = '▶ Preview clip';
+  }
+}
+
 async function loadMusicForCreate() {
   const selector = document.getElementById('music-selector');
   if (!state.auth) return;
+  state.selectedSongId = null;
+  document.getElementById('create-trim-wrap').classList.remove('visible');
+  stopTrimPreview();
   try {
     const file = await ghGetFile('music/music-index.json');
     const newIndex = file?.content || [];
     if (JSON.stringify(newIndex) !== JSON.stringify(state.musicIndex)) state.musicIndex = newIndex;
-    if (!state.musicIndex.length) { selector.innerHTML = `<div style="font-size:10px;color:var(--text-faint);padding:8px 0">No songs yet — add some in the Music tab</div>`; return; }
+    if (!state.musicIndex.length) { selector.innerHTML = `<div style="font-size:11px;color:var(--text-faint);padding:8px 0">No songs yet — add some in the Music tab</div>`; return; }
     renderMusicSelector(selector, state.selectedSongId, 'selectSong');
-  } catch { selector.innerHTML = `<div style="font-size:10px;color:var(--rose)">Couldn't load library</div>`; }
+  } catch { selector.innerHTML = `<div style="font-size:11px;color:var(--rose)">Couldn't load library</div>`; }
 }
 
 function renderMusicSelector(container, selectedId, fnName) {
@@ -2145,9 +2445,32 @@ function renderMusicSelector(container, selectedId, fnName) {
   }).join('');
 }
 
-function selectSong(id) {
-  state.selectedSongId = state.selectedSongId === id ? null : id;
+async function selectSong(id) {
+  const prev = state.selectedSongId;
+  state.selectedSongId = prev === id ? null : id;
   updateSelectorUI('selectSong', state.selectedSongId);
+
+  if (state.selectedSongId) {
+    // Load duration for trim UI
+    const song = state.musicIndex.find(s => s.id === state.selectedSongId);
+    document.getElementById('create-trim-wrap').classList.remove('visible');
+    if (song) {
+      try {
+        const url = await ghGetFreshUrl(`music/${song.filename}`);
+        if (url) {
+          const audio = new Audio(url);
+          audio.addEventListener('loadedmetadata', () => {
+            initTrimUI('create', audio.duration);
+          }, { once: true });
+          audio.preload = 'metadata';
+          audio.load();
+        }
+      } catch {}
+    }
+  } else {
+    document.getElementById('create-trim-wrap').classList.remove('visible');
+    stopTrimPreview();
+  }
 }
 
 function updateSelectorUI(fnName, selectedId) {
@@ -2185,6 +2508,8 @@ async function submitPost() {
       document.getElementById('upload-count').textContent = `${done} / ${total}`;
     };
 
+    let thumbnailPath = null;
+
     for (let i = 0; i < state.pendingMedia.length; i++) {
       const file = state.pendingMedia[i];
       const isVideo = file.type.startsWith('video/');
@@ -2193,24 +2518,49 @@ async function submitPost() {
       upd(`Uploading ${isVideo ? 'video' : 'photo'} ${i + 1}…`, file.name, (done / total) * 100);
       await ghPutBinary(`posts/${postId}/${filename}`, await file.arrayBuffer(), null, `memoir: add media to ${postId}`);
       mediaEntries.push({ filename, type: isVideo ? 'video' : 'image', order: i + 1 });
+
+      // FIX: Generate and upload a low-res thumbnail for the first image
+      if (i === 0 && !isVideo) {
+        upd('Generating thumbnail…', 'thumb.jpg', (done / total) * 100);
+        const thumbBlob = await generateThumbnail(file, 180, 135, 0.65);
+        if (thumbBlob) {
+          const thumbBuf = await blobToArrayBuffer(thumbBlob);
+          await ghPutBinary(`posts/${postId}/thumb.jpg`, thumbBuf, null, `memoir: add thumbnail to ${postId}`);
+          thumbnailPath = `posts/${postId}/thumb.jpg`;
+        } else {
+          thumbnailPath = `posts/${postId}/${filename}`;
+        }
+      }
       done++;
+    }
+
+    // If first media is video, use the first image found as thumb (or null)
+    if (!thumbnailPath) {
+      const firstImg = mediaEntries.find(m => m.type === 'image');
+      if (firstImg) thumbnailPath = `posts/${postId}/${firstImg.filename}`;
     }
 
     let songMeta = null;
     if (selectedSong) {
       upd('Adding music…', selectedSong.filename, (done / total) * 100);
-      const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+      const freshUrl = await ghGetFreshUrl(`music/${selectedSong.filename}`);
       let songBuffer;
       try {
-        const r = await fetch(fileInfo?.download_url);
-        if (!r.ok) throw new Error('fetch failed');
+        const r = await ghFetch(freshUrl);
         songBuffer = await r.arrayBuffer();
       } catch {
+        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
         const b64 = fileInfo?.content?.replace(/\n/g, '');
         songBuffer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
       }
       await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: add song to ${postId}`);
-      songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3' };
+      songMeta = {
+        title: selectedSong.title,
+        artist: selectedSong.artist,
+        filename: 'song.mp3',
+        trimStart: state.createTrimStart || 0,
+        trimEnd:   state.createTrimEnd   || null,
+      };
       done++;
     }
 
@@ -2221,7 +2571,17 @@ async function submitPost() {
 
     upd('Updating feed…', 'posts-index.json', 95);
     const indexFile = await ghGetFile('posts-index.json');
-    const indexEntry = { id: postId, date: postId.split('-').slice(0,3).join('-'), captionPreview: caption.slice(0,120), location, thumbnail: mediaEntries[0]?.type === 'image' ? `posts/${postId}/${mediaEntries[0].filename}` : null, songTitle: songMeta?.title || null, songArtist: songMeta?.artist || null, mediaCount: mediaEntries.length, hasVideo: mediaEntries.some(m => m.type === 'video') };
+    const indexEntry = {
+      id: postId,
+      date: postId.split('-').slice(0,3).join('-'),
+      captionPreview: caption.slice(0,120),
+      location,
+      thumbnail: thumbnailPath,  // FIX: now uses thumb.jpg (low-res)
+      songTitle: songMeta?.title || null,
+      songArtist: songMeta?.artist || null,
+      mediaCount: mediaEntries.length,
+      hasVideo: mediaEntries.some(m => m.type === 'video')
+    };
     const updatedIndex = [indexEntry, ...(indexFile?.content || [])];
     await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: add post ${postId}`);
 
@@ -2230,11 +2590,15 @@ async function submitPost() {
     showToast('Posted ✦', 'Memory saved to GitHub', 'success');
     logEvent('createPost', 'success', postId);
 
-    // Reset
+    // Reset form
     state.pendingMedia = [];
     state.selectedSongId = null;
+    state.createTrimStart = 0;
+    state.createTrimEnd = 0;
     document.getElementById('caption-input').value = '';
     document.getElementById('location-input').value = '';
+    document.getElementById('create-trim-wrap').classList.remove('visible');
+    stopTrimPreview();
     const mp = document.getElementById('media-picker');
     document.getElementById('media-grid').style.display = 'none';
     document.getElementById('media-add-btn').style.display = 'none';
@@ -2269,18 +2633,26 @@ async function openEditPost() {
     songChanged:      false,
   };
 
-  // Match existing song to library entry
   if (meta.song) {
     const match = state.musicIndex.find(s => s.title === meta.song.title && s.artist === meta.song.artist);
     if (match) state.editPost.selectedSongId = match.id;
   }
 
-  // Fetch folder URLs for existing media thumbnails
-  state.editFolderUrls = await ghFolderUrls(`posts/${meta.id}`);
+  // FIX: Fetch fresh folder URLs for thumbnails in edit screen
+  const folderItems = await ghFolderUrls(`posts/${meta.id}`);
+  state.editPost.folderUrls = folderItems;
 
   document.getElementById('edit-date-value').textContent = formatDate(meta.createdAt?.split('T')[0]);
   document.getElementById('edit-caption-input').value = meta.caption || '';
   document.getElementById('edit-location-input').value = meta.location || '';
+  document.getElementById('edit-trim-wrap').classList.remove('visible');
+  stopTrimPreview();
+
+  // Prefill trim values from existing song
+  if (meta.song) {
+    state.editTrimStart = meta.song.trimStart || 0;
+    state.editTrimEnd   = meta.song.trimEnd   || 0;
+  }
 
   renderEditMediaStrip();
   await loadMusicForEdit();
@@ -2301,10 +2673,19 @@ function renderEditMediaStrip() {
     let mediaEl;
     if (m._status === 'new') {
       const url = URL.createObjectURL(m._file);
-      mediaEl = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
+      mediaEl = m.type === 'video'
+        ? Object.assign(document.createElement('video'), { src: url, muted: true })
+        : Object.assign(document.createElement('img'), { src: url, alt: '' });
     } else {
-      const url = state.editFolderUrls[m.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${ep.postId}/${m.filename}`;
-      mediaEl = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
+      // FIX: Use fresh URL from folderUrls, fallback to individual fetch
+      const freshUrl = ep.folderUrls?.[m.filename] || '';
+      mediaEl = m.type === 'video'
+        ? Object.assign(document.createElement('video'), { src: freshUrl, muted: true })
+        : Object.assign(document.createElement('img'), { src: freshUrl, alt: '' });
+      if (!freshUrl && m.type === 'image') {
+        // Async-fetch if missing
+        ghGetFreshUrl(`posts/${ep.postId}/${m.filename}`).then(url => { if (url) mediaEl.src = url; }).catch(() => {});
+      }
     }
 
     const removeBtn = document.createElement('button');
@@ -2326,7 +2707,7 @@ function renderEditMediaStrip() {
 
   const addBtn = document.createElement('div');
   addBtn.className = 'edit-add-more';
-  addBtn.innerHTML = `+ <span>Add more</span>`;
+  addBtn.innerHTML = `+<span>Add more</span>`;
   addBtn.onclick = () => { const inp = document.getElementById('edit-media-input'); inp.value = ''; inp.click(); };
   strip.appendChild(addBtn);
 }
@@ -2374,15 +2755,59 @@ async function loadMusicForEdit() {
       const file = await ghGetFile('music/music-index.json');
       state.musicIndex = file?.content || [];
     }
-    if (!state.musicIndex.length) { selector.innerHTML = `<div style="font-size:10px;color:var(--text-faint);padding:8px 0">No songs yet</div>`; return; }
+    if (!state.musicIndex.length) { selector.innerHTML = `<div style="font-size:11px;color:var(--text-faint);padding:8px 0">No songs yet</div>`; return; }
     renderMusicSelector(selector, state.editPost.selectedSongId, 'selectEditSong');
-  } catch { selector.innerHTML = `<div style="font-size:10px;color:var(--rose)">Couldn't load library</div>`; }
+
+    // If a song is already selected, init trim UI
+    if (state.editPost.selectedSongId) {
+      const song = state.musicIndex.find(s => s.id === state.editPost.selectedSongId);
+      if (song) {
+        try {
+          const url = await ghGetFreshUrl(`music/${song.filename}`);
+          if (url) {
+            const audio = new Audio(url);
+            audio.addEventListener('loadedmetadata', () => {
+              initTrimUI('edit', audio.duration);
+              // Restore previous trim values
+              const dur = audio.duration;
+              const startPct = (state.editTrimStart / dur) * 100;
+              const endPct   = (state.editTrimEnd   / dur) * 100 || 100;
+              document.getElementById('edit-trim-start').value = startPct;
+              document.getElementById('edit-trim-end').value   = Math.min(endPct, 100);
+              updateTrimSelection('edit');
+            }, { once: true });
+            audio.preload = 'metadata';
+            audio.load();
+          }
+        } catch {}
+      }
+    }
+  } catch { selector.innerHTML = `<div style="font-size:11px;color:var(--rose)">Couldn't load library</div>`; }
 }
 
-function selectEditSong(id) {
+async function selectEditSong(id) {
   state.editPost.selectedSongId = state.editPost.selectedSongId === id ? null : id;
   state.editPost.songChanged = true;
   updateSelectorUI('selectEditSong', state.editPost.selectedSongId);
+  document.getElementById('edit-trim-wrap').classList.remove('visible');
+  stopTrimPreview();
+  state.editTrimStart = 0;
+  state.editTrimEnd   = 0;
+
+  if (state.editPost.selectedSongId) {
+    const song = state.musicIndex.find(s => s.id === state.editPost.selectedSongId);
+    if (song) {
+      try {
+        const url = await ghGetFreshUrl(`music/${song.filename}`);
+        if (url) {
+          const audio = new Audio(url);
+          audio.addEventListener('loadedmetadata', () => { initTrimUI('edit', audio.duration); }, { once: true });
+          audio.preload = 'metadata';
+          audio.load();
+        }
+      } catch {}
+    }
+  }
 }
 
 async function submitEdit() {
@@ -2422,7 +2847,9 @@ async function submitEdit() {
       step++;
     }
 
-    for (const m of toAddItems) {
+    let thumbPath = null;
+    for (let i = 0; i < toAddItems.length; i++) {
+      const m = toAddItems[i];
       upd(`Uploading ${m.filename}…`, m.filename, (step / totalSteps) * 90);
       await ghPutBinary(`posts/${postId}/${m.filename}`, await m._file.arrayBuffer(), null, `memoir: add media to ${postId}`);
       step++;
@@ -2440,37 +2867,63 @@ async function submitEdit() {
         if (oldSong?.filename === 'song.mp3') {
           try { const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/song.mp3`); if (fi?.sha) await ghDeleteFile(`posts/${postId}/song.mp3`, fi.sha); } catch {}
         }
-        const fileInfo = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+        const freshUrl = await ghGetFreshUrl(`music/${selectedSong.filename}`);
         let songBuffer;
-        try { const r = await fetch(fileInfo?.download_url); songBuffer = await r.arrayBuffer(); } catch {
-          songBuffer = Uint8Array.from(atob(fileInfo?.content?.replace(/\n/g,'')), c => c.charCodeAt(0)).buffer;
+        try { const r = await ghFetch(freshUrl); songBuffer = await r.arrayBuffer(); } catch {
+          const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${selectedSong.filename}`);
+          songBuffer = Uint8Array.from(atob(fi?.content?.replace(/\n/g,'')), c => c.charCodeAt(0)).buffer;
         }
         await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: update song in ${postId}`);
-        newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3' };
+        newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', trimStart: state.editTrimStart, trimEnd: state.editTrimEnd };
         step++;
+      } else {
+        // Same song, just update trim
+        newSongMeta = { ...oldSong, trimStart: state.editTrimStart, trimEnd: state.editTrimEnd };
       }
     }
 
     const finalMedia = ep.currentMedia.filter(m => m._status !== 'delete').map((m, i) => ({ filename: m.filename, type: m.type, order: i + 1 }));
+
+    // Regenerate thumbnail if first image changed
+    const firstImage = finalMedia.find(m => m.type === 'image');
+    let newThumb = ep.originalMedia.find(m => m.type === 'image') ? `posts/${postId}/thumb.jpg` : null;
+    if (firstImage && toAddItems.find(m => m.filename === firstImage.filename)) {
+      // New first image — regenerate thumb
+      const newImgFile = toAddItems.find(m => m.filename === firstImage.filename)?._file;
+      if (newImgFile) {
+        const thumbBlob = await generateThumbnail(newImgFile, 180, 135, 0.65);
+        if (thumbBlob) {
+          const thumbBuf = await blobToArrayBuffer(thumbBlob);
+          try {
+            const existing = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/thumb.jpg`);
+            await ghPutBinary(`posts/${postId}/thumb.jpg`, thumbBuf, existing?.sha, `memoir: update thumbnail ${postId}`);
+          } catch { await ghPutBinary(`posts/${postId}/thumb.jpg`, thumbBuf, null, `memoir: update thumbnail ${postId}`); }
+          newThumb = `posts/${postId}/thumb.jpg`;
+        }
+      }
+    }
 
     upd('Saving…', 'meta.json', 90);
     const metaFile = await ghGetFile(`posts/${postId}/meta.json`);
     const updatedMeta = { ...metaFile.content, caption: newCaption, location: newLocation, media: finalMedia, song: newSongMeta, updatedAt: new Date().toISOString() };
     await ghPutFile(`posts/${postId}/meta.json`, updatedMeta, metaFile.sha, `memoir: edit post ${postId}`);
 
-    const firstImage = finalMedia.find(m => m.type === 'image');
-    const newThumb = firstImage ? `posts/${postId}/${firstImage.filename}` : null;
-    const oldEntry = state.posts.find(p => p.id === postId);
-
-    if (newCaption !== ep.originalCaption || newLocation !== ep.originalLocation || newThumb !== oldEntry?.thumbnail || newSongMeta?.title !== oldSong?.title || finalMedia.length !== ep.originalMedia.length) {
-      upd('Updating feed…', 'posts-index.json', 95);
-      const indexFile = await ghGetFile('posts-index.json');
-      const updatedIndex = (indexFile?.content || []).map(p => p.id !== postId ? p : { ...p, captionPreview: newCaption.slice(0,120), location: newLocation, thumbnail: newThumb, songTitle: newSongMeta?.title || null, songArtist: newSongMeta?.artist || null, mediaCount: finalMedia.length, hasVideo: finalMedia.some(m => m.type === 'video') });
-      await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: update index ${postId}`);
-      state.posts = updatedIndex;
-      state.filteredPosts = updatedIndex;
-      renderFeed(state.filteredPosts);
-    }
+    upd('Updating feed…', 'posts-index.json', 95);
+    const indexFile = await ghGetFile('posts-index.json');
+    const updatedIndex = (indexFile?.content || []).map(p => p.id !== postId ? p : {
+      ...p,
+      captionPreview: newCaption.slice(0,120),
+      location: newLocation,
+      thumbnail: newThumb || p.thumbnail,
+      songTitle: newSongMeta?.title || null,
+      songArtist: newSongMeta?.artist || null,
+      mediaCount: finalMedia.length,
+      hasVideo: finalMedia.some(m => m.type === 'video')
+    });
+    await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: update index ${postId}`);
+    state.posts = updatedIndex;
+    state.filteredPosts = updatedIndex;
+    renderFeed(state.filteredPosts);
 
     state.currentPost = updatedMeta;
     showToast('Saved ✦', 'Memory updated', 'success');
@@ -2490,7 +2943,7 @@ async function submitEdit() {
 // ── MUSIC LIBRARY ─────────────────────────────────────────────────
 async function loadMusicLibrary() {
   const list = document.getElementById('music-list');
-  list.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:10px">Loading…</div>`;
+  list.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:11px">Loading…</div>`;
   try {
     const file = await ghGetFile('music/music-index.json');
     state.musicIndex = file?.content || [];
@@ -2508,7 +2961,7 @@ async function loadMusicLibrary() {
     document.getElementById('msb-fill').style.width = Math.min((totalBytes/(1024*1024*1024))*100, 100) + '%';
     document.getElementById('music-storage-bar').style.display = 'block';
   } catch (err) {
-    list.innerHTML = `<div style="padding:16px;color:var(--rose);font-size:10px">Failed: ${err.message}</div>`;
+    list.innerHTML = `<div style="padding:16px;color:var(--rose);font-size:11px">Failed: ${err.message}</div>`;
     showError('Music library failed', err);
   }
 }
@@ -2524,16 +2977,15 @@ async function previewSong(id) {
     if (previewAudio?.paused === false) {
       previewAudio.pause();
       document.getElementById(`disc-${id}`)?.classList.remove('playing');
-      document.getElementById(`play-${id}`).textContent = '▶';
+      const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '▶';
     } else if (previewAudio) {
       previewAudio.play().catch(() => {});
       document.getElementById(`disc-${id}`)?.classList.add('playing');
-      document.getElementById(`play-${id}`).textContent = '⏸';
+      const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '⏸';
     }
     return;
   }
 
-  // Stop previous
   if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; }
   if (previewingId) {
     document.getElementById(`disc-${previewingId}`)?.classList.remove('playing');
@@ -2542,7 +2994,8 @@ async function previewSong(id) {
   }
   previewingId = id;
 
-  // Use raw URL immediately to preserve user gesture for autoplay
+  // FIX: Try raw URL first for immediate play (preserves user gesture for autoplay).
+  // On error, fall back to fetching a fresh authenticated URL.
   const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/music/${song.filename}`;
   previewAudio = new Audio(rawUrl);
   state.audioUnlocked = true;
@@ -2560,11 +3013,29 @@ async function previewSong(id) {
     const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '▶';
     previewingId = null; previewAudio = null;
   });
+  // FIX: On raw URL failure (private repo), fetch authenticated URL
   previewAudio.addEventListener('error', async () => {
     if (!previewAudio) return;
     try {
-      const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
-      if (info?.download_url) { previewAudio.src = info.download_url; previewAudio.play().catch(() => {}); }
+      const freshUrl = await ghGetFreshUrl(`music/${song.filename}`);
+      if (freshUrl) {
+        // Create a new Audio object — we can't reuse the one that errored reliably
+        previewAudio = new Audio(freshUrl);
+        previewAudio.addEventListener('play', () => {
+          document.getElementById(`disc-${id}`)?.classList.add('playing');
+          const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '⏸';
+        });
+        previewAudio.addEventListener('pause', () => {
+          document.getElementById(`disc-${id}`)?.classList.remove('playing');
+          const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '▶';
+        });
+        previewAudio.addEventListener('ended', () => {
+          document.getElementById(`disc-${id}`)?.classList.remove('playing');
+          const pb = document.getElementById(`play-${id}`); if (pb) pb.textContent = '▶';
+          previewingId = null; previewAudio = null;
+        });
+        previewAudio.play().catch(() => {});
+      }
     } catch {}
   });
 
@@ -2635,6 +3106,7 @@ async function syncMusicLibrary() {
 }
 
 // ── REORDER POSTS ─────────────────────────────────────────────────
+// FIX: Rewrote reorder with pointer events for robust mobile drag-drop
 function loadReorderScreen() {
   state.reorderOriginal = [...state.posts];
   state.reorderCurrent  = [...state.posts];
@@ -2643,25 +3115,106 @@ function loadReorderScreen() {
 
 function renderReorderList() {
   const list = document.getElementById('reorder-list');
-  if (!state.reorderCurrent.length) { list.innerHTML = `<div class="empty-state"><div class="empty-icon">⊟</div><div class="empty-title">No posts yet</div></div>`; return; }
+  if (!state.reorderCurrent.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⊟</div><div class="empty-title">No posts yet</div></div>`;
+    return;
+  }
   list.innerHTML = state.reorderCurrent.map((post, i) => {
-    const thumbUrl = post.thumbnail ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}` : null;
-    return `<div class="reorder-card" draggable="true" data-index="${i}" ondragstart="reorderDragStart(event,${i})" ondragover="reorderDragOver(event)" ondrop="reorderDrop(event,${i})" ondragend="reorderDragEnd()"><div class="reorder-handle">⠿</div><div class="reorder-thumb">${thumbUrl ? `<img src="${thumbUrl}" alt="">` : ''}</div><div class="reorder-info"><div class="reorder-date">${formatDate(post.date)}</div><div class="reorder-caption">${esc(post.captionPreview || '(no caption)')}</div></div></div>`;
+    // FIX: Don't use raw.githubusercontent for private repos — just use a placeholder thumbnail
+    return `
+      <div class="reorder-card" id="rc-${i}">
+        <div class="reorder-handle" id="rh-${i}" data-idx="${i}">⠿</div>
+        <div class="reorder-thumb">
+          <div style="width:100%;height:100%;background:var(--surface2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-faint)">${post.hasVideo ? '▶' : '⊞'}</div>
+        </div>
+        <div class="reorder-info">
+          <div class="reorder-date">${formatDate(post.date)}</div>
+          <div class="reorder-caption">${esc(post.captionPreview || '(no caption)')}</div>
+        </div>
+      </div>`;
   }).join('');
+
+  // FIX: Use pointer events on handles for reliable mobile drag-and-drop
+  setupReorderPointerEvents();
 }
 
-let reorderDragIdx = null;
-function reorderDragStart(e, idx) { reorderDragIdx = idx; setTimeout(() => document.querySelectorAll('.reorder-card')[idx]?.classList.add('dragging'), 0); }
-function reorderDragOver(e) { e.preventDefault(); document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('drag-over')); e.currentTarget.classList.add('drag-over'); }
-function reorderDrop(e, targetIdx) {
-  e.preventDefault();
-  if (reorderDragIdx === null || reorderDragIdx === targetIdx) return;
-  const [moved] = state.reorderCurrent.splice(reorderDragIdx, 1);
-  state.reorderCurrent.splice(targetIdx, 0, moved);
-  reorderDragIdx = null;
-  renderReorderList();
+function setupReorderPointerEvents() {
+  const list = document.getElementById('reorder-list');
+  let dragIdx = null;
+  let dragEl = null;
+  let ghost = null;
+  let startY = 0;
+  let lastOverIdx = null;
+
+  function getCardHeight() {
+    const first = list.querySelector('.reorder-card');
+    return first ? first.offsetHeight + 6 : 60; // 6 = gap
+  }
+
+  function idxFromY(y) {
+    const cards = list.querySelectorAll('.reorder-card');
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      if (y < rect.bottom) return i;
+    }
+    return cards.length - 1;
+  }
+
+  list.querySelectorAll('.reorder-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      dragIdx = parseInt(handle.dataset.idx);
+      dragEl = document.getElementById(`rc-${dragIdx}`);
+      dragEl.classList.add('dragging-source');
+      startY = e.clientY;
+      lastOverIdx = dragIdx;
+
+      // Create a ghost for visual feedback
+      ghost = dragEl.cloneNode(true);
+      ghost.style.cssText = `position:fixed;left:${dragEl.getBoundingClientRect().left}px;top:${dragEl.getBoundingClientRect().top}px;width:${dragEl.offsetWidth}px;pointer-events:none;z-index:9999;opacity:0.9;border:1px solid var(--gold);border-radius:9px;background:var(--surface2);`;
+      document.body.appendChild(ghost);
+    });
+
+    handle.addEventListener('pointermove', (e) => {
+      if (dragIdx === null || !ghost) return;
+      const dy = e.clientY - startY;
+      const rect = dragEl.getBoundingClientRect();
+      ghost.style.top = (rect.top + dy) + 'px';
+
+      const overIdx = idxFromY(e.clientY);
+      if (overIdx !== lastOverIdx) {
+        list.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('drag-over'));
+        document.getElementById(`rc-${overIdx}`)?.classList.add('drag-over');
+        lastOverIdx = overIdx;
+      }
+    });
+
+    handle.addEventListener('pointerup', (e) => {
+      if (dragIdx === null) return;
+      const dropIdx = idxFromY(e.clientY);
+
+      // Perform reorder
+      if (dropIdx !== dragIdx) {
+        const [moved] = state.reorderCurrent.splice(dragIdx, 1);
+        state.reorderCurrent.splice(dropIdx, 0, moved);
+      }
+
+      // Cleanup
+      dragEl?.classList.remove('dragging-source');
+      list.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('drag-over'));
+      ghost?.remove();
+      ghost = null;
+      dragIdx = null;
+      dragEl = null;
+      lastOverIdx = null;
+      startY = 0;
+
+      renderReorderList();
+    });
+  });
 }
-function reorderDragEnd() { reorderDragIdx = null; document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('dragging', 'drag-over')); }
+
 function cancelReorder() { state.reorderCurrent = [...state.reorderOriginal]; goBack(); }
 
 async function saveReorder() {
@@ -2765,6 +3318,20 @@ async function boot() {
     try { const f = await ghGetFile('music/music-index.json'); state.musicIndex = f?.content || []; } catch {}
   } else {
     state.navHistory = ['screen-setup'];
+    // Check for QR login params
+    try {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const params = JSON.parse(atob(hash));
+        if (params.u && params.t) {
+          document.getElementById('input-username').value = params.u;
+          document.getElementById('input-repo').value = params.r || 'memoir-data';
+          document.getElementById('input-token').value = params.t;
+          document.getElementById('input-email').value = params.e || '';
+          window.location.hash = '';
+        }
+      }
+    } catch {}
   }
   window.addEventListener('popstate', goBack);
 }
