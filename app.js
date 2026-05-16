@@ -27,13 +27,15 @@ const state = {
   reorderCurrent:  [],
   editFolderUrls:  {},
   // Clip sheet state
+  songPausedByVideo: false,
   clipSheet: {
-    mode:       null,   // 'create' | 'edit'
-    songId:     null,
-    startTime:  0,
-    endTime:    30,
-    duration:   null,
-    previewAudio: null,
+    mode:          null,
+    songId:        null,
+    startTime:     0,
+    endTime:       null,
+    duration:      null,
+    previewAudio:  null,
+    trimConfirmed: false,
   },
 };
 
@@ -58,7 +60,7 @@ async function decryptText(b64) {
 }
 async function saveAuth(auth) {
   const enc = await encryptText(auth.token);
-  localStorage.setItem('memoir_auth', JSON.stringify({ username: auth.username, repo: auth.repo, email: auth.email || '', tokenEnc: enc }));
+  localStorage.setItem('memoir_auth', JSON.stringify({ username: auth.username, repo: auth.repo, tokenEnc: enc }));
 }
 async function loadAuth() {
   const raw = localStorage.getItem('memoir_auth');
@@ -203,10 +205,16 @@ function goBack() {
   const leaving = state.navHistory[state.navHistory.length - 1];
   if (leaving === 'screen-post') {
     const audio = document.getElementById('audio-player');
-    audio.pause(); audio.src = ''; audio._eventsSet = false;
+    audio.pause(); audio.removeAttribute('src'); audio.load(); audio._eventsSet = false;
+    state.songPausedByVideo = false;
+    hideVideoAudioToggle();
   }
   if (leaving === 'screen-music') {
     if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; }
+    const _a = document.getElementById('audio-player');
+    if (_a) { _a.pause(); _a.removeAttribute('src'); _a.load(); _a._eventsSet = false; }
+    state.songPausedByVideo = false;
+    hideVideoAudioToggle();
     if (previewingId) {
       document.getElementById(`disc-${previewingId}`)?.classList.remove('playing');
       const pb = document.getElementById(`play-${previewingId}`);
@@ -243,7 +251,6 @@ async function handleConnect() {
   const username = document.getElementById('input-username').value.trim();
   const repo     = document.getElementById('input-repo').value.trim() || 'memoir-data';
   const token    = document.getElementById('input-token').value.trim();
-  const email    = document.getElementById('input-email').value.trim();
   const errEl    = document.getElementById('setup-error');
   errEl.style.display = 'none';
   if (!username || !token) { errEl.textContent = 'Username and token are required.'; errEl.style.display = 'block'; return; }
@@ -255,7 +262,7 @@ async function handleConnect() {
   function failStep(msg) { document.getElementById('connecting-state').style.display = 'none'; document.getElementById('setup-form').style.display = 'block'; errEl.textContent = msg; errEl.style.display = 'block'; }
   try {
     document.getElementById(steps[0]).classList.add('active');
-    state.auth = { username, repo, token, email };
+    state.auth = { username, repo, token };
     const user = await ghGet('/user');
     if (!user) throw new Error('Invalid token — could not authenticate.');
     advanceStep();
@@ -263,7 +270,7 @@ async function handleConnect() {
     advanceStep();
     await initRepoStructure(repoData === null);
     advanceStep();
-    await initWorkflows(email);
+    await initWorkflows();
     advanceStep();
     await saveAuth(state.auth);
     advanceStep();
@@ -279,7 +286,7 @@ async function initRepoStructure(isNew) {
     await ghFetch('/user/repos', { method: 'POST', body: JSON.stringify({ name: state.auth.repo, private: true, description: 'Memoir private archive', auto_init: true }) });
     await new Promise(r => setTimeout(r, 1500));
   }
-  const files = [['posts-index.json', []], ['music/music-index.json', []], ['logs/errors.json', []], ['profile.json', { username: state.auth.username, email: state.auth.email, joinedAt: new Date().toISOString() }]];
+  const files = [['posts-index.json', []], ['music/music-index.json', []], ['logs/errors.json', []], ['profile.json', { username: state.auth.username, joinedAt: new Date().toISOString() }]];
   for (const [path, def] of files) {
     try {
       const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
@@ -287,13 +294,18 @@ async function initRepoStructure(isNew) {
     } catch {}
   }
 }
-async function initWorkflows(email) {
-  const emailYml = `name: Email Error Alerts\non:\n  push:\n    paths: ['logs/errors.json']\njobs:\n  notify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dawidd6/action-send-mail@v3\n        with:\n          server_address: smtp.gmail.com\n          server_port: 465\n          secure: true\n          username: \${{secrets.GMAIL_USER}}\n          password: \${{secrets.GMAIL_APP_PASSWORD}}\n          to: ${email || '${{secrets.GMAIL_USER}}'}\n          subject: "Memoir Error"\n          html_body: "<h3>Memoir error — check logs/errors.json</h3>"\n`;
+async function initWorkflows() {
+  const alertEmail = 'aelin15000@gmail.com';
+  const emailYml = `name: Email Error Alerts\non:\n  push:\n    paths: ['logs/errors.json']\njobs:\n  notify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dawidd6/action-send-mail@v3\n        with:\n          server_address: smtp.gmail.com\n          server_port: 465\n          secure: true\n          username: \${{secrets.GMAIL_USER}}\n          password: \${{secrets.GMAIL_APP_PASSWORD}}\n          to: ${alertEmail}\n          subject: "Memoir Error Alert"\n          html_body: "<h3>Memoir error — check logs/errors.json in your memoir-data repo</h3>"\n`;
   const cleanupYml = `name: Monthly Log Cleanup\non:\n  schedule:\n    - cron: '0 0 1 * *'\njobs:\n  cleanup:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: echo "[]" > logs/errors.json\n      - uses: stefanzweifel/git-auto-commit-action@v5\n        with:\n          commit_message: 'memoir: monthly log cleanup'\n`;
   for (const [path, content] of [['.github/workflows/email-errors.yml', emailYml], ['.github/workflows/cleanup-logs.yml', cleanupYml]]) {
     try {
-      const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
-      if (res.status === 404) await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify({ message: `memoir: add ${path}`, content: btoa(unescape(encodeURIComponent(content))) }) });
+      const getRes = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
+      let sha = null;
+      if (getRes.status === 200) { const d = await getRes.json(); sha = d.sha; }
+      const body = { message: `memoir: setup ${path}`, content: btoa(unescape(encodeURIComponent(content))) };
+      if (sha) body.sha = sha;
+      await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
     } catch {}
   }
 }
@@ -386,7 +398,9 @@ async function openPost(postId) {
   state.currentSlide = 0;
 
   const audio = document.getElementById('audio-player');
-  audio.pause(); audio.src = ''; audio._eventsSet = false;
+  audio.pause(); audio.removeAttribute('src'); audio.load(); audio._eventsSet = false;
+  state.songPausedByVideo = false;
+  hideVideoAudioToggle();
 
   document.getElementById('post-slides').innerHTML = '';
   document.getElementById('post-slides').style.transform = '';
@@ -475,6 +489,7 @@ async function openPost(postId) {
         if (songUrl) {
           audio.src = songUrl;
           wireAudioEvents(audio, meta.song);
+          audio.play().catch(() => {});
         } else {
           playBtn.disabled = true;
           playBtn.title = 'Could not load song';
@@ -534,9 +549,77 @@ function touchEnd(e) {
   if (dx > 0 && state.currentSlide > 0)     goToSlide(state.currentSlide - 1);
 }
 function goToSlide(idx) {
+  const prevIdx = state.currentSlide;
   state.currentSlide = idx;
   document.getElementById('post-slides').style.transform = `translateX(-${idx * 100}%)`;
   document.querySelectorAll('.swipe-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+
+  const slides    = document.getElementById('post-slides').children;
+  const prevSlide = slides[prevIdx];
+  const newSlide  = slides[idx];
+  const mainAudio = document.getElementById('audio-player');
+
+  if (prevSlide?.tagName === 'VIDEO') prevSlide.pause();
+
+  if (newSlide?.tagName === 'VIDEO') {
+    if (!mainAudio.paused) {
+      state.songPausedByVideo = true;
+      mainAudio.pause();
+    }
+    const checkAudio = () => {
+      const hasAudio = (newSlide.audioTracks && newSlide.audioTracks.length > 0) ||
+                       newSlide.mozHasAudio === true ||
+                       newSlide.webkitAudioDecodedByteCount > 0;
+      if (!hasAudio && state.songPausedByVideo) {
+        state.songPausedByVideo = false;
+        mainAudio.play().catch(() => {});
+      }
+      showVideoAudioToggle(hasAudio);
+    };
+    if (newSlide.readyState >= 1) checkAudio();
+    else newSlide.addEventListener('loadedmetadata', checkAudio, { once: true });
+  } else {
+    hideVideoAudioToggle();
+    if (state.songPausedByVideo) {
+      state.songPausedByVideo = false;
+      mainAudio.play().catch(() => {});
+    }
+  }
+}
+
+function showVideoAudioToggle(videoHasAudio) {
+  let btn = document.getElementById('video-audio-toggle');
+  if (!videoHasAudio) { if (btn) btn.remove(); return; }
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'video-audio-toggle';
+    btn.className = 'video-audio-toggle';
+    btn.onclick = toggleVideoAudioChoice;
+    document.getElementById('screen-post').appendChild(btn);
+  }
+  updateVideoAudioToggleLabel();
+}
+function hideVideoAudioToggle() {
+  document.getElementById('video-audio-toggle')?.remove();
+}
+function updateVideoAudioToggleLabel() {
+  const btn = document.getElementById('video-audio-toggle');
+  if (!btn) return;
+  btn.textContent = state.songPausedByVideo ? '♫ play song' : '🎬 video audio';
+}
+function toggleVideoAudioChoice() {
+  const mainAudio = document.getElementById('audio-player');
+  const slides    = document.getElementById('post-slides').children;
+  const curSlide  = slides[state.currentSlide];
+  if (state.songPausedByVideo) {
+    if (curSlide?.tagName === 'VIDEO') curSlide.muted = true;
+    state.songPausedByVideo = false;
+    mainAudio.play().catch(() => {});
+  } else {
+    if (curSlide?.tagName === 'VIDEO') { curSlide.muted = false; curSlide.play().catch(() => {}); }
+    if (!mainAudio.paused) { state.songPausedByVideo = true; mainAudio.pause(); }
+  }
+  updateVideoAudioToggleLabel();
 }
 
 // ── AUDIO ─────────────────────────────────────────────────────────
@@ -660,7 +743,7 @@ function renderMediaGrid() {
   grid.innerHTML = show.map((f, i) => {
     const url = URL.createObjectURL(f);
     const isVideo = f.type.startsWith('video/');
-    return `<div class="media-grid-item"><${isVideo ? 'video' : 'img'} src="${url}" ${isVideo ? 'muted' : 'alt=""'}><button class="media-remove-btn" onclick="event.stopPropagation();removeMedia(${i})">✕</button>${i === 2 && more > 0 ? `<div class="media-grid-more">+${more + 1}</div>` : ''}</div>`;
+    return `<div class="media-grid-item"><${isVideo ? `video src="${url}" muted playsinline preload="metadata"` : `img src="${url}" alt=""`}><button class="media-remove-btn" onclick="event.stopPropagation();removeMedia(${i})">✕</button>${i === 2 && more > 0 ? `<div class="media-grid-more">+${more + 1}</div>` : ''}</div>`;
   }).join('');
 }
 
@@ -710,7 +793,7 @@ function selectSong(id) {
   const prev = state.selectedSongId;
   state.selectedSongId = prev === id ? null : id;
   if (!state.selectedSongId) {
-    state.clipSheet = { mode: null, songId: null, startTime: 0, endTime: 30, duration: null, previewAudio: null };
+    state.clipSheet = { mode: null, songId: null, startTime: 0, endTime: null, duration: null, previewAudio: null, trimConfirmed: false };
   }
   updateSelectorUI('selectSong', state.selectedSongId);
   renderMusicSelector(document.getElementById('music-selector'), state.selectedSongId, 'selectSong');
@@ -738,7 +821,7 @@ function openClipSheet(fnName) {
   // Preserve existing clip times
   const cs = state.clipSheet;
   if (cs.songId !== songId) {
-    state.clipSheet = { mode, songId, startTime: 0, endTime: 30, duration: null, previewAudio: null };
+    state.clipSheet = { mode, songId, startTime: 0, endTime: null, duration: null, previewAudio: null, trimConfirmed: false };
   } else {
     state.clipSheet.mode = mode;
   }
@@ -746,9 +829,10 @@ function openClipSheet(fnName) {
   document.getElementById('clip-sheet-song').textContent   = song.title;
   document.getElementById('clip-sheet-artist').textContent = song.artist || '';
   document.getElementById('clip-start-slider').value = state.clipSheet.startTime;
-  document.getElementById('clip-end-slider').value   = state.clipSheet.endTime;
+  const _endVal = state.clipSheet.endTime ?? (state.clipSheet.duration || 300);
+  document.getElementById('clip-end-slider').value   = _endVal;
   document.getElementById('clip-start-time').textContent = fmtTime(state.clipSheet.startTime);
-  document.getElementById('clip-end-time').textContent   = fmtTime(state.clipSheet.endTime);
+  document.getElementById('clip-end-time').textContent   = state.clipSheet.endTime === null ? 'full' : fmtTime(state.clipSheet.endTime);
   updateClipVisual();
   updateClipDurationLabel();
   openSheet('sheet-clip');
@@ -769,7 +853,7 @@ async function loadClipDuration(songId) {
       document.getElementById('clip-start-slider').max = Math.max(0, dur - 2);
       document.getElementById('clip-end-slider').max   = dur;
       // Clamp values
-      if (state.clipSheet.endTime > dur) {
+      if (state.clipSheet.endTime === null || state.clipSheet.endTime > dur) {
         state.clipSheet.endTime = dur;
         document.getElementById('clip-end-slider').value = dur;
         document.getElementById('clip-end-time').textContent = fmtTime(dur);
@@ -849,17 +933,19 @@ async function toggleClipPreview() {
 
   pa.currentTime = state.clipSheet.startTime || 0;
 
-  // Auto-stop at end time
-  const stopAt = state.clipSheet.endTime;
+  const stopAt = state.clipSheet.endTime || pa.duration || 9999;
   pa.ontimeupdate = () => {
+    updateClipPlayhead(pa.currentTime);
     if (pa.currentTime >= stopAt) {
       pa.pause();
       pa.currentTime = state.clipSheet.startTime || 0;
+      updateClipPlayhead(state.clipSheet.startTime || 0);
       if (btn) { btn.textContent = '▶ Preview clip'; btn.classList.remove('playing'); }
     }
   };
   pa.onpause = pa.onended = () => {
     if (btn) { btn.textContent = '▶ Preview clip'; btn.classList.remove('playing'); }
+    updateClipPlayhead(state.clipSheet.startTime || 0);
   };
 
   pa.play().then(() => {
@@ -875,13 +961,22 @@ function stopClipPreviewAudio() {
   if (pa) { pa.pause(); pa.src = ''; state.clipSheet.previewAudio = null; }
 }
 
+function updateClipPlayhead(currentTime) {
+  const cs  = state.clipSheet;
+  const dur = cs.duration || 300;
+  const ph  = document.getElementById('clip-playhead');
+  if (ph) ph.style.left = (currentTime / dur * 100).toFixed(1) + '%';
+}
+
 function closeClipSheet() {
   stopClipPreviewAudio();
+  updateClipPlayhead(0);
   closeSheet('sheet-clip');
 }
 
 function confirmClipSheet() {
   stopClipPreviewAudio();
+  state.clipSheet.trimConfirmed = true;
   closeSheet('sheet-clip');
   // Refresh the selector to show updated clip times
   const mode = state.clipSheet.mode;
@@ -948,7 +1043,7 @@ async function submitPost() {
         songBuffer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
       }
       await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: add song to ${postId}`);
-      songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: state.clipSheet.startTime || 0, endTime: state.clipSheet.endTime || null };
+      songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: state.clipSheet.trimConfirmed ? (state.clipSheet.startTime || 0) : 0, endTime: state.clipSheet.trimConfirmed ? state.clipSheet.endTime : null };
       done++;
     }
 
@@ -972,7 +1067,7 @@ async function submitPost() {
     // Reset
     state.pendingMedia   = [];
     state.selectedSongId = null;
-    state.clipSheet      = { mode: null, songId: null, startTime: 0, endTime: 30, duration: null, previewAudio: null };
+    state.clipSheet      = { mode: null, songId: null, startTime: 0, endTime: null, duration: null, previewAudio: null, trimConfirmed: false };
     document.getElementById('caption-input').value  = '';
     document.getElementById('location-input').value = '';
     const mp = document.getElementById('media-picker');
@@ -1115,7 +1210,7 @@ function selectEditSong(id) {
   state.editPost.selectedSongId = prev === id ? null : id;
   state.editPost.songChanged    = true;
   if (!state.editPost.selectedSongId) {
-    state.clipSheet = { mode: null, songId: null, startTime: 0, endTime: 30, duration: null, previewAudio: null };
+    state.clipSheet = { mode: null, songId: null, startTime: 0, endTime: null, duration: null, previewAudio: null, trimConfirmed: false };
   }
   renderMusicSelector(document.getElementById('edit-music-selector'), state.editPost.selectedSongId, 'selectEditSong');
 }
@@ -1173,10 +1268,10 @@ async function submitEdit() {
         try { const r = await fetch(fileInfo?.download_url); songBuffer = await r.arrayBuffer(); }
         catch { songBuffer = Uint8Array.from(atob(fileInfo?.content?.replace(/\n/g,'')), c => c.charCodeAt(0)).buffer; }
         await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: update song in ${postId}`);
-        newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: ep.songStartTime || state.clipSheet.startTime || 0, endTime: ep.songEndTime || state.clipSheet.endTime || null };
+        newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: state.clipSheet.trimConfirmed ? (state.clipSheet.startTime || 0) : (ep.songStartTime || 0), endTime: state.clipSheet.trimConfirmed ? state.clipSheet.endTime : (ep.songEndTime || null) };
         step++;
       } else if (oldSong) {
-        newSongMeta = { ...oldSong, startTime: ep.songStartTime || state.clipSheet.startTime || 0, endTime: ep.songEndTime || state.clipSheet.endTime || null };
+        newSongMeta = { ...oldSong, startTime: ep.songStartTime || 0, endTime: ep.songEndTime || null };
       }
     }
 

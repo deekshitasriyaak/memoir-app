@@ -33,7 +33,7 @@
         Your photos and music live in <strong>your own private GitHub repo</strong>.
         Memoir never stores anything. Create a repo called <strong>memoir-data</strong>
         and a Personal Access Token with <strong>repo</strong> scope.<br><br>
-        <a href="https://github.com/settings/tokens/new" target="_blank">Create token on GitHub →</a>
+        <a href="https://github.com/settings/tokens/new" target="_blank" style="color:#5D3F6A">Create token on GitHub →</a>
       </div>
       <div class="field">
         <label class="field-label" for="input-username">GitHub Username</label>
@@ -50,10 +50,6 @@
         <input class="field-input" id="input-token" type="password" placeholder="ghp_••••••••••••••••••"
                autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
         <div class="field-hint">Needs <strong>repo</strong> scope. Stored only on this device.</div>
-      </div>
-      <div class="field">
-        <label class="field-label" for="input-email">Your Email (for error alerts)</label>
-        <input class="field-input" id="input-email" type="email" placeholder="you@gmail.com" autocomplete="email">
       </div>
       <button class="btn btn-primary" onclick="handleConnect()">Connect →</button>
     </div>
@@ -184,18 +180,18 @@
       </div>
 
       <div>
-        <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
+        <div class="section-label">Caption <span style="color:#5D3F6A">(optional)</span></div>
         <textarea class="caption-textarea" id="caption-input" placeholder="what's the memory…" rows="3"></textarea>
       </div>
 
       <div>
-        <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
+        <div class="section-label">Location <span style="color:#5D3F6A">(optional)</span></div>
         <input class="field-input" id="location-input" type="text" placeholder="where were you…"
                autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
       <div>
-        <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
+        <div class="section-label">Music <span style="color:#5D3F6A">(optional)</span></div>
         <!-- Tap a song to select · tap ✂ Trim to set clip start/end -->
         <div class="music-selector" id="music-selector">
           <div style="font-size:13px;color:var(--text-faint);padding:8px 0">Loading your library…</div>
@@ -242,7 +238,7 @@
       <div>
         <div class="section-label">
           Photos &amp; Video
-          <span style="color:var(--text-faint);font-size:9px;letter-spacing:1px"> — drag ⠿ to reorder · ✕ to remove</span>
+          <span style="color:#5D3F6A;font-size:9px;letter-spacing:1px"> — drag ⠿ to reorder · ✕ to remove</span>
         </div>
         <div class="edit-media-strip" id="edit-media-strip"></div>
         <input type="file" id="edit-media-input" accept="image/*,video/*" multiple style="display:none"
@@ -250,18 +246,18 @@
       </div>
 
       <div>
-        <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
+        <div class="section-label">Caption <span style="color:#5D3F6A">(optional)</span></div>
         <textarea class="caption-textarea" id="edit-caption-input" placeholder="what's the memory…" rows="3"></textarea>
       </div>
 
       <div>
-        <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
+        <div class="section-label">Location <span style="color:#5D3F6A">(optional)</span></div>
         <input class="field-input" id="edit-location-input" type="text" placeholder="where were you…"
                autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
       <div>
-        <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
+        <div class="section-label">Music <span style="color:#5D3F6A">(optional)</span></div>
         <!-- Tap a song to select · tap ✂ Trim to set clip start/end -->
         <div class="music-selector" id="edit-music-selector">
           <div style="font-size:13px;color:var(--text-faint);padding:8px 0">Loading…</div>
@@ -484,6 +480,7 @@
     <div class="clip-visual">
       <div class="clip-visual-bg"></div>
       <div class="clip-visual-range" id="clip-visual-fill" style="left:0%;width:10%"></div>
+      <div class="clip-playhead" id="clip-playhead" style="left:0%"></div>
       <div class="clip-visual-label" id="clip-visual-label">clip</div>
     </div>
 
