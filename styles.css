@@ -23,6 +23,8 @@
   --text-faint:  #2e2820;
   --rose:        #c07060;
   --green:       #5a9e78;
+  --purple:      #5D3F6A;
+  --purple-dim:  rgba(93,63,106,0.4);
   --safe-top:    env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --serif:       'Playfair Display', Georgia, serif;
@@ -52,7 +54,11 @@ body { background: #050403; }
   transform: translateX(-50%);
   width: 100%; max-width: 430px;
   display: none; flex-direction: column;
-  background: var(--bg); overflow: hidden;
+  background: var(--bg);
+  background-image: url('doodle.svg');
+  background-size: 380px 380px;
+  background-repeat: repeat;
+  overflow: hidden;
 }
 .screen.active { display: flex; }
 .screen.slide-in { animation: slideIn 0.26s ease forwards; }
@@ -71,7 +77,7 @@ body { background: #050403; }
 .app-header {
   padding: calc(var(--safe-top) + 10px) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(93,63,106,0.35);
   flex-shrink: 0;
   background: rgba(14,12,10,0.97);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -98,7 +104,7 @@ body { background: #050403; }
 .scroll-body::-webkit-scrollbar { display: none; }
 
 .bottom-nav {
-  flex-shrink: 0; border-top: 1px solid var(--border);
+  flex-shrink: 0; border-top: 1px solid rgba(93,63,106,0.35);
   display: flex; background: rgba(14,12,10,0.98);
   padding-bottom: max(var(--safe-bottom), 4px);
 }
@@ -109,6 +115,10 @@ body { background: #050403; }
   cursor: pointer; transition: color 0.15s; font-family: var(--mono);
 }
 .nav-tab.active   { color: var(--gold); }
+.nav-tab.active::after {
+  content: ''; display: block; width: 18px; height: 2px;
+  background: var(--purple); border-radius: 2px; margin: 2px auto 0;
+}
 .nav-tab-icon     { font-size: 20px; }
 .nav-tab-label    { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
 
@@ -195,7 +205,11 @@ body { background: #050403; }
 .sheet-msg    { font-size: 11px; color: var(--text-muted); line-height: 1.7; margin-bottom: 18px; }
 .sheet-actions { display: flex; flex-direction: column; gap: 8px; }
 
-.section-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(232,216,192,0.55); margin-bottom: 8px; }
+.section-label {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(232,216,192,0.55); margin-bottom: 8px;
+  border-left: 2px solid rgba(93,63,106,0.55); padding-left: 7px;
+}
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 32px; text-align: center; gap: 10px; }
 .empty-icon  { font-size: 38px; opacity: 0.18; }
 .empty-title { font-family: var(--serif); font-size: 22px; font-style: italic; color: var(--text-muted); }
