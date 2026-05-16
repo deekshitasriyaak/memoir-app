@@ -393,8 +393,11 @@ async function openPost(postId) {
   document.getElementById('swipe-dots').innerHTML = '';
   document.getElementById('now-playing').style.display = 'none';
   document.getElementById('post-view-blur-bg').style.backgroundImage = '';
-  document.getElementById('np-play-btn').textContent = '▶';
-  document.getElementById('np-play-btn').classList.remove('loading');
+  const _playBtn = document.getElementById('np-play-btn');
+  _playBtn.textContent = '▶';
+  _playBtn.classList.remove('loading');
+  _playBtn.disabled = false;
+  _playBtn.title = '';
   document.getElementById('np-disc').classList.remove('playing');
   document.getElementById('np-progress').style.width = '0%';
   document.getElementById('np-current').textContent  = '0:00';
@@ -509,9 +512,12 @@ function wireAudioEvents(audio, song) {
   audio.onplay  = () => { disc.classList.add('playing');    btn.textContent = '⏸'; };
   audio.onpause = () => { disc.classList.remove('playing'); btn.textContent = '▶'; };
   audio.onended = () => {
-    // Loop back to start of clip
     audio.currentTime = song.startTime || 0;
     disc.classList.remove('playing'); btn.textContent = '▶';
+  };
+  audio.onerror = () => {
+    disc.classList.remove('playing'); btn.textContent = '▶';
+    showToast('Could not play song', 'Try opening the post again', 'error');
   };
 }
 
