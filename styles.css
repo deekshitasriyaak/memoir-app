@@ -238,6 +238,29 @@ body { background: #050403; }
 .search-input:focus { border-color: var(--border2); }
 .search-input::placeholder { color: var(--text-faint); }
 
+.feed-filters {
+  flex-wrap: wrap; gap: 7px;
+  padding: 8px 12px 9px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; align-items: center;
+}
+.filter-pill {
+  background: var(--surface); border: 1px solid rgba(93,63,106,0.45);
+  color: #5D3F6A; font-size: 11px; font-family: var(--sans);
+  padding: 5px 11px; border-radius: 20px;
+  cursor: pointer; outline: none;
+  appearance: none; -webkit-appearance: none;
+  max-width: 140px;
+}
+.filter-pill:focus { border-color: #5D3F6A; }
+.filter-clear {
+  background: none; border: 1px solid rgba(93,63,106,0.3);
+  color: rgba(93,63,106,0.7); font-size: 11px;
+  padding: 5px 9px; border-radius: 20px;
+  cursor: pointer; font-family: var(--sans);
+  line-height: 1;
+}
+
 /* Feed grid */
 .feed-grid {
   display: grid;

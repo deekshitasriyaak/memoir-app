@@ -26,6 +26,9 @@ const state = {
   reorderOriginal: [],
   reorderCurrent:  [],
   editFolderUrls:  {},
+  feedDateFilter:     null,
+  feedLocationFilter: null,
+  musicQuery:         '',
   // Clip sheet state
   songPausedByVideo: false,
   clipSheet: {
@@ -109,6 +112,29 @@ async function ghPutBinary(path, arrayBuffer, sha = null, message = null) {
   const body = { message: message || `memoir: add ${path}`, content: btoa(binary), ...(sha ? { sha } : {}) };
   const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
   return res.json();
+}
+async function ghUpdateIndexRetry(path, updateFn, message, maxRetries = 3) {
+  let updatedContent;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const file = await ghGetFile(path);
+    updatedContent = updateFn(file?.content || []);
+    const body = {
+      message: message || `memoir: update ${path}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(updatedContent, null, 2)))),
+      ...(file?.sha ? { sha: file.sha } : {})
+    };
+    const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
+      method: 'PUT', body: JSON.stringify(body)
+    });
+    if (res.status === 200 || res.status === 201) return updatedContent;
+    if ((res.status === 409 || res.status === 422) && attempt < maxRetries - 1) {
+      await new Promise(r => setTimeout(r, 700 * (attempt + 1)));
+      continue;
+    }
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `GitHub ${res.status}`);
+  }
+  return updatedContent;
 }
 async function ghDeleteFile(path, sha, message = null) {
   const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'DELETE', body: JSON.stringify({ message: message || `memoir: delete ${path}`, sha }) });
@@ -326,6 +352,7 @@ async function loadFeed() {
     const file  = await ghGetFile('posts-index.json');
     state.posts = file ? (Array.isArray(file.content) ? file.content : []) : [];
     state.filteredPosts = [...state.posts];
+    renderFeedFilters();
     renderFeed(state.filteredPosts);
     logEvent('loadFeed', 'success', `${state.posts.length} posts`);
   } catch (err) {
@@ -341,6 +368,7 @@ function renderFeed(posts) {
     return;
   }
   container.innerHTML = `<div class="feed-grid">${posts.map(renderPostCard).join('')}</div>`;
+  lazyLoadVideoThumbs();
 }
 
 function renderPostCard(post) {
@@ -354,7 +382,9 @@ function renderPostCard(post) {
     const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`;
     thumbHtml = `<img src="${rawUrl}" alt="" onerror="feedThumbFallback(this,'${post.thumbnail}')">`;
   } else {
-    thumbHtml = `<div class="feed-card-no-thumb"></div>`;
+    thumbHtml = post.hasVideo
+      ? `<div class="feed-card-no-thumb feed-card-vid-pending" data-vid-post="${post.id}"></div>`
+      : `<div class="feed-card-no-thumb"></div>`;
   }
 
   return `<div class="feed-card" onclick="openPost('${post.id}')">
@@ -374,6 +404,45 @@ function renderPostCard(post) {
   </div>`;
 }
 
+async function lazyLoadVideoThumbs() {
+  const els = Array.from(document.querySelectorAll('.feed-card-vid-pending'));
+  for (const el of els) {
+    const postId = el.dataset.vidPost;
+    if (!postId) continue;
+    try {
+      const meta = await ghGetFile(`posts/${postId}/meta.json`);
+      const firstVid = meta?.content?.media?.find(m => m.type === 'video');
+      if (!firstVid) continue;
+      const videoUrl = await ghBlobUrl(`posts/${postId}/${firstVid.filename}`);
+      if (!videoUrl) continue;
+      const thumb = await generateVideoThumbnailFromUrl(videoUrl);
+      if (!thumb || !document.body.contains(el)) continue;
+      const img = document.createElement('img');
+      img.src = thumb; img.alt = '';
+      el.replaceWith(img);
+    } catch {}
+  }
+}
+async function generateVideoThumbnailFromUrl(url, maxW = 320, maxH = 240) {
+  return new Promise(resolve => {
+    const video = document.createElement('video');
+    video.preload = 'metadata'; video.muted = true; video.playsInline = true;
+    video.src = url;
+    video.onseeked = () => {
+      try {
+        const ratio = Math.min(maxW / video.videoWidth, maxH / video.videoHeight, 1);
+        const w = Math.round(video.videoWidth * ratio);
+        const h = Math.round(video.videoHeight * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.35));
+      } catch { resolve(null); }
+    };
+    video.onloadedmetadata = () => { video.currentTime = 0.5; };
+    video.onerror = () => resolve(null);
+  });
+}
 async function feedThumbFallback(img, thumbPath) {
   if (img.dataset.tried) return;
   img.dataset.tried = '1';
@@ -385,11 +454,64 @@ async function feedThumbFallback(img, thumbPath) {
 }
 
 function handleSearch(query) {
-  const q = query.toLowerCase().trim();
-  state.filteredPosts = q
-    ? state.posts.filter(p => (p.captionPreview || '').toLowerCase().includes(q) || (p.location || '').toLowerCase().includes(q))
-    : [...state.posts];
+  applyFeedFilters();
+}
+
+function applyFeedFilters() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+  state.filteredPosts = state.posts.filter(p => {
+    if (q && !(p.captionPreview || '').toLowerCase().includes(q) && !(p.location || '').toLowerCase().includes(q)) return false;
+    if (state.feedDateFilter) {
+      const d = new Date(p.date);
+      const ms = isNaN(d) ? '' : d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      if (ms !== state.feedDateFilter) return false;
+    }
+    if (state.feedLocationFilter && (p.location || '') !== state.feedLocationFilter) return false;
+    return true;
+  });
   renderFeed(state.filteredPosts);
+}
+
+function renderFeedFilters() {
+  const el = document.getElementById('feed-filters');
+  if (!el) return;
+  const months = [...new Set(state.posts.map(p => {
+    const d = new Date(p.date);
+    return isNaN(d) ? null : d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+  }).filter(Boolean))];
+  const locs = [...new Set(state.posts.map(p => p.location).filter(Boolean))];
+  if (!months.length && !locs.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const hasFilter = state.feedDateFilter || state.feedLocationFilter;
+  el.innerHTML =
+    (months.length ? `<select class="filter-pill" onchange="setFeedDateFilter(this.value)">
+      <option value="">All dates</option>
+      ${months.map(m => `<option value="${m}" ${state.feedDateFilter === m ? 'selected' : ''}>${m}</option>`).join('')}
+    </select>` : '') +
+    (locs.length ? `<select class="filter-pill" onchange="setFeedLocationFilter(this.value)">
+      <option value="">All places</option>
+      ${locs.map(l => `<option value="${l}" ${state.feedLocationFilter === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+    </select>` : '') +
+    (hasFilter ? `<button class="filter-clear" onclick="clearFeedFilters()">✕</button>` : '');
+}
+
+function setFeedDateFilter(val) {
+  state.feedDateFilter = val || null;
+  applyFeedFilters();
+  renderFeedFilters();
+}
+function setFeedLocationFilter(val) {
+  state.feedLocationFilter = val || null;
+  applyFeedFilters();
+  renderFeedFilters();
+}
+function clearFeedFilters() {
+  state.feedDateFilter = null;
+  state.feedLocationFilter = null;
+  const si = document.getElementById('search-input');
+  if (si) si.value = '';
+  applyFeedFilters();
+  renderFeedFilters();
 }
 
 // ── POST VIEW ─────────────────────────────────────────────────────
@@ -1081,11 +1203,9 @@ async function submitPost() {
     done++;
 
     upd('Updating feed…', 'posts-index.json', 95);
-    const indexFile = await ghGetFile('posts-index.json');
     const firstMedia = mediaEntries[0];
     const indexEntry = { id: postId, date: postId.split('-').slice(0,3).join('-'), captionPreview: caption.slice(0, 120), location, thumbnail: firstMedia?.type === 'image' ? `posts/${postId}/${firstMedia.filename}` : null, thumbnail_b64, songTitle: songMeta?.title || null, songArtist: songMeta?.artist || null, mediaCount: mediaEntries.length, hasVideo: mediaEntries.some(m => m.type === 'video') };
-    const updatedIndex = [indexEntry, ...(indexFile?.content || [])];
-    await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: add post ${postId}`);
+    const updatedIndex = await ghUpdateIndexRetry('posts-index.json', existing => [indexEntry, ...existing], `memoir: add post ${postId}`);
 
     state.posts = updatedIndex;
     state.filteredPosts = updatedIndex;
@@ -1325,12 +1445,10 @@ async function submitEdit() {
       new_thumbnail_b64 = await generateVideoThumbnail(firstNewVid._file);
     }
     upd('Updating feed…', 'posts-index.json', 95);
-    const indexFile    = await ghGetFile('posts-index.json');
-    const updatedIndex = (indexFile?.content || []).map(p => {
+    const updatedIndex = await ghUpdateIndexRetry('posts-index.json', existing => existing.map(p => {
       if (p.id !== postId) return p;
       return { ...p, captionPreview: newCaption.slice(0, 120), location: newLocation, thumbnail: firstImage ? `posts/${postId}/${firstImage.filename}` : null, thumbnail_b64: new_thumbnail_b64 || p.thumbnail_b64, songTitle: newSongMeta?.title || null, songArtist: newSongMeta?.artist || null, mediaCount: finalMedia.length, hasVideo: finalMedia.some(m => m.type === 'video') };
-    });
-    await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: update index ${postId}`);
+    }), `memoir: update index ${postId}`);
     state.posts = updatedIndex;
     state.filteredPosts = updatedIndex;
     renderFeed(state.filteredPosts);
@@ -1357,24 +1475,13 @@ async function loadMusicLibrary() {
   try {
     const file = await ghGetFile('music/music-index.json');
     state.musicIndex = file?.content || [];
+    state.musicQuery = document.getElementById('music-search-input')?.value?.toLowerCase().trim() || '';
     if (!state.musicIndex.length) {
       list.innerHTML = `<div class="empty-state"><div class="empty-icon">♫</div><div class="empty-title">No songs yet</div><div class="empty-sub">Tap + to add a song</div></div>`;
       document.getElementById('music-storage-bar').style.display = 'none';
       return;
     }
-    list.innerHTML = state.musicIndex.map(song => {
-      const [c1, c2] = discColor(song.id || song.title);
-      return `<div class="music-item">
-        <div class="mi-disc" id="disc-${song.id}" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})" onclick="previewSong('${song.id}')"></div>
-        <div class="mi-info" onclick="previewSong('${song.id}')">
-          <div class="mi-title">${esc(song.title)}</div>
-          <div class="mi-artist">${esc(song.artist)}</div>
-          <div class="mi-size">${((song.sizeBytes||0)/1024/1024).toFixed(1)} MB</div>
-        </div>
-        <button class="mi-play" id="play-${song.id}" onclick="previewSong('${song.id}')">▶</button>
-        <button class="mi-delete" onclick="promptDeleteSong('${song.id}')" title="Delete song">✕</button>
-      </div>`;
-    }).join('');
+    renderMusicLibraryList();
     const totalBytes = state.musicIndex.reduce((s, m) => s + (m.sizeBytes || 0), 0);
     document.getElementById('msb-value').textContent = `${(totalBytes/1024/1024).toFixed(0)} MB / 1 GB`;
     document.getElementById('msb-fill').style.width  = Math.min((totalBytes/(1024*1024*1024))*100, 100) + '%';
@@ -1383,6 +1490,38 @@ async function loadMusicLibrary() {
     list.innerHTML = `<div style="padding:18px;color:var(--rose);font-size:13px">Failed: ${err.message}</div>`;
     showError('Music library failed', err);
   }
+}
+
+function filterMusicList(query) {
+  state.musicQuery = query.toLowerCase().trim();
+  renderMusicLibraryList();
+}
+
+function renderMusicLibraryList() {
+  const list = document.getElementById('music-list');
+  if (!list) return;
+  const q = state.musicQuery;
+  const filtered = q
+    ? state.musicIndex.filter(s =>
+        s.title.toLowerCase().includes(q) || (s.artist || '').toLowerCase().includes(q))
+    : state.musicIndex;
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">♫</div><div class="empty-title">${q ? 'No matches' : 'No songs yet'}</div><div class="empty-sub">${q ? 'Try a different search' : 'Tap + to add'}</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(song => {
+    const [c1, c2] = discColor(song.id || song.title);
+    return `<div class="music-item">
+      <div class="mi-disc" id="disc-${song.id}" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})" onclick="previewSong('${song.id}')"></div>
+      <div class="mi-info" onclick="previewSong('${song.id}')">
+        <div class="mi-title">${esc(song.title)}</div>
+        <div class="mi-artist">${esc(song.artist)}</div>
+        <div class="mi-size">${((song.sizeBytes||0)/1024/1024).toFixed(1)} MB</div>
+      </div>
+      <button class="mi-play" id="play-${song.id}" onclick="previewSong('${song.id}')">▶</button>
+      <button class="mi-delete" onclick="promptDeleteSong('${song.id}')" title="Delete song">✕</button>
+    </div>`;
+  }).join('');
 }
 
 let previewAudio = null, previewingId = null;

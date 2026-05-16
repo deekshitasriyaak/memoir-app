@@ -83,6 +83,7 @@
              oninput="handleSearch(this.value)">
     </div>
   </div>
+  <div class="feed-filters" id="feed-filters" style="display:none"></div>
 
   <div class="scroll-body" id="feed-body">
     <div id="ios-install-nudge">
@@ -288,6 +289,13 @@
     <button class="header-btn" onclick="goBack()">←</button>
     <div class="logo" style="font-size:22px">Soundtrack</div>
     <button class="header-btn" onclick="openAddSong()" title="Add song">+</button>
+  </div>
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="music-search-input" type="search" placeholder="search songs…"
+             oninput="filterMusicList(this.value)">
+    </div>
   </div>
 
   <div class="scroll-body">
