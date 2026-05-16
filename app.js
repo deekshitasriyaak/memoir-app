@@ -122,17 +122,28 @@ async function ghFolderUrls(folderPath) {
 }
 
 // Fetch a file from the private repo as an authenticated blob URL.
-// This avoids short-lived signed download_url tokens for audio/images.
+// Uses the Git Data API (/git/blobs/{sha}) which supports files up to 100MB,
+// unlike the Contents API which is limited to 1MB.
 const _blobCache = new Map();
+const _MIME = { mp3:'audio/mpeg', m4a:'audio/mp4', wav:'audio/wav', mp4:'video/mp4', mov:'video/quicktime', jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', webp:'image/webp' };
+
 async function ghBlobUrl(filePath) {
   if (_blobCache.has(filePath)) return _blobCache.get(filePath);
   try {
-    const res = await fetch(`${GITHUB_API}/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`, {
+    // Step 1: get the file SHA from the Contents API
+    const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`);
+    if (!info?.sha) return null;
+
+    // Step 2: fetch raw binary via Git Data API (supports up to 100MB)
+    const res = await fetch(`${GITHUB_API}/repos/${state.auth.username}/${state.auth.repo}/git/blobs/${info.sha}`, {
       headers: { Authorization: `Bearer ${state.auth.token}`, Accept: 'application/vnd.github.v3.raw' }
     });
     if (!res.ok) return null;
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
+
+    const ext      = filePath.split('.').pop().toLowerCase();
+    const mimeType = _MIME[ext] || 'application/octet-stream';
+    const blob     = new Blob([await res.arrayBuffer()], { type: mimeType });
+    const url      = URL.createObjectURL(blob);
     _blobCache.set(filePath, url);
     return url;
   } catch { return null; }
