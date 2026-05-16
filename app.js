@@ -19,17 +19,22 @@ const state = {
   currentPost:    null,
   currentSlide:   0,
   pendingMedia:   [],
-  pendingSong:    null,
   navHistory:     ['screen-setup'],
   activeTab:      'feed',
-  selectedSongId: null,
-  songStartTime:  0,
+  selectedSongId: null,          // create form
   editPost:       null,
   reorderOriginal: [],
   reorderCurrent:  [],
   editFolderUrls:  {},
-  clipPreviewAudio: null,
-  editClipPreviewAudio: null,
+  // Clip sheet state
+  clipSheet: {
+    mode:       null,   // 'create' | 'edit'
+    songId:     null,
+    startTime:  0,
+    endTime:    30,
+    duration:   null,
+    previewAudio: null,
+  },
 };
 
 // ── CRYPTO ───────────────────────────────────────────────────────
@@ -37,14 +42,12 @@ async function deriveKey() {
   const raw = await crypto.subtle.importKey('raw', new TextEncoder().encode('memoir-key-2024'), { name: 'PBKDF2' }, false, ['deriveKey']);
   return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: new TextEncoder().encode('memoir-salt'), iterations: 100000, hash: 'SHA-256' }, raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
-
 async function encryptText(text) {
   const key = await deriveKey();
   const iv  = crypto.getRandomValues(new Uint8Array(12));
   const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text));
   return btoa(String.fromCharCode(...iv) + String.fromCharCode(...new Uint8Array(enc)));
 }
-
 async function decryptText(b64) {
   try {
     const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -53,12 +56,10 @@ async function decryptText(b64) {
     return new TextDecoder().decode(dec);
   } catch { return null; }
 }
-
 async function saveAuth(auth) {
   const enc = await encryptText(auth.token);
   localStorage.setItem('memoir_auth', JSON.stringify({ username: auth.username, repo: auth.repo, email: auth.email || '', tokenEnc: enc }));
 }
-
 async function loadAuth() {
   const raw = localStorage.getItem('memoir_auth');
   if (!raw) return null;
@@ -75,12 +76,7 @@ async function ghFetch(path, options = {}) {
   const url = path.startsWith('http') ? path : `${GITHUB_API}${path}`;
   const res = await fetch(url, {
     ...options,
-    headers: {
-      Authorization:  `Bearer ${state.auth.token}`,
-      Accept:         'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    }
+    headers: { Authorization: `Bearer ${state.auth.token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   if (!res.ok && res.status !== 404) {
     const err = await res.json().catch(() => ({}));
@@ -88,52 +84,34 @@ async function ghFetch(path, options = {}) {
   }
   return res;
 }
-
 async function ghGet(path) {
   const res = await ghFetch(path);
   if (res.status === 404) return null;
   return res.json();
 }
-
 async function ghGetFile(path) {
   const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
   if (res.status === 404) return null;
   const data = await res.json();
   return { content: JSON.parse(atob(data.content.replace(/\n/g, ''))), sha: data.sha };
 }
-
 async function ghPutFile(path, content, sha = null, message = null) {
-  const body = {
-    message: message || `memoir: update ${path}`,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-    ...(sha ? { sha } : {})
-  };
+  const body = { message: message || `memoir: update ${path}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), ...(sha ? { sha } : {}) };
   const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
   return res.json();
 }
-
 async function ghPutBinary(path, arrayBuffer, sha = null, message = null) {
   const bytes = new Uint8Array(arrayBuffer);
   let binary  = '';
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  const body = {
-    message: message || `memoir: add ${path}`,
-    content: btoa(binary),
-    ...(sha ? { sha } : {})
-  };
+  const body = { message: message || `memoir: add ${path}`, content: btoa(binary), ...(sha ? { sha } : {}) };
   const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
   return res.json();
 }
-
 async function ghDeleteFile(path, sha, message = null) {
-  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, {
-    method: 'DELETE',
-    body: JSON.stringify({ message: message || `memoir: delete ${path}`, sha })
-  });
+  const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`, { method: 'DELETE', body: JSON.stringify({ message: message || `memoir: delete ${path}`, sha }) });
   return res.json();
 }
-
-// Get download_url map for all files in a folder (one API call)
 async function ghFolderUrls(folderPath) {
   try {
     const items = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${folderPath}`);
@@ -163,18 +141,10 @@ function showToast(title, msg = '', type = 'info', duration = 4000) {
   const icons = { error: '✗', success: '✓', info: '·', warning: '⚠' };
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = `
-    <span class="toast-icon">${icons[type]}</span>
-    <div class="toast-body">
-      <div class="toast-title">${title}</div>
-      ${msg ? `<div class="toast-msg">${msg}</div>` : ''}
-    </div>
-    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-  `;
+  el.innerHTML = `<span class="toast-icon">${icons[type]}</span><div class="toast-body"><div class="toast-title">${title}</div>${msg ? `<div class="toast-msg">${msg}</div>` : ''}</div><button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('toast-container').appendChild(el);
   setTimeout(() => el.remove(), duration);
 }
-
 function showError(title, err) {
   const detail = err?.message || String(err);
   showToast(title, detail, 'error', 6000);
@@ -186,7 +156,6 @@ function setFeedTabActive() {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('nav-feed')?.classList.add('active');
 }
-
 function navigateTo(screenId, addHistory = true) {
   const current = document.querySelector('.screen.active');
   if (current?.id === screenId) return;
@@ -200,16 +169,12 @@ function navigateTo(screenId, addHistory = true) {
   if (screenId === 'screen-create')   loadMusicForCreate();
   if (screenId === 'screen-reorder')  loadReorderScreen();
 }
-
 function goBack() {
   if (state.navHistory.length <= 1) return;
   const leaving = state.navHistory[state.navHistory.length - 1];
-
   if (leaving === 'screen-post') {
     const audio = document.getElementById('audio-player');
-    audio.pause();
-    audio.src = '';
-    audio._eventsSet = false;
+    audio.pause(); audio.src = ''; audio._eventsSet = false;
   }
   if (leaving === 'screen-music') {
     if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; }
@@ -221,17 +186,14 @@ function goBack() {
     }
   }
   if (leaving === 'screen-create' || leaving === 'screen-edit') {
-    stopClipPreview();
+    stopClipPreviewAudio();
   }
-
   state.navHistory.pop();
   const prev = state.navHistory[state.navHistory.length - 1];
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(prev).classList.add('active');
-
   if (prev === 'screen-feed') setFeedTabActive();
 }
-
 function switchTab(tab, evt) {
   state.activeTab = tab;
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -255,32 +217,13 @@ async function handleConnect() {
   const email    = document.getElementById('input-email').value.trim();
   const errEl    = document.getElementById('setup-error');
   errEl.style.display = 'none';
-
-  if (!username || !token) {
-    errEl.textContent = 'Username and token are required.';
-    errEl.style.display = 'block';
-    return;
-  }
-
+  if (!username || !token) { errEl.textContent = 'Username and token are required.'; errEl.style.display = 'block'; return; }
   document.getElementById('setup-form').style.display    = 'none';
   document.getElementById('connecting-state').style.display = 'flex';
-
   const steps  = ['step-1','step-2','step-3','step-4','step-5'];
   let stepIdx  = 0;
-
-  function advanceStep() {
-    document.getElementById(steps[stepIdx]).classList.remove('active');
-    document.getElementById(steps[stepIdx]).classList.add('done');
-    stepIdx++;
-    if (stepIdx < steps.length) document.getElementById(steps[stepIdx]).classList.add('active');
-  }
-  function failStep(msg) {
-    document.getElementById('connecting-state').style.display = 'none';
-    document.getElementById('setup-form').style.display = 'block';
-    errEl.textContent = msg;
-    errEl.style.display = 'block';
-  }
-
+  function advanceStep() { document.getElementById(steps[stepIdx]).classList.remove('active'); document.getElementById(steps[stepIdx]).classList.add('done'); stepIdx++; if (stepIdx < steps.length) document.getElementById(steps[stepIdx]).classList.add('active'); }
+  function failStep(msg) { document.getElementById('connecting-state').style.display = 'none'; document.getElementById('setup-form').style.display = 'block'; errEl.textContent = msg; errEl.style.display = 'block'; }
   try {
     document.getElementById(steps[0]).classList.add('active');
     state.auth = { username, repo, token, email };
@@ -302,18 +245,12 @@ async function handleConnect() {
     state.auth = null;
   }
 }
-
 async function initRepoStructure(isNew) {
   if (isNew) {
     await ghFetch('/user/repos', { method: 'POST', body: JSON.stringify({ name: state.auth.repo, private: true, description: 'Memoir private archive', auto_init: true }) });
     await new Promise(r => setTimeout(r, 1500));
   }
-  const files = [
-    ['posts-index.json',       []],
-    ['music/music-index.json', []],
-    ['logs/errors.json',       []],
-    ['profile.json', { username: state.auth.username, email: state.auth.email, joinedAt: new Date().toISOString() }]
-  ];
+  const files = [['posts-index.json', []], ['music/music-index.json', []], ['logs/errors.json', []], ['profile.json', { username: state.auth.username, email: state.auth.email, joinedAt: new Date().toISOString() }]];
   for (const [path, def] of files) {
     try {
       const res = await ghFetch(`/repos/${state.auth.username}/${state.auth.repo}/contents/${path}`);
@@ -321,7 +258,6 @@ async function initRepoStructure(isNew) {
     } catch {}
   }
 }
-
 async function initWorkflows(email) {
   const emailYml = `name: Email Error Alerts\non:\n  push:\n    paths: ['logs/errors.json']\njobs:\n  notify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dawidd6/action-send-mail@v3\n        with:\n          server_address: smtp.gmail.com\n          server_port: 465\n          secure: true\n          username: \${{secrets.GMAIL_USER}}\n          password: \${{secrets.GMAIL_APP_PASSWORD}}\n          to: ${email || '${{secrets.GMAIL_USER}}'}\n          subject: "Memoir Error"\n          html_body: "<h3>Memoir error — check logs/errors.json</h3>"\n`;
   const cleanupYml = `name: Monthly Log Cleanup\non:\n  schedule:\n    - cron: '0 0 1 * *'\njobs:\n  cleanup:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: echo "[]" > logs/errors.json\n      - uses: stefanzweifel/git-auto-commit-action@v5\n        with:\n          commit_message: 'memoir: monthly log cleanup'\n`;
@@ -332,7 +268,6 @@ async function initWorkflows(email) {
     } catch {}
   }
 }
-
 async function launchApp() {
   navigateTo('screen-feed', false);
   state.navHistory = ['screen-feed'];
@@ -344,7 +279,8 @@ async function launchApp() {
 // ── FEED ─────────────────────────────────────────────────────────
 async function loadFeed() {
   const container = document.getElementById('feed-content');
-  container.innerHTML = renderSkeletons(3);
+  // Skeleton grid
+  container.innerHTML = `<div class="feed-skeleton-grid">${Array(6).fill(0).map(() => `<div class="feed-skeleton-cell skeleton"></div>`).join('')}</div>`;
   try {
     const file  = await ghGetFile('posts-index.json');
     state.posts = file ? (Array.isArray(file.content) ? file.content : []) : [];
@@ -357,53 +293,44 @@ async function loadFeed() {
   }
 }
 
-function renderSkeletons(n) {
-  return Array(n).fill(0).map(() => `
-    <div class="skeleton-card">
-      <div class="skeleton skeleton-media"></div>
-      <div class="skeleton skeleton-line"></div>
-      <div class="skeleton skeleton-line-sm"></div>
-    </div>`).join('');
-}
-
 function renderFeed(posts) {
   const container = document.getElementById('feed-content');
   if (!posts.length) {
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-title">No memories yet</div><div class="empty-sub">Tap + to create your first post</div></div>`;
     return;
   }
-  container.innerHTML = posts.map(renderPostCard).join('');
+  container.innerHTML = `<div class="feed-grid">${posts.map(renderPostCard).join('')}</div>`;
 }
 
 function renderPostCard(post) {
-  const date = formatDate(post.date);
-  const [c1, c2] = post.songTitle ? discColor(post.songTitle) : ['#333', '#111'];
+  const date     = formatDate(post.date);
+  const hasThumb = post.thumbnail_b64 || post.thumbnail;
 
-  // Prefer base64 thumbnail (always works), fall back to raw URL with API fallback on error
-  let thumbHtml = '';
+  let thumbHtml;
   if (post.thumbnail_b64) {
-    thumbHtml = `<img class="post-thumbnail" src="${post.thumbnail_b64}" alt="">`;
+    thumbHtml = `<img src="${post.thumbnail_b64}" alt="">`;
   } else if (post.thumbnail) {
     const rawUrl = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`;
-    thumbHtml = `<img class="post-thumbnail" src="${rawUrl}" alt="" onerror="feedThumbFallback(this,'${post.thumbnail}')">`;
+    thumbHtml = `<img src="${rawUrl}" alt="" onerror="feedThumbFallback(this,'${post.thumbnail}')">`;
+  } else {
+    thumbHtml = `<div class="feed-card-no-thumb"></div>`;
   }
 
-  return `
-    <div class="post-card" onclick="openPost('${post.id}')">
-      <div class="post-media-wrap">
-        ${thumbHtml || `<div style="width:100%;height:100%;background:var(--surface2)"></div>`}
-        ${post.mediaCount > 1 ? `<div class="post-badge post-badge-count">1 / ${post.mediaCount}</div>` : ''}
-        ${post.hasVideo ? `<div class="post-badge post-badge-video">▶ video</div>` : ''}
-        ${post.songTitle ? `<div class="post-music-strip"><div class="mini-disc" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div><div class="music-strip-info"><div class="music-strip-title">${esc(post.songTitle)}</div><div class="music-strip-artist">${esc(post.songArtist || '')}</div></div></div>` : ''}
-      </div>
-      <div class="post-body">
-        <div class="post-date">${date}</div>
-        ${post.captionPreview ? `<div class="post-caption">${esc(post.captionPreview)}</div>` : ''}
-      </div>
-    </div>`;
+  return `<div class="feed-card" onclick="openPost('${post.id}')">
+    ${thumbHtml}
+    <div class="feed-card-badges">
+      ${post.mediaCount > 1 ? `<div class="feed-badge">1/${post.mediaCount}</div>` : ''}
+      ${post.hasVideo     ? `<div class="feed-badge">▶</div>` : ''}
+      ${post.songTitle    ? `<div class="feed-badge feed-badge-music">♫</div>` : ''}
+    </div>
+    <div class="feed-card-overlay">
+      <div class="feed-card-date">${date}</div>
+      ${post.location    ? `<div class="feed-card-location">📍 ${esc(post.location)}</div>` : ''}
+      ${post.captionPreview ? `<div class="feed-card-caption">${esc(post.captionPreview)}</div>` : ''}
+    </div>
+  </div>`;
 }
 
-// Fallback: fetch authenticated download_url when raw URL fails (private repo)
 async function feedThumbFallback(img, thumbPath) {
   if (img.dataset.tried) return;
   img.dataset.tried = '1';
@@ -428,11 +355,8 @@ async function openPost(postId) {
   state.currentSlide = 0;
 
   const audio = document.getElementById('audio-player');
-  audio.pause();
-  audio.src = '';
-  audio._eventsSet = false;
+  audio.pause(); audio.src = ''; audio._eventsSet = false;
 
-  // Reset UI
   document.getElementById('post-slides').innerHTML = '';
   document.getElementById('post-slides').style.transform = '';
   document.getElementById('swipe-dots').innerHTML = '';
@@ -449,7 +373,6 @@ async function openPost(postId) {
   document.getElementById('post-view-location').style.display = 'none';
 
   try {
-    // Fetch meta + folder listing in parallel
     const [metaFile, folderUrls] = await Promise.all([
       ghGetFile(`posts/${postId}/meta.json`),
       ghFolderUrls(`posts/${postId}`)
@@ -463,33 +386,22 @@ async function openPost(postId) {
     const slides = document.getElementById('post-slides');
     const dots   = document.getElementById('swipe-dots');
 
-    // Blurred background from first image
     const firstImg = sortedMedia.find(m => m.type === 'image');
-    if (firstImg) {
-      const bgUrl = folderUrls[firstImg.filename];
-      if (bgUrl) document.getElementById('post-view-blur-bg').style.backgroundImage = `url(${bgUrl})`;
+    if (firstImg && folderUrls[firstImg.filename]) {
+      document.getElementById('post-view-blur-bg').style.backgroundImage = `url(${folderUrls[firstImg.filename]})`;
     }
 
     for (let i = 0; i < sortedMedia.length; i++) {
       const m   = sortedMedia[i];
       const url = folderUrls[m.filename];
       if (!url) continue;
-
       let el;
       if (m.type === 'video') {
-        el = document.createElement('video');
-        el.className  = 'post-view-slide video';
-        el.src        = url;
-        el.controls   = true;
-        el.playsInline = true;
+        el = Object.assign(document.createElement('video'), { className: 'post-view-slide video', src: url, controls: true, playsInline: true });
       } else {
-        el = document.createElement('img');
-        el.className = 'post-view-slide';
-        el.src       = url;
-        el.alt       = '';
+        el = Object.assign(document.createElement('img'), { className: 'post-view-slide', src: url, alt: '' });
       }
       slides.appendChild(el);
-
       if (sortedMedia.length > 1) {
         const dot = document.createElement('div');
         dot.className = 'swipe-dot' + (i === 0 ? ' active' : '');
@@ -504,8 +416,14 @@ async function openPost(postId) {
       document.getElementById('post-view-location-text').textContent = meta.location;
     }
 
+    // ── PRE-LOAD AUDIO so play() can be called synchronously ──
     if (meta.song?.filename) {
-      setupAudioUI(meta.song.title, meta.song.artist, meta.song.title);
+      const songUrl = folderUrls[meta.song.filename];
+      if (songUrl) {
+        audio.src = songUrl;
+        wireAudioEvents(audio, meta.song);
+        setupAudioUI(meta.song.title, meta.song.artist);
+      }
     }
 
     logEvent('openPost', 'success', postId);
@@ -515,11 +433,40 @@ async function openPost(postId) {
   }
 }
 
+function wireAudioEvents(audio, song) {
+  if (audio._eventsSet) return;
+  audio._eventsSet = true;
+  const btn  = document.getElementById('np-play-btn');
+  const disc = document.getElementById('np-disc');
+  const endTime = song.endTime || null;
+  audio.ontimeupdate = () => {
+    if (!audio.duration) return;
+    document.getElementById('np-progress').style.width = (audio.currentTime / audio.duration * 100) + '%';
+    document.getElementById('np-current').textContent  = fmtTime(audio.currentTime);
+    // Enforce clip end — loop back to start
+    if (endTime && audio.currentTime >= endTime) {
+      audio.currentTime = song.startTime || 0;
+    }
+  };
+  audio.onloadedmetadata = () => {
+    document.getElementById('np-duration').textContent = fmtTime(audio.duration);
+    // Seek to clip start on load
+    if (song.startTime > 0) audio.currentTime = song.startTime;
+  };
+  audio.onplay  = () => { disc.classList.add('playing');    btn.textContent = '⏸'; };
+  audio.onpause = () => { disc.classList.remove('playing'); btn.textContent = '▶'; };
+  audio.onended = () => {
+    // Loop back to start of clip
+    audio.currentTime = song.startTime || 0;
+    disc.classList.remove('playing'); btn.textContent = '▶';
+  };
+}
+
 // Swipe
 let touchX = 0;
 function touchStart(e) { touchX = e.touches[0].clientX; }
 function touchEnd(e) {
-  const dx   = e.changedTouches[0].clientX - touchX;
+  const dx = e.changedTouches[0].clientX - touchX;
   if (Math.abs(dx) < 42) return;
   const meta = state.currentPost;
   if (!meta) return;
@@ -527,7 +474,6 @@ function touchEnd(e) {
   if (dx < 0 && state.currentSlide < n - 1) goToSlide(state.currentSlide + 1);
   if (dx > 0 && state.currentSlide > 0)     goToSlide(state.currentSlide - 1);
 }
-
 function goToSlide(idx) {
   state.currentSlide = idx;
   document.getElementById('post-slides').style.transform = `translateX(-${idx * 100}%)`;
@@ -543,67 +489,39 @@ function setupAudioUI(title, artist, colorKey) {
   document.getElementById('now-playing').style.display = 'flex';
 }
 
-async function toggleAudio() {
+// toggleAudio — plays synchronously (user gesture preserved).
+// Audio src is pre-set in openPost() so no API call needed here.
+function toggleAudio() {
   const audio = document.getElementById('audio-player');
-  const btn   = document.getElementById('np-play-btn');
-  const disc  = document.getElementById('np-disc');
-
-  if (!audio.paused) {
-    audio.pause();
-    disc.classList.remove('playing');
-    btn.textContent = '▶';
+  if (!audio.paused) { audio.pause(); return; }
+  if (!audio.src || audio.src === window.location.href) {
+    // Fallback: try refreshing the URL then tell user to tap again
+    refreshAudioSrc();
+    showToast('Loading song…', 'Tap ▶ once more when ready', 'info');
     return;
   }
+  audio.play().catch(err => {
+    if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
+      // URL likely expired — refresh and prompt
+      refreshAudioSrc();
+      showToast('Song reloading…', 'Tap ▶ again in a moment', 'info');
+    }
+  });
+}
 
+async function refreshAudioSrc() {
   const meta = state.currentPost;
   if (!meta?.song?.filename) return;
-
-  // Always fetch a fresh download_url — GitHub pre-signed URLs expire
-  btn.classList.add('loading');
-  btn.textContent = '…';
-
-  let url;
   try {
     const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}/${meta.song.filename}`);
-    url = info?.download_url;
+    const url  = info?.download_url;
+    if (url) {
+      const audio = document.getElementById('audio-player');
+      audio._eventsSet = false;
+      audio.src = url;
+      wireAudioEvents(audio, meta.song);
+    }
   } catch {}
-
-  btn.classList.remove('loading');
-  btn.textContent = '▶';
-
-  if (!url) { showToast('Audio unavailable', 'Could not get file URL', 'error'); return; }
-
-  audio.src = url;
-
-  // Wire events once per audio session
-  if (!audio._eventsSet) {
-    audio._eventsSet = true;
-    audio.ontimeupdate = () => {
-      if (!audio.duration) return;
-      document.getElementById('np-progress').style.width = (audio.currentTime / audio.duration * 100) + '%';
-      document.getElementById('np-current').textContent  = fmtTime(audio.currentTime);
-    };
-    audio.onloadedmetadata = () => {
-      document.getElementById('np-duration').textContent = fmtTime(audio.duration);
-    };
-    audio.onplay  = () => { disc.classList.add('playing');    btn.textContent = '⏸'; };
-    audio.onpause = () => { disc.classList.remove('playing'); btn.textContent = '▶'; };
-    audio.onended = () => { disc.classList.remove('playing'); btn.textContent = '▶'; };
-  }
-
-  // Seek to start time if set
-  const startTime = meta.song.startTime || 0;
-  if (startTime > 0) {
-    audio.addEventListener('loadedmetadata', () => {
-      audio.currentTime = Math.min(startTime, audio.duration - 1);
-    }, { once: true });
-  }
-
-  try {
-    await audio.play();
-  } catch {
-    showToast('Playback blocked', 'Tap play again', 'warning');
-  }
 }
 
 function fmtTime(s) {
@@ -621,8 +539,7 @@ async function generateThumbnail(file, maxW = 320, maxH = 240) {
       const w = Math.round(img.naturalWidth  * ratio);
       const h = Math.round(img.naturalHeight * ratio);
       const canvas = document.createElement('canvas');
-      canvas.width  = w;
-      canvas.height = h;
+      canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
       resolve(canvas.toDataURL('image/jpeg', 0.35));
@@ -644,8 +561,7 @@ async function confirmDelete() {
     const indexFile = await ghGetFile('posts-index.json');
     const updated   = (indexFile?.content || []).filter(p => p.id !== meta.id);
     await ghPutFile('posts-index.json', updated, indexFile?.sha, `memoir: delete post ${meta.id}`);
-    state.posts = updated;
-    state.filteredPosts = updated;
+    state.posts = updated; state.filteredPosts = updated;
     showToast('Deleted', '', 'success');
     logEvent('deletePost', 'success', meta.id);
     goBack();
@@ -654,7 +570,7 @@ async function confirmDelete() {
 }
 
 // ── CREATE POST ───────────────────────────────────────────────────
-function openMediaPicker() { const i = document.getElementById('media-file-input'); i.value = ''; i.click(); }
+function openMediaPicker()     { const i = document.getElementById('media-file-input');     i.value = ''; i.click(); }
 function openMediaPickerAdd(e) { e.stopPropagation(); const i = document.getElementById('media-file-input-add'); i.value = ''; i.click(); }
 
 async function handleMediaFiles(files) {
@@ -673,7 +589,6 @@ function renderMediaGrid() {
   const iconEl = document.querySelector('#media-picker .media-picker-icon');
   const textEl = document.querySelector('#media-picker .media-picker-text');
   const subEl  = document.querySelector('#media-picker .media-picker-sub');
-
   if (!files.length) {
     grid.style.display = 'none'; addBtn.style.display = 'none';
     iconEl.style.display = ''; textEl.style.display = ''; subEl.style.display = '';
@@ -682,17 +597,12 @@ function renderMediaGrid() {
   iconEl.style.display = 'none'; textEl.style.display = 'none'; subEl.style.display = 'none';
   grid.style.display = 'grid'; addBtn.style.display = 'flex';
   addBtn.onclick = openMediaPickerAdd;
-
   const show = files.slice(0, 3);
   const more = files.length - 3;
   grid.innerHTML = show.map((f, i) => {
-    const url     = URL.createObjectURL(f);
+    const url = URL.createObjectURL(f);
     const isVideo = f.type.startsWith('video/');
-    return `<div class="media-grid-item">
-      <${isVideo ? 'video' : 'img'} src="${url}" ${isVideo ? 'muted' : 'alt=""'}>
-      <button class="media-remove-btn" onclick="event.stopPropagation();removeMedia(${i})">✕</button>
-      ${i === 2 && more > 0 ? `<div class="media-grid-more">+${more + 1}</div>` : ''}
-    </div>`;
+    return `<div class="media-grid-item"><${isVideo ? 'video' : 'img'} src="${url}" ${isVideo ? 'muted' : 'alt=""'}><button class="media-remove-btn" onclick="event.stopPropagation();removeMedia(${i})">✕</button>${i === 2 && more > 0 ? `<div class="media-grid-more">+${more + 1}</div>` : ''}</div>`;
   }).join('');
 }
 
@@ -714,9 +624,7 @@ async function loadMusicForCreate() {
       return;
     }
     state.selectedSongId = null;
-    state.songStartTime  = 0;
     renderMusicSelector(selector, null, 'selectSong');
-    hideClipPicker('song-clip-wrap');
   } catch { selector.innerHTML = `<div style="font-size:12px;color:var(--rose)">Couldn't load library</div>`; }
 }
 
@@ -724,26 +632,30 @@ function renderMusicSelector(container, selectedId, fnName) {
   container.innerHTML = state.musicIndex.map(song => {
     const [c1, c2] = discColor(song.id || song.title);
     const sel = selectedId === song.id;
+    const clipInfo = sel ? getClipLabel('create') : '';
     return `<div class="music-option${sel ? ' selected' : ''}" onclick="${fnName}('${song.id}')" id="${fnName}-mo-${song.id}">
       <div class="mo-disc" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div>
       <div class="mo-info"><div class="mo-title">${esc(song.title)}</div><div class="mo-artist">${esc(song.artist)}</div></div>
+      ${sel ? `<button class="mo-trim-btn" onclick="event.stopPropagation();openClipSheet('${fnName}')">✂ Trim</button>` : ''}
       <div class="mo-check" id="${fnName}-mc-${song.id}">${sel ? '✓' : ''}</div>
     </div>`;
   }).join('');
 }
 
+function getClipLabel(mode) {
+  const cs = state.clipSheet;
+  if (!cs.songId) return '';
+  return `${fmtTime(cs.startTime)}–${fmtTime(cs.endTime)}`;
+}
+
 function selectSong(id) {
   const prev = state.selectedSongId;
   state.selectedSongId = prev === id ? null : id;
-  state.songStartTime  = 0;
-  updateSelectorUI('selectSong', state.selectedSongId);
-
-  stopClipPreview();
-  if (state.selectedSongId) {
-    showClipPicker('song-clip-wrap', state.selectedSongId, 'create');
-  } else {
-    hideClipPicker('song-clip-wrap');
+  if (!state.selectedSongId) {
+    state.clipSheet = { mode: null, songId: null, startTime: 0, endTime: 30, duration: null, previewAudio: null };
   }
+  updateSelectorUI('selectSong', state.selectedSongId);
+  renderMusicSelector(document.getElementById('music-selector'), state.selectedSongId, 'selectSong');
 }
 
 function updateSelectorUI(fnName, selectedId) {
@@ -756,113 +668,173 @@ function updateSelectorUI(fnName, selectedId) {
   }
 }
 
-// ── SONG CLIP PICKER ──────────────────────────────────────────────
-function hideClipPicker(wrapperId) {
-  const el = document.getElementById(wrapperId);
-  if (el) { el.classList.remove('visible'); el.innerHTML = ''; }
+// ── CLIP PICKER SHEET ─────────────────────────────────────────────
+function openClipSheet(fnName) {
+  const mode   = fnName === 'selectSong' ? 'create' : 'edit';
+  const songId = mode === 'create' ? state.selectedSongId : state.editPost?.selectedSongId;
+  if (!songId) return;
+
+  const song   = state.musicIndex.find(s => s.id === songId);
+  if (!song) return;
+
+  // Preserve existing clip times
+  const cs = state.clipSheet;
+  if (cs.songId !== songId) {
+    state.clipSheet = { mode, songId, startTime: 0, endTime: 30, duration: null, previewAudio: null };
+  } else {
+    state.clipSheet.mode = mode;
+  }
+
+  document.getElementById('clip-sheet-song').textContent   = song.title;
+  document.getElementById('clip-sheet-artist').textContent = song.artist || '';
+  document.getElementById('clip-start-slider').value = state.clipSheet.startTime;
+  document.getElementById('clip-end-slider').value   = state.clipSheet.endTime;
+  document.getElementById('clip-start-time').textContent = fmtTime(state.clipSheet.startTime);
+  document.getElementById('clip-end-time').textContent   = fmtTime(state.clipSheet.endTime);
+  updateClipVisual();
+  updateClipDurationLabel();
+  openSheet('sheet-clip');
+  loadClipDuration(songId);
 }
 
-async function showClipPicker(wrapperId, songId, mode) {
-  const wrap = document.getElementById(wrapperId);
-  if (!wrap) return;
-
-  const startTime = mode === 'edit' ? (state.editPost?.songStartTime || 0) : (state.songStartTime || 0);
-  wrap.innerHTML = `
-    <div class="song-clip-title">Choose clip start</div>
-    <div class="song-clip-row">
-      <span class="song-clip-label">Start at</span>
-      <input type="range" class="clip-slider" id="${wrapperId}-slider" min="0" max="300" step="1" value="${startTime}">
-      <span class="song-clip-time" id="${wrapperId}-time">${fmtTime(startTime)}</span>
-      <button class="clip-play-btn" id="${wrapperId}-playbtn" onclick="toggleClipPreview('${wrapperId}','${songId}','${mode}')">▶</button>
-    </div>
-    <div style="font-size:10px;color:var(--text-faint)">Drag to choose where the song starts playing</div>
-  `;
-  wrap.classList.add('visible');
-
-  document.getElementById(`${wrapperId}-slider`).addEventListener('input', function() {
-    const val = parseInt(this.value);
-    document.getElementById(`${wrapperId}-time`).textContent = fmtTime(val);
-    if (mode === 'edit') state.editPost.songStartTime = val;
-    else state.songStartTime = val;
-    // Seek preview if playing
-    const pa = mode === 'edit' ? state.editClipPreviewAudio : state.clipPreviewAudio;
-    if (pa && !pa.paused) pa.currentTime = val;
-  });
-
-  // Load audio to get real duration
-  loadClipDuration(wrapperId, songId, mode);
-}
-
-async function loadClipDuration(wrapperId, songId, mode) {
+async function loadClipDuration(songId) {
   const song = state.musicIndex.find(s => s.id === songId);
   if (!song) return;
   try {
     const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
     const url  = info?.download_url;
     if (!url) return;
-
-    const tempAudio = new Audio(url);
-    tempAudio.addEventListener('loadedmetadata', () => {
-      const dur    = Math.floor(tempAudio.duration);
-      const slider = document.getElementById(`${wrapperId}-slider`);
-      if (slider) {
-        slider.max = Math.max(0, dur - 5);
-        if (parseInt(slider.value) > parseInt(slider.max)) {
-          slider.value = 0;
-          document.getElementById(`${wrapperId}-time`).textContent = '0:00';
-          if (mode === 'edit') state.editPost.songStartTime = 0;
-          else state.songStartTime = 0;
-        }
+    const tmp = new Audio(url);
+    state.clipSheet.previewAudio = tmp;
+    tmp.addEventListener('loadedmetadata', () => {
+      const dur = Math.floor(tmp.duration);
+      state.clipSheet.duration = dur;
+      document.getElementById('clip-start-slider').max = Math.max(0, dur - 2);
+      document.getElementById('clip-end-slider').max   = dur;
+      // Clamp values
+      if (state.clipSheet.endTime > dur) {
+        state.clipSheet.endTime = dur;
+        document.getElementById('clip-end-slider').value = dur;
+        document.getElementById('clip-end-time').textContent = fmtTime(dur);
       }
-      // Store for preview
-      if (mode === 'edit') state.editClipPreviewAudio = tempAudio;
-      else state.clipPreviewAudio = tempAudio;
+      updateClipVisual();
+      updateClipDurationLabel();
     });
-    tempAudio.load();
+    tmp.load();
   } catch {}
 }
 
-async function toggleClipPreview(wrapperId, songId, mode) {
-  const btn = document.getElementById(`${wrapperId}-playbtn`);
-  let pa    = mode === 'edit' ? state.editClipPreviewAudio : state.clipPreviewAudio;
+function onClipStartChange(val) {
+  val = parseInt(val);
+  // End must be at least start + 2s
+  if (val >= state.clipSheet.endTime) {
+    state.clipSheet.endTime = Math.min(val + 2, state.clipSheet.duration || 300);
+    document.getElementById('clip-end-slider').value = state.clipSheet.endTime;
+    document.getElementById('clip-end-time').textContent = fmtTime(state.clipSheet.endTime);
+  }
+  state.clipSheet.startTime = val;
+  document.getElementById('clip-start-time').textContent = fmtTime(val);
+  updateClipVisual();
+  updateClipDurationLabel();
+  // Seek preview if playing
+  const pa = state.clipSheet.previewAudio;
+  if (pa && !pa.paused) pa.currentTime = val;
+}
+
+function onClipEndChange(val) {
+  val = parseInt(val);
+  // Start must be at most end - 2s
+  if (val <= state.clipSheet.startTime) {
+    state.clipSheet.startTime = Math.max(0, val - 2);
+    document.getElementById('clip-start-slider').value = state.clipSheet.startTime;
+    document.getElementById('clip-start-time').textContent = fmtTime(state.clipSheet.startTime);
+  }
+  state.clipSheet.endTime = val;
+  document.getElementById('clip-end-time').textContent = fmtTime(val);
+  updateClipVisual();
+  updateClipDurationLabel();
+}
+
+function updateClipVisual() {
+  const cs   = state.clipSheet;
+  const dur  = cs.duration || 300;
+  const pct  = (t) => (t / dur * 100).toFixed(1) + '%';
+  const fill = document.getElementById('clip-visual-fill');
+  if (!fill) return;
+  fill.style.left  = pct(cs.startTime);
+  fill.style.width = pct(cs.endTime - cs.startTime);
+}
+
+function updateClipDurationLabel() {
+  const cs  = state.clipSheet;
+  const len = Math.max(0, cs.endTime - cs.startTime);
+  const el  = document.getElementById('clip-duration-val');
+  if (el) el.textContent = `${len}s`;
+}
+
+async function toggleClipPreview() {
+  const btn = document.getElementById('clip-preview-btn');
+  let pa    = state.clipSheet.previewAudio;
 
   if (pa && !pa.paused) {
     pa.pause();
-    if (btn) btn.textContent = '▶';
+    btn.textContent = '▶ Preview clip';
+    btn.classList.remove('playing');
     return;
   }
 
-  // Fetch URL fresh
-  const song = state.musicIndex.find(s => s.id === songId);
-  if (!song) return;
-  if (btn) { btn.textContent = '…'; }
-
-  try {
-    const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
-    const url  = info?.download_url;
-    if (!url) throw new Error('no url');
-
-    if (!pa || pa.src !== url) {
-      if (pa) { pa.pause(); pa.src = ''; }
-      pa = new Audio(url);
-      if (mode === 'edit') state.editClipPreviewAudio = pa;
-      else state.clipPreviewAudio = pa;
-    }
-
-    const startTime = mode === 'edit' ? (state.editPost?.songStartTime || 0) : (state.songStartTime || 0);
-    pa.currentTime = startTime;
-    pa.onpause = pa.onended = () => { if (btn) btn.textContent = '▶'; };
-    await pa.play();
-    if (btn) btn.textContent = '⏸';
-  } catch {
-    if (btn) btn.textContent = '▶';
-    showToast('Preview unavailable', '', 'warning');
+  if (!pa || !pa.src) {
+    await loadClipDuration(state.clipSheet.songId);
+    pa = state.clipSheet.previewAudio;
+    if (!pa) { showToast('Could not load preview', '', 'warning'); return; }
+    await new Promise(r => setTimeout(r, 300));
   }
+
+  pa.currentTime = state.clipSheet.startTime || 0;
+
+  // Auto-stop at end time
+  const stopAt = state.clipSheet.endTime;
+  pa.ontimeupdate = () => {
+    if (pa.currentTime >= stopAt) {
+      pa.pause();
+      pa.currentTime = state.clipSheet.startTime || 0;
+      if (btn) { btn.textContent = '▶ Preview clip'; btn.classList.remove('playing'); }
+    }
+  };
+  pa.onpause = pa.onended = () => {
+    if (btn) { btn.textContent = '▶ Preview clip'; btn.classList.remove('playing'); }
+  };
+
+  pa.play().then(() => {
+    btn.textContent = '⏸ Stop preview';
+    btn.classList.add('playing');
+  }).catch(() => {
+    showToast('Preview unavailable', '', 'warning');
+  });
 }
 
-function stopClipPreview() {
-  if (state.clipPreviewAudio) { state.clipPreviewAudio.pause(); state.clipPreviewAudio.src = ''; state.clipPreviewAudio = null; }
-  if (state.editClipPreviewAudio) { state.editClipPreviewAudio.pause(); state.editClipPreviewAudio.src = ''; state.editClipPreviewAudio = null; }
+function stopClipPreviewAudio() {
+  const pa = state.clipSheet.previewAudio;
+  if (pa) { pa.pause(); pa.src = ''; state.clipSheet.previewAudio = null; }
+}
+
+function closeClipSheet() {
+  stopClipPreviewAudio();
+  closeSheet('sheet-clip');
+}
+
+function confirmClipSheet() {
+  stopClipPreviewAudio();
+  closeSheet('sheet-clip');
+  // Refresh the selector to show updated clip times
+  const mode = state.clipSheet.mode;
+  if (mode === 'create') {
+    renderMusicSelector(document.getElementById('music-selector'), state.selectedSongId, 'selectSong');
+  } else if (mode === 'edit' && state.editPost) {
+    state.editPost.songStartTime = state.clipSheet.startTime;
+    state.editPost.songEndTime   = state.clipSheet.endTime;
+    renderMusicSelector(document.getElementById('edit-music-selector'), state.editPost.selectedSongId, 'selectEditSong');
+  }
 }
 
 // ── SUBMIT CREATE POST ────────────────────────────────────────────
@@ -873,30 +845,26 @@ async function submitPost() {
   const progress = document.getElementById('upload-progress');
   progress.classList.add('visible');
 
-  const postId   = generatePostId();
-  const caption  = document.getElementById('caption-input').value.trim();
-  const location = document.getElementById('location-input').value.trim();
+  const postId      = generatePostId();
+  const caption     = document.getElementById('caption-input').value.trim();
+  const location    = document.getElementById('location-input').value.trim();
   const selectedSong = state.selectedSongId ? state.musicIndex.find(s => s.id === state.selectedSongId) : null;
 
   try {
     const mediaEntries = [];
-    const total = state.pendingMedia.length + (selectedSong ? 1 : 0) + 2; // +2 for meta + index
+    const total = state.pendingMedia.length + (selectedSong ? 1 : 0) + 2;
     let done = 0;
-
     const upd = (label, file, pct) => {
-      document.getElementById('upload-label').textContent  = label;
-      document.getElementById('upload-pct').textContent    = Math.round(pct) + '%';
+      document.getElementById('upload-label').textContent = label;
+      document.getElementById('upload-pct').textContent   = Math.round(pct) + '%';
       document.getElementById('upload-bar-fill').style.width = pct + '%';
-      document.getElementById('upload-file').textContent   = file;
-      document.getElementById('upload-count').textContent  = `${done} / ${total}`;
+      document.getElementById('upload-file').textContent  = file;
+      document.getElementById('upload-count').textContent = `${done} / ${total}`;
     };
 
-    // Generate thumbnail from first image file
     let thumbnail_b64 = null;
     const firstImgFile = state.pendingMedia.find(f => f.type.startsWith('image/'));
-    if (firstImgFile) {
-      thumbnail_b64 = await generateThumbnail(firstImgFile);
-    }
+    if (firstImgFile) thumbnail_b64 = await generateThumbnail(firstImgFile);
 
     for (let i = 0; i < state.pendingMedia.length; i++) {
       const file    = state.pendingMedia[i];
@@ -916,14 +884,14 @@ async function submitPost() {
       let songBuffer;
       try {
         const r = await fetch(fileInfo?.download_url);
-        if (!r.ok) throw new Error('fetch failed');
+        if (!r.ok) throw new Error();
         songBuffer = await r.arrayBuffer();
       } catch {
         const b64 = fileInfo?.content?.replace(/\n/g, '');
         songBuffer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
       }
       await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: add song to ${postId}`);
-      songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: state.songStartTime || 0 };
+      songMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: state.clipSheet.startTime || 0, endTime: state.clipSheet.endTime || null };
       done++;
     }
 
@@ -935,18 +903,7 @@ async function submitPost() {
     upd('Updating feed…', 'posts-index.json', 95);
     const indexFile = await ghGetFile('posts-index.json');
     const firstMedia = mediaEntries[0];
-    const indexEntry = {
-      id: postId,
-      date: postId.split('-').slice(0,3).join('-'),
-      captionPreview: caption.slice(0, 120),
-      location,
-      thumbnail:    firstMedia?.type === 'image' ? `posts/${postId}/${firstMedia.filename}` : null,
-      thumbnail_b64,
-      songTitle:    songMeta?.title  || null,
-      songArtist:   songMeta?.artist || null,
-      mediaCount:   mediaEntries.length,
-      hasVideo:     mediaEntries.some(m => m.type === 'video')
-    };
+    const indexEntry = { id: postId, date: postId.split('-').slice(0,3).join('-'), captionPreview: caption.slice(0, 120), location, thumbnail: firstMedia?.type === 'image' ? `posts/${postId}/${firstMedia.filename}` : null, thumbnail_b64, songTitle: songMeta?.title || null, songArtist: songMeta?.artist || null, mediaCount: mediaEntries.length, hasVideo: mediaEntries.some(m => m.type === 'video') };
     const updatedIndex = [indexEntry, ...(indexFile?.content || [])];
     await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: add post ${postId}`);
 
@@ -955,11 +912,10 @@ async function submitPost() {
     showToast('Posted ✦', 'Memory saved to GitHub', 'success');
     logEvent('createPost', 'success', postId);
 
-    // Reset form
+    // Reset
     state.pendingMedia   = [];
     state.selectedSongId = null;
-    state.songStartTime  = 0;
-    stopClipPreview();
+    state.clipSheet      = { mode: null, songId: null, startTime: 0, endTime: 30, duration: null, previewAudio: null };
     document.getElementById('caption-input').value  = '';
     document.getElementById('location-input').value = '';
     const mp = document.getElementById('media-picker');
@@ -983,9 +939,8 @@ async function submitPost() {
 async function openEditPost() {
   const meta = state.currentPost;
   if (!meta) return;
-
   state.editPost = {
-    postId:           meta.id,
+    postId: meta.id,
     originalCaption:  meta.caption  || '',
     originalLocation: meta.location || '',
     originalSong:     meta.song ? JSON.parse(JSON.stringify(meta.song)) : null,
@@ -994,19 +949,16 @@ async function openEditPost() {
     selectedSongId:   null,
     songChanged:      false,
     songStartTime:    meta.song?.startTime || 0,
+    songEndTime:      meta.song?.endTime   || null,
   };
-
   if (meta.song) {
     const match = state.musicIndex.find(s => s.title === meta.song.title && s.artist === meta.song.artist);
     if (match) state.editPost.selectedSongId = match.id;
   }
-
   state.editFolderUrls = await ghFolderUrls(`posts/${meta.id}`);
-
-  document.getElementById('edit-date-value').textContent    = formatDate(meta.createdAt?.split('T')[0]);
-  document.getElementById('edit-caption-input').value  = meta.caption  || '';
-  document.getElementById('edit-location-input').value = meta.location || '';
-
+  document.getElementById('edit-date-value').textContent  = formatDate(meta.createdAt?.split('T')[0]);
+  document.getElementById('edit-caption-input').value     = meta.caption  || '';
+  document.getElementById('edit-location-input').value    = meta.location || '';
   renderEditMediaStrip();
   await loadMusicForEdit();
   navigateTo('screen-edit');
@@ -1016,41 +968,31 @@ function renderEditMediaStrip() {
   const strip = document.getElementById('edit-media-strip');
   const ep    = state.editPost;
   strip.innerHTML = '';
-
   ep.currentMedia.forEach((m, i) => {
     const thumb = document.createElement('div');
     thumb.className  = 'edit-media-thumb' + (m._status === 'delete' ? ' to-delete' : '');
     thumb.dataset.index = i;
-
     let mediaEl;
     if (m._status === 'new') {
       const url = URL.createObjectURL(m._file);
-      mediaEl   = m.type === 'video'
-        ? Object.assign(document.createElement('video'), { src: url, muted: true })
-        : Object.assign(document.createElement('img'),   { src: url, alt: '' });
+      mediaEl   = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
     } else {
       const url = state.editFolderUrls[m.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${ep.postId}/${m.filename}`;
-      mediaEl   = m.type === 'video'
-        ? Object.assign(document.createElement('video'), { src: url, muted: true })
-        : Object.assign(document.createElement('img'),   { src: url, alt: '' });
+      mediaEl   = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
     }
-
     const removeBtn = document.createElement('button');
-    removeBtn.className = 'media-remove-btn';
+    removeBtn.className   = 'media-remove-btn';
     removeBtn.textContent = m._status === 'delete' ? '↩' : '✕';
-    removeBtn.onclick = () => toggleEditMediaDelete(i);
-
+    removeBtn.onclick     = () => toggleEditMediaDelete(i);
     const handle = document.createElement('div');
     handle.className   = 'drag-handle';
     handle.textContent = '⠿';
-
     thumb.appendChild(mediaEl);
     thumb.appendChild(removeBtn);
     thumb.appendChild(handle);
     strip.appendChild(thumb);
     setupEditDragEvents(thumb, i);
   });
-
   const addBtn = document.createElement('div');
   addBtn.className = 'edit-add-more';
   addBtn.innerHTML = `+ <span>Add more</span>`;
@@ -1060,9 +1002,9 @@ function renderEditMediaStrip() {
 
 function toggleEditMediaDelete(index) {
   const m = state.editPost.currentMedia[index];
-  if (m._status === 'new')    state.editPost.currentMedia.splice(index, 1);
+  if (m._status === 'new')        state.editPost.currentMedia.splice(index, 1);
   else if (m._status === 'delete') m._status = 'existing';
-  else m._status = 'delete';
+  else                             m._status = 'delete';
   renderEditMediaStrip();
 }
 
@@ -1084,9 +1026,9 @@ function setupEditDragEvents(el, index) {
 }
 
 function handleEditAddMedia(files) {
-  const canAdd  = MAX_MEDIA - state.editPost.currentMedia.length;
+  const canAdd = MAX_MEDIA - state.editPost.currentMedia.length;
   if (canAdd <= 0) { showToast('Max media', 'Cannot exceed 10 items', 'warning'); return; }
-  let orderMax  = state.editPost.currentMedia.reduce((m, x) => Math.max(m, x.order || 0), 0);
+  let orderMax = state.editPost.currentMedia.reduce((m, x) => Math.max(m, x.order || 0), 0);
   Array.from(files).slice(0, canAdd).forEach((file, i) => {
     const isVideo = file.type.startsWith('video/');
     const ext     = file.name.split('.').pop().toLowerCase();
@@ -1102,16 +1044,8 @@ async function loadMusicForEdit() {
       const file = await ghGetFile('music/music-index.json');
       state.musicIndex = file?.content || [];
     }
-    if (!state.musicIndex.length) {
-      selector.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:8px 0">No songs yet</div>`;
-      return;
-    }
+    if (!state.musicIndex.length) { selector.innerHTML = `<div style="font-size:12px;color:var(--text-faint);padding:8px 0">No songs yet</div>`; return; }
     renderMusicSelector(selector, state.editPost.selectedSongId, 'selectEditSong');
-    if (state.editPost.selectedSongId) {
-      showClipPicker('edit-song-clip-wrap', state.editPost.selectedSongId, 'edit');
-    } else {
-      hideClipPicker('edit-song-clip-wrap');
-    }
   } catch { selector.innerHTML = `<div style="font-size:12px;color:var(--rose)">Couldn't load library</div>`; }
 }
 
@@ -1119,14 +1053,10 @@ function selectEditSong(id) {
   const prev = state.editPost.selectedSongId;
   state.editPost.selectedSongId = prev === id ? null : id;
   state.editPost.songChanged    = true;
-  state.editPost.songStartTime  = 0;
-  updateSelectorUI('selectEditSong', state.editPost.selectedSongId);
-  stopClipPreview();
-  if (state.editPost.selectedSongId) {
-    showClipPicker('edit-song-clip-wrap', state.editPost.selectedSongId, 'edit');
-  } else {
-    hideClipPicker('edit-song-clip-wrap');
+  if (!state.editPost.selectedSongId) {
+    state.clipSheet = { mode: null, songId: null, startTime: 0, endTime: 30, duration: null, previewAudio: null };
   }
+  renderMusicSelector(document.getElementById('edit-music-selector'), state.editPost.selectedSongId, 'selectEditSong');
 }
 
 async function submitEdit() {
@@ -1140,12 +1070,11 @@ async function submitEdit() {
   const newCaption  = document.getElementById('edit-caption-input').value.trim();
   const newLocation = document.getElementById('edit-location-input').value.trim();
   const postId      = ep.postId;
-
   const upd = (label, file, pct) => {
-    document.getElementById('edit-upload-label').textContent  = label;
-    document.getElementById('edit-upload-pct').textContent    = Math.round(pct) + '%';
+    document.getElementById('edit-upload-label').textContent = label;
+    document.getElementById('edit-upload-pct').textContent   = Math.round(pct) + '%';
     document.getElementById('edit-upload-bar-fill').style.width = pct + '%';
-    document.getElementById('edit-upload-file').textContent   = file || '';
+    document.getElementById('edit-upload-file').textContent  = file || '';
   };
 
   try {
@@ -1157,13 +1086,9 @@ async function submitEdit() {
 
     for (const m of toDeleteItems) {
       upd(`Removing…`, m.filename, (step / totalSteps) * 90);
-      try {
-        const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`);
-        if (fi?.sha) await ghDeleteFile(`posts/${postId}/${m.filename}`, fi.sha);
-      } catch {}
+      try { const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${postId}/${m.filename}`); if (fi?.sha) await ghDeleteFile(`posts/${postId}/${m.filename}`, fi.sha); } catch {}
       step++;
     }
-
     for (const m of toAddItems) {
       upd(`Uploading…`, m.filename, (step / totalSteps) * 90);
       await ghPutBinary(`posts/${postId}/${m.filename}`, await m._file.arrayBuffer(), null, `memoir: add media to ${postId}`);
@@ -1187,25 +1112,19 @@ async function submitEdit() {
         try { const r = await fetch(fileInfo?.download_url); songBuffer = await r.arrayBuffer(); }
         catch { songBuffer = Uint8Array.from(atob(fileInfo?.content?.replace(/\n/g,'')), c => c.charCodeAt(0)).buffer; }
         await ghPutBinary(`posts/${postId}/song.mp3`, songBuffer, null, `memoir: update song in ${postId}`);
-        newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: ep.songStartTime || 0 };
+        newSongMeta = { title: selectedSong.title, artist: selectedSong.artist, filename: 'song.mp3', startTime: ep.songStartTime || state.clipSheet.startTime || 0, endTime: ep.songEndTime || state.clipSheet.endTime || null };
         step++;
       } else if (oldSong) {
-        // Same song, just update startTime
-        newSongMeta = { ...oldSong, startTime: ep.songStartTime || 0 };
+        newSongMeta = { ...oldSong, startTime: ep.songStartTime || state.clipSheet.startTime || 0, endTime: ep.songEndTime || state.clipSheet.endTime || null };
       }
-    } else if (oldSong) {
-      // Song unchanged, keep startTime
-      newSongMeta = { ...oldSong };
     }
 
     const finalMedia = ep.currentMedia.filter(m => m._status !== 'delete').map((m, i) => ({ filename: m.filename, type: m.type, order: i + 1 }));
-
     upd('Saving…', 'meta.json', 90);
     const metaFile    = await ghGetFile(`posts/${postId}/meta.json`);
     const updatedMeta = { ...metaFile.content, caption: newCaption, location: newLocation, media: finalMedia, song: newSongMeta, updatedAt: new Date().toISOString() };
     await ghPutFile(`posts/${postId}/meta.json`, updatedMeta, metaFile.sha, `memoir: edit post ${postId}`);
 
-    // Generate new thumbnail if first image changed
     let new_thumbnail_b64 = null;
     const firstNewImg = ep.currentMedia.filter(m => m._status === 'new' && m.type === 'image')[0];
     if (firstNewImg && ep.currentMedia.filter(m => m._status !== 'delete')[0] === firstNewImg) {
@@ -1213,34 +1132,20 @@ async function submitEdit() {
     }
 
     const firstImage = finalMedia.find(m => m.type === 'image');
-    const newThumb   = firstImage ? `posts/${postId}/${firstImage.filename}` : null;
-    const oldEntry   = state.posts.find(p => p.id === postId);
-
     upd('Updating feed…', 'posts-index.json', 95);
     const indexFile    = await ghGetFile('posts-index.json');
     const updatedIndex = (indexFile?.content || []).map(p => {
       if (p.id !== postId) return p;
-      return {
-        ...p,
-        captionPreview: newCaption.slice(0, 120),
-        location:       newLocation,
-        thumbnail:      newThumb,
-        thumbnail_b64:  new_thumbnail_b64 || p.thumbnail_b64,
-        songTitle:      newSongMeta?.title  || null,
-        songArtist:     newSongMeta?.artist || null,
-        mediaCount:     finalMedia.length,
-        hasVideo:       finalMedia.some(m => m.type === 'video')
-      };
+      return { ...p, captionPreview: newCaption.slice(0, 120), location: newLocation, thumbnail: firstImage ? `posts/${postId}/${firstImage.filename}` : null, thumbnail_b64: new_thumbnail_b64 || p.thumbnail_b64, songTitle: newSongMeta?.title || null, songArtist: newSongMeta?.artist || null, mediaCount: finalMedia.length, hasVideo: finalMedia.some(m => m.type === 'video') };
     });
     await ghPutFile('posts-index.json', updatedIndex, indexFile?.sha, `memoir: update index ${postId}`);
     state.posts = updatedIndex;
     state.filteredPosts = updatedIndex;
     renderFeed(state.filteredPosts);
-
     state.currentPost = updatedMeta;
     showToast('Saved ✦', 'Memory updated', 'success');
     logEvent('editPost', 'success', postId);
-    stopClipPreview();
+    stopClipPreviewAudio();
     progress.classList.remove('visible');
     btn.disabled = false;
     state.editPost = null;
@@ -1267,14 +1172,15 @@ async function loadMusicLibrary() {
     }
     list.innerHTML = state.musicIndex.map(song => {
       const [c1, c2] = discColor(song.id || song.title);
-      return `<div class="music-item" onclick="previewSong('${song.id}')">
-        <div class="mi-disc" id="disc-${song.id}" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})"></div>
-        <div class="mi-info">
+      return `<div class="music-item">
+        <div class="mi-disc" id="disc-${song.id}" style="background:radial-gradient(circle at 35% 35%,${c1},${c2})" onclick="previewSong('${song.id}')"></div>
+        <div class="mi-info" onclick="previewSong('${song.id}')">
           <div class="mi-title">${esc(song.title)}</div>
           <div class="mi-artist">${esc(song.artist)}</div>
           <div class="mi-size">${((song.sizeBytes||0)/1024/1024).toFixed(1)} MB</div>
         </div>
-        <button class="mi-play" id="play-${song.id}" onclick="event.stopPropagation();previewSong('${song.id}')">▶</button>
+        <button class="mi-play" id="play-${song.id}" onclick="previewSong('${song.id}')">▶</button>
+        <button class="mi-delete" onclick="promptDeleteSong('${song.id}')" title="Delete song">✕</button>
       </div>`;
     }).join('');
     const totalBytes = state.musicIndex.reduce((s, m) => s + (m.sizeBytes || 0), 0);
@@ -1287,13 +1193,11 @@ async function loadMusicLibrary() {
   }
 }
 
-let previewAudio   = null;
-let previewingId   = null;
+let previewAudio = null, previewingId = null;
 
 async function previewSong(id) {
   const song = state.musicIndex.find(s => s.id === id);
   if (!song) return;
-
   if (previewingId === id) {
     if (previewAudio?.paused === false) {
       previewAudio.pause();
@@ -1306,7 +1210,6 @@ async function previewSong(id) {
     }
     return;
   }
-
   if (previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; }
   if (previewingId) {
     document.getElementById(`disc-${previewingId}`)?.classList.remove('playing');
@@ -1314,8 +1217,6 @@ async function previewSong(id) {
     if (pb) pb.textContent = '▶';
   }
   previewingId = id;
-
-  // Fetch fresh URL
   const btn = document.getElementById(`play-${id}`);
   if (btn) btn.textContent = '…';
   try {
@@ -1323,16 +1224,46 @@ async function previewSong(id) {
     const url  = info?.download_url;
     if (!url) throw new Error('No URL');
     previewAudio = new Audio(url);
-    previewAudio.addEventListener('play',   () => { document.getElementById(`disc-${id}`)?.classList.add('playing');    if (btn) btn.textContent = '⏸'; });
-    previewAudio.addEventListener('pause',  () => { document.getElementById(`disc-${id}`)?.classList.remove('playing'); if (btn) btn.textContent = '▶'; });
-    previewAudio.addEventListener('ended',  () => { document.getElementById(`disc-${id}`)?.classList.remove('playing'); if (btn) btn.textContent = '▶'; previewingId = null; previewAudio = null; });
-    previewAudio.addEventListener('error',  () => { if (btn) btn.textContent = '▶'; showToast('Playback error', '', 'error'); });
+    previewAudio.addEventListener('play',  () => { document.getElementById(`disc-${id}`)?.classList.add('playing');    if (btn) btn.textContent = '⏸'; });
+    previewAudio.addEventListener('pause', () => { document.getElementById(`disc-${id}`)?.classList.remove('playing'); if (btn) btn.textContent = '▶'; });
+    previewAudio.addEventListener('ended', () => { document.getElementById(`disc-${id}`)?.classList.remove('playing'); if (btn) btn.textContent = '▶'; previewingId = null; previewAudio = null; });
+    previewAudio.addEventListener('error', () => { if (btn) btn.textContent = '▶'; showToast('Playback error', '', 'error'); });
     await previewAudio.play();
   } catch (err) {
     if (btn) btn.textContent = '▶';
     showToast('Preview failed', err.message, 'error');
     previewingId = null;
   }
+}
+
+// ── DELETE SONG ───────────────────────────────────────────────────
+let songToDelete = null;
+function promptDeleteSong(songId) {
+  songToDelete = songId;
+  const song = state.musicIndex.find(s => s.id === songId);
+  document.getElementById('delete-song-name').textContent = song?.title || 'this song';
+  openSheet('sheet-delete-song');
+}
+async function confirmDeleteSong() {
+  closeSheet('sheet-delete-song');
+  const id   = songToDelete;
+  songToDelete = null;
+  if (!id) return;
+  const song = state.musicIndex.find(s => s.id === id);
+  if (!song) return;
+  if (previewingId === id && previewAudio) { previewAudio.pause(); previewAudio.src = ''; previewAudio = null; previewingId = null; }
+  showToast('Deleting song…', '', 'info', 10000);
+  try {
+    const fi = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
+    if (fi?.sha) await ghDeleteFile(`music/${song.filename}`, fi.sha, `memoir: delete song ${song.title}`);
+    const indexFile = await ghGetFile('music/music-index.json');
+    const updated   = (indexFile?.content || []).filter(s => s.id !== id);
+    await ghPutFile('music/music-index.json', updated, indexFile?.sha, `memoir: remove ${song.title} from index`);
+    state.musicIndex = updated;
+    showToast('Song deleted', song.title, 'success');
+    logEvent('deleteSong', 'success', song.title);
+    loadMusicLibrary();
+  } catch (err) { showError('Delete song failed', err); }
 }
 
 function openAddSong() { document.getElementById('song-file-input').click(); }
@@ -1342,8 +1273,8 @@ async function handleSongFile(file) {
   if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|m4a|wav)$/i)) { showToast('Invalid file', 'Only mp3, m4a, wav supported', 'error'); return; }
   if (file.size > 25 * 1024 * 1024) showToast('File too large', 'GitHub limit is 25MB', 'warning');
   state.pendingSong = { file };
-  document.getElementById('song-title-input').value   = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
-  document.getElementById('song-artist-input').value  = '';
+  document.getElementById('song-title-input').value  = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+  document.getElementById('song-artist-input').value = '';
   document.getElementById('sheet-song-filename').textContent = `File: ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
   openSheet('sheet-song-meta');
 }
@@ -1420,71 +1351,45 @@ function renderReorderList() {
       </div>
     </div>`;
   }).join('');
-
-  // Setup pointer-based drag for each handle
-  document.querySelectorAll('.reorder-handle').forEach(handle => {
-    setupReorderPointerDrag(handle);
-  });
+  document.querySelectorAll('.reorder-handle').forEach(handle => setupReorderPointerDrag(handle));
 }
 
 function setupReorderPointerDrag(handle) {
-  let ghost      = null;
-  let dragIdx    = null;
-  let offsetX    = 0;
-  let offsetY    = 0;
-
+  let ghost = null, dragIdx = null, offsetX = 0, offsetY = 0;
   function idxFromY(y) {
     const cards = [...document.querySelectorAll('.reorder-card')];
-    for (let i = 0; i < cards.length; i++) {
-      const r = cards[i].getBoundingClientRect();
-      if (y >= r.top && y <= r.bottom) return i;
-    }
+    for (let i = 0; i < cards.length; i++) { const r = cards[i].getBoundingClientRect(); if (y >= r.top && y <= r.bottom) return i; }
     return cards.length - 1;
   }
-
   handle.addEventListener('pointerdown', e => {
     e.preventDefault();
     handle.setPointerCapture(e.pointerId);
-
     dragIdx = parseInt(handle.dataset.index);
     const card = document.querySelectorAll('.reorder-card')[dragIdx];
     const rect = card.getBoundingClientRect();
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
-
-    // Create ghost
+    offsetX = e.clientX - rect.left; offsetY = e.clientY - rect.top;
     ghost = document.createElement('div');
     ghost.className = 'reorder-ghost';
-    ghost.style.width  = rect.width + 'px';
-    ghost.style.left   = rect.left  + 'px';
-    ghost.style.top    = rect.top   + 'px';
-    ghost.innerHTML = card.innerHTML;
+    ghost.style.width = rect.width + 'px';
+    ghost.style.left  = rect.left  + 'px';
+    ghost.style.top   = rect.top   + 'px';
+    ghost.innerHTML   = card.innerHTML;
     document.body.appendChild(ghost);
-
     card.classList.add('dragging-source');
   });
-
   handle.addEventListener('pointermove', e => {
     if (dragIdx === null || !ghost) return;
     e.preventDefault();
-
     ghost.style.left = (e.clientX - offsetX) + 'px';
     ghost.style.top  = (e.clientY - offsetY) + 'px';
-
     const hoverIdx = idxFromY(e.clientY);
-    document.querySelectorAll('.reorder-card').forEach((c, i) => {
-      c.classList.toggle('drag-over', i === hoverIdx && i !== dragIdx);
-    });
+    document.querySelectorAll('.reorder-card').forEach((c, i) => c.classList.toggle('drag-over', i === hoverIdx && i !== dragIdx));
   });
-
   handle.addEventListener('pointerup', e => {
     if (dragIdx === null) return;
-
     const dropIdx = idxFromY(e.clientY);
-
     if (ghost) { ghost.remove(); ghost = null; }
-    document.querySelectorAll('.reorder-card').forEach(c => { c.classList.remove('dragging-source', 'drag-over'); });
-
+    document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('dragging-source', 'drag-over'));
     if (dropIdx !== dragIdx) {
       const [moved] = state.reorderCurrent.splice(dragIdx, 1);
       state.reorderCurrent.splice(dropIdx, 0, moved);
@@ -1492,7 +1397,6 @@ function setupReorderPointerDrag(handle) {
     }
     dragIdx = null;
   });
-
   handle.addEventListener('pointercancel', () => {
     if (ghost) { ghost.remove(); ghost = null; }
     document.querySelectorAll('.reorder-card').forEach(c => c.classList.remove('dragging-source', 'drag-over'));
@@ -1501,7 +1405,6 @@ function setupReorderPointerDrag(handle) {
 }
 
 function cancelReorder() { state.reorderCurrent = [...state.reorderOriginal]; goBack(); }
-
 async function saveReorder() {
   showToast('Saving order…', '', 'info', 8000);
   try {
@@ -1525,11 +1428,9 @@ async function loadSettings() {
     if (d?.size) document.getElementById('si-storage').textContent = `${(d.size/1024).toFixed(1)} MB`;
   }).catch(() => {});
 }
-
 function handleSignOut()  { openSheet('sheet-signout'); }
 function confirmSignOut() {
-  localStorage.removeItem('memoir_auth');
-  localStorage.removeItem('memoir_logs');
+  localStorage.removeItem('memoir_auth'); localStorage.removeItem('memoir_logs');
   state.auth = null; state.posts = []; state.selectedSongId = null; state.musicIndex = [];
   closeSheet('sheet-signout');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1545,7 +1446,6 @@ function showInstallNudge() {
     document.getElementById('ios-install-nudge').style.display = 'flex';
   }
 }
-
 function dismissInstallNudge() {
   document.getElementById('ios-install-nudge').style.display = 'none';
   localStorage.setItem('memoir_nudge_dismissed', '1');
@@ -1557,37 +1457,24 @@ function showQRExport() {
   const wrap = document.getElementById('qr-canvas-wrap');
   wrap.innerHTML = '';
   try {
-    new QRCode(wrap, {
-      text: JSON.stringify({ u: state.auth.username, r: state.auth.repo, t: state.auth.token, e: state.auth.email || '' }),
-      width: 170, height: 170,
-      colorDark: '#0e0c0a', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    new QRCode(wrap, { text: JSON.stringify({ u: state.auth.username, r: state.auth.repo, t: state.auth.token, e: state.auth.email || '' }), width: 170, height: 170, colorDark: '#0e0c0a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
   } catch { wrap.innerHTML = `<div style="color:var(--rose);font-size:11px;text-align:center">QR generation failed</div>`; }
   document.getElementById('qr-overlay').classList.add('open');
 }
 function closeQRExport() { document.getElementById('qr-overlay').classList.remove('open'); }
 
 // ── HELPERS ───────────────────────────────────────────────────────
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
+function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function formatDate(dateStr) {
   if (!dateStr) return '';
   try { return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
   catch { return dateStr; }
 }
-
 function generatePostId() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${Math.random().toString(36).slice(2,6)}`;
 }
-
-function slugify(str) {
-  return str.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60);
-}
-
+function slugify(str) { return str.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60); }
 function discColor(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);

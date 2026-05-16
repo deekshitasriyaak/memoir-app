@@ -18,7 +18,7 @@
 <body>
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: SETUP
+     SETUP
 ══════════════════════════════════════════════ -->
 <div id="screen-setup" class="screen active">
   <div class="setup-wrap">
@@ -31,8 +31,7 @@
       <div class="setup-note">
         Your photos and music live in <strong>your own private GitHub repo</strong>.
         Memoir never stores anything. Create a repo called <strong>memoir-data</strong>
-        and a Personal Access Token with <strong>repo</strong> scope.
-        <br><br>
+        and a Personal Access Token with <strong>repo</strong> scope.<br><br>
         <a href="https://github.com/settings/tokens/new" target="_blank">Create token on GitHub →</a>
       </div>
       <div class="field">
@@ -55,7 +54,7 @@
         <label class="field-label" for="input-email">Your Email (for error alerts)</label>
         <input class="field-input" id="input-email" type="email" placeholder="you@gmail.com" autocomplete="email">
       </div>
-      <button class="btn btn-primary" id="btn-connect" onclick="handleConnect()">Connect →</button>
+      <button class="btn btn-primary" onclick="handleConnect()">Connect →</button>
     </div>
     <div class="connecting-state" id="connecting-state">
       <div class="connecting-spinner"></div>
@@ -72,14 +71,12 @@
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: FEED
+     FEED — 2-column grid
 ══════════════════════════════════════════════ -->
 <div id="screen-feed" class="screen">
   <div class="app-header">
     <div class="logo">Memoir</div>
-    <div class="header-actions">
-      <button class="header-btn" onclick="navigateTo('screen-create')" title="New memory">+</button>
-    </div>
+    <button class="header-btn" onclick="navigateTo('screen-create')" title="New memory">+</button>
   </div>
 
   <div class="search-bar">
@@ -92,33 +89,28 @@
 
   <div class="scroll-body" id="feed-body">
     <div id="ios-install-nudge">
-      <div class="nudge-text">
-        <strong>Install Memoir</strong> — tap Share then "Add to Home Screen" for the full app experience.
-      </div>
+      <div class="nudge-text"><strong>Install Memoir</strong> — tap Share → "Add to Home Screen"</div>
       <button class="nudge-close" onclick="dismissInstallNudge()">✕</button>
     </div>
-    <div id="feed-content" style="padding-top:10px"></div>
+    <div id="feed-content"></div>
   </div>
 
   <div class="bottom-nav">
-    <button class="nav-tab" id="nav-feed" onclick="switchTab('feed',event)">
-      <span class="nav-tab-icon">⊟</span>
-      <span class="nav-tab-label">Feed</span>
+    <button class="nav-tab" id="nav-feed"     onclick="switchTab('feed',event)">
+      <span class="nav-tab-icon">⊟</span><span class="nav-tab-label">Feed</span>
     </button>
-    <button class="nav-tab" id="nav-music" onclick="switchTab('music',event)">
-      <span class="nav-tab-icon">♫</span>
-      <span class="nav-tab-label">Music</span>
+    <button class="nav-tab" id="nav-music"    onclick="switchTab('music',event)">
+      <span class="nav-tab-icon">♫</span><span class="nav-tab-label">Music</span>
     </button>
     <button class="nav-tab" id="nav-settings" onclick="switchTab('settings',event)">
-      <span class="nav-tab-icon">◎</span>
-      <span class="nav-tab-label">Settings</span>
+      <span class="nav-tab-icon">◎</span><span class="nav-tab-label">Settings</span>
     </button>
   </div>
 </div>
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: POST VIEW
+     POST VIEW
 ══════════════════════════════════════════════ -->
 <div id="screen-post" class="screen">
   <div class="app-header">
@@ -127,11 +119,12 @@
   </div>
 
   <div class="scroll-body">
+    <!-- Square media area — object-fit:contain prevents any cropping -->
     <div class="post-view-media" id="post-view-media"
          ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">
       <div class="post-view-blur-bg" id="post-view-blur-bg"></div>
-      <div class="post-view-slides" id="post-slides"></div>
-      <div class="swipe-indicators" id="swipe-dots"></div>
+      <div class="post-view-slides"  id="post-slides"></div>
+      <div class="swipe-indicators"  id="swipe-dots"></div>
     </div>
 
     <div class="post-view-body">
@@ -141,13 +134,8 @@
           <div class="np-title"  id="np-title"></div>
           <div class="np-artist" id="np-artist"></div>
           <div class="np-progress-wrap">
-            <div class="np-progress-bar">
-              <div class="np-progress-fill" id="np-progress"></div>
-            </div>
-            <div class="np-time">
-              <span id="np-current">0:00</span>
-              <span id="np-duration">—:——</span>
-            </div>
+            <div class="np-progress-bar"><div class="np-progress-fill" id="np-progress"></div></div>
+            <div class="np-time"><span id="np-current">0:00</span><span id="np-duration">—:——</span></div>
           </div>
         </div>
         <button class="np-play-btn" id="np-play-btn" onclick="toggleAudio()">▶</button>
@@ -160,8 +148,8 @@
       </div>
 
       <div class="post-view-actions">
-        <button class="btn btn-ghost"   onclick="openEditPost()">Edit</button>
-        <button class="btn btn-danger"  onclick="openDeleteSheet()">Delete</button>
+        <button class="btn btn-ghost"  onclick="openEditPost()">Edit</button>
+        <button class="btn btn-danger" onclick="openDeleteSheet()">Delete</button>
       </div>
     </div>
   </div>
@@ -169,7 +157,7 @@
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: CREATE POST
+     CREATE POST
 ══════════════════════════════════════════════ -->
 <div id="screen-create" class="screen">
   <div class="create-header">
@@ -181,7 +169,6 @@
 
   <div class="scroll-body">
     <div class="create-body">
-      <!-- Media -->
       <div>
         <div class="section-label">Photos &amp; Video</div>
         <div class="media-picker" id="media-picker" onclick="openMediaPicker()">
@@ -195,30 +182,25 @@
         <input type="file" id="media-file-input-add" accept="image/*,video/*" multiple style="display:none" onchange="handleMediaFiles(this.files)">
       </div>
 
-      <!-- Caption -->
       <div>
         <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
         <textarea class="caption-textarea" id="caption-input" placeholder="what's the memory…" rows="3"></textarea>
       </div>
 
-      <!-- Location -->
       <div>
         <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
         <input class="field-input" id="location-input" type="text" placeholder="where were you…"
                autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
-      <!-- Music -->
       <div>
         <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
+        <!-- Tap a song to select · tap ✂ Trim to set clip start/end -->
         <div class="music-selector" id="music-selector">
           <div style="font-size:13px;color:var(--text-faint);padding:8px 0">Loading your library…</div>
         </div>
-        <!-- Song clip picker (shown when a song is selected) -->
-        <div class="song-clip-wrap" id="song-clip-wrap"></div>
       </div>
 
-      <!-- Upload progress -->
       <div class="upload-progress" id="upload-progress">
         <div class="upload-row">
           <div class="upload-label" id="upload-label">Uploading…</div>
@@ -236,7 +218,7 @@
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: EDIT POST
+     EDIT POST
 ══════════════════════════════════════════════ -->
 <div id="screen-edit" class="screen">
   <div class="create-header">
@@ -248,7 +230,6 @@
 
   <div class="scroll-body">
     <div class="create-body">
-      <!-- Date (read-only) -->
       <div>
         <div class="section-label">Date</div>
         <div class="edit-date-row">
@@ -257,7 +238,6 @@
         </div>
       </div>
 
-      <!-- Media strip -->
       <div>
         <div class="section-label">
           Photos &amp; Video
@@ -268,29 +248,25 @@
                onchange="handleEditAddMedia(this.files)">
       </div>
 
-      <!-- Caption -->
       <div>
         <div class="section-label">Caption <span style="color:var(--text-faint)">(optional)</span></div>
         <textarea class="caption-textarea" id="edit-caption-input" placeholder="what's the memory…" rows="3"></textarea>
       </div>
 
-      <!-- Location -->
       <div>
         <div class="section-label">Location <span style="color:var(--text-faint)">(optional)</span></div>
         <input class="field-input" id="edit-location-input" type="text" placeholder="where were you…"
                autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
-      <!-- Music -->
       <div>
         <div class="section-label">Music <span style="color:var(--text-faint)">(optional)</span></div>
+        <!-- Tap a song to select · tap ✂ Trim to set clip start/end -->
         <div class="music-selector" id="edit-music-selector">
           <div style="font-size:13px;color:var(--text-faint);padding:8px 0">Loading…</div>
         </div>
-        <div class="song-clip-wrap" id="edit-song-clip-wrap"></div>
       </div>
 
-      <!-- Upload progress -->
       <div class="upload-progress" id="edit-upload-progress">
         <div class="upload-row">
           <div class="upload-label" id="edit-upload-label">Saving…</div>
@@ -308,7 +284,7 @@
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: MUSIC LIBRARY
+     MUSIC LIBRARY
 ══════════════════════════════════════════════ -->
 <div id="screen-music" class="screen">
   <div class="app-header">
@@ -322,7 +298,7 @@
       <div class="empty-state">
         <div class="empty-icon">♫</div>
         <div class="empty-title">No songs yet</div>
-        <div class="empty-sub">Tap + to add a song, or upload mp3 files<br>directly to the music/ folder on GitHub</div>
+        <div class="empty-sub">Tap + to add a song</div>
       </div>
     </div>
   </div>
@@ -341,7 +317,7 @@
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: SETTINGS
+     SETTINGS
 ══════════════════════════════════════════════ -->
 <div id="screen-settings" class="screen">
   <div class="app-header">
@@ -406,7 +382,7 @@
 
 
 <!-- ══════════════════════════════════════════════
-     SCREEN: REORDER POSTS
+     REORDER POSTS
 ══════════════════════════════════════════════ -->
 <div id="screen-reorder" class="screen">
   <div class="app-header">
@@ -420,15 +396,17 @@
   </div>
 
   <div class="reorder-footer">
-    <button class="btn btn-ghost"    onclick="cancelReorder()">Cancel</button>
-    <button class="btn btn-primary"  onclick="saveReorder()">Save Order</button>
+    <button class="btn btn-ghost"   onclick="cancelReorder()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveReorder()">Save Order</button>
   </div>
 </div>
 
 
 <!-- ══════════════════════════════════════════════
-     SHEETS (bottom modals)
+     SHEETS
 ══════════════════════════════════════════════ -->
+
+<!-- Delete post -->
 <div class="sheet-overlay" id="sheet-delete" onclick="closeSheet('sheet-delete')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -441,6 +419,23 @@
   </div>
 </div>
 
+<!-- Delete song -->
+<div class="sheet-overlay" id="sheet-delete-song" onclick="closeSheet('sheet-delete-song')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Delete song?</div>
+    <div class="sheet-msg">
+      Remove <strong id="delete-song-name"></strong> from your music library?
+      This deletes the file from your GitHub repo and cannot be undone.
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-danger" onclick="confirmDeleteSong()">Yes, delete it</button>
+      <button class="btn btn-ghost"  onclick="closeSheet('sheet-delete-song')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Song metadata (when adding) -->
 <div class="sheet-overlay" id="sheet-song-meta" onclick="closeSheet('sheet-song-meta')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -461,6 +456,7 @@
   </div>
 </div>
 
+<!-- Sign out -->
 <div class="sheet-overlay" id="sheet-signout" onclick="closeSheet('sheet-signout')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -473,21 +469,72 @@
   </div>
 </div>
 
+<!-- ✂ Clip picker popup — start & end time -->
+<div class="sheet-overlay" id="sheet-clip" onclick="if(event.target===this)closeClipSheet()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+
+    <div style="margin-bottom:16px">
+      <div class="clip-sheet-song"   id="clip-sheet-song"></div>
+      <div class="clip-sheet-artist" id="clip-sheet-artist"></div>
+    </div>
+
+    <!-- Visual bar showing clip range -->
+    <div class="clip-visual">
+      <div class="clip-visual-bg"></div>
+      <div class="clip-visual-range" id="clip-visual-fill" style="left:0%;width:10%"></div>
+      <div class="clip-visual-label" id="clip-visual-label">clip</div>
+    </div>
+
+    <!-- Start slider -->
+    <div class="clip-row">
+      <div class="clip-row-head">
+        <span class="clip-row-name">Start</span>
+        <span class="clip-row-time" id="clip-start-time">0:00</span>
+      </div>
+      <input type="range" class="clip-slider" id="clip-start-slider"
+             min="0" max="300" step="1" value="0"
+             oninput="onClipStartChange(this.value)">
+    </div>
+
+    <!-- End slider -->
+    <div class="clip-row">
+      <div class="clip-row-head">
+        <span class="clip-row-name">End</span>
+        <span class="clip-row-time" id="clip-end-time">0:30</span>
+      </div>
+      <input type="range" class="clip-slider" id="clip-end-slider"
+             min="1" max="300" step="1" value="30"
+             oninput="onClipEndChange(this.value)">
+    </div>
+
+    <!-- Duration -->
+    <div class="clip-duration-row">
+      <span>Clip length</span>
+      <span class="clip-duration-val" id="clip-duration-val">30s</span>
+    </div>
+
+    <!-- Preview -->
+    <button class="clip-preview-btn" id="clip-preview-btn" onclick="toggleClipPreview()">
+      ▶ Preview clip
+    </button>
+
+    <button class="btn btn-primary" onclick="confirmClipSheet()">Done</button>
+  </div>
+</div>
+
 
 <!-- ══════════════════════════════════════════════
-     TOASTS & GLOBAL ELEMENTS
+     GLOBAL ELEMENTS
 ══════════════════════════════════════════════ -->
 <div id="toast-container"></div>
 <audio id="audio-player"></audio>
 
-
-<!-- ══════════════════════════════════════════════
-     QR OVERLAY
-══════════════════════════════════════════════ -->
+<!-- QR overlay -->
 <div id="qr-overlay" onclick="closeQRExport()">
   <div class="qr-box" onclick="event.stopPropagation()">
     <div class="qr-title">Transfer Login</div>
-    <div class="qr-subtitle">Scan on another device to sign in automatically. Keep it private.</div>
+    <div class="qr-subtitle">Scan on another device to sign in. Keep it private.</div>
     <div id="qr-canvas-wrap"></div>
     <div class="qr-warning">⚠ Contains your access token. Only show it to yourself.</div>
     <button class="btn btn-ghost qr-close" onclick="closeQRExport()">Close</button>
