@@ -362,7 +362,7 @@ function renderPostCard(post) {
       ${thumbHtml}
       <div class="feed-card-badges">
         ${post.mediaCount > 1 ? `<div class="feed-badge">1/${post.mediaCount}</div>` : ''}
-        ${post.hasVideo     ? `<div class="feed-badge">▶</div>` : ''}
+        ${post.hasVideo     ? `<div class="feed-badge feed-badge-video">▶</div>` : ''}
         ${post.songTitle    ? `<div class="feed-badge feed-badge-music">♫</div>` : ''}
       </div>
     </div>
@@ -687,6 +687,32 @@ async function generateThumbnail(file, maxW = 320, maxH = 240) {
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     img.src = url;
+  });
+}
+
+async function generateVideoThumbnail(file, maxW = 320, maxH = 240) {
+  return new Promise(resolve => {
+    const video  = document.createElement('video');
+    const url    = URL.createObjectURL(file);
+    video.preload = 'metadata';
+    video.muted   = true;
+    video.playsInline = true;
+    video.src = url;
+    const capture = () => {
+      try {
+        const ratio  = Math.min(maxW / video.videoWidth, maxH / video.videoHeight, 1);
+        const w = Math.round(video.videoWidth  * ratio);
+        const h = Math.round(video.videoHeight * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', 0.35));
+      } catch { URL.revokeObjectURL(url); resolve(null); }
+    };
+    video.onseeked = capture;
+    video.onloadedmetadata = () => { video.currentTime = 0.5; };
+    video.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
   });
 }
 
@@ -1016,7 +1042,9 @@ async function submitPost() {
 
     let thumbnail_b64 = null;
     const firstImgFile = state.pendingMedia.find(f => f.type.startsWith('image/'));
+    const firstVidFile = state.pendingMedia.find(f => f.type.startsWith('video/'));
     if (firstImgFile) thumbnail_b64 = await generateThumbnail(firstImgFile);
+    else if (firstVidFile) thumbnail_b64 = await generateVideoThumbnail(firstVidFile);
 
     for (let i = 0; i < state.pendingMedia.length; i++) {
       const file    = state.pendingMedia[i];
@@ -1091,6 +1119,10 @@ async function submitPost() {
 async function openEditPost() {
   const meta = state.currentPost;
   if (!meta) return;
+  const _audio = document.getElementById('audio-player');
+  if (_audio) { _audio.pause(); _audio.removeAttribute('src'); _audio.load(); _audio._eventsSet = false; }
+  state.songPausedByVideo = false;
+  hideVideoAudioToggle();
   state.editPost = {
     postId: meta.id,
     originalCaption:  meta.caption  || '',
@@ -1281,13 +1313,17 @@ async function submitEdit() {
     const updatedMeta = { ...metaFile.content, caption: newCaption, location: newLocation, media: finalMedia, song: newSongMeta, updatedAt: new Date().toISOString() };
     await ghPutFile(`posts/${postId}/meta.json`, updatedMeta, metaFile.sha, `memoir: edit post ${postId}`);
 
+    const firstImage   = finalMedia.find(m => m.type === 'image');
     let new_thumbnail_b64 = null;
-    const firstNewImg = ep.currentMedia.filter(m => m._status === 'new' && m.type === 'image')[0];
-    if (firstNewImg && ep.currentMedia.filter(m => m._status !== 'delete')[0] === firstNewImg) {
+    const activeMedia  = ep.currentMedia.filter(m => m._status !== 'delete');
+    const firstNewImg  = activeMedia.find(m => m._status === 'new' && m.type === 'image');
+    const firstNewVid  = activeMedia.find(m => m._status === 'new' && m.type === 'video');
+    const firstActive  = activeMedia[0];
+    if (firstNewImg && firstActive === firstNewImg) {
       new_thumbnail_b64 = await generateThumbnail(firstNewImg._file);
+    } else if (!firstImage && firstNewVid) {
+      new_thumbnail_b64 = await generateVideoThumbnail(firstNewVid._file);
     }
-
-    const firstImage = finalMedia.find(m => m.type === 'image');
     upd('Updating feed…', 'posts-index.json', 95);
     const indexFile    = await ghGetFile('posts-index.json');
     const updatedIndex = (indexFile?.content || []).map(p => {

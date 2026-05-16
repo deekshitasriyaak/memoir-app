@@ -251,6 +251,7 @@ body { background: #050403; }
   background: #f5efe4;
   padding: 7px 7px 14px;
   box-shadow: 0 6px 24px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35);
+  border-bottom: 2px solid rgba(93,63,106,0.28);
   transition: transform 0.15s, opacity 0.15s;
   position: relative;
 }
@@ -287,12 +288,12 @@ body { background: #050403; }
   font-size: 8px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: #7a6a50;
+  color: #5D3F6A;
   font-family: var(--mono);
 }
 .feed-card-location {
   font-size: 8px;
-  color: #7a6a50;
+  color: rgba(93,63,106,0.75);
   margin-top: 2px;
   display: flex;
   align-items: center;
@@ -307,9 +308,10 @@ body { background: #050403; }
 .feed-badge {
   background: rgba(6,5,3,0.72); border-radius: 4px;
   padding: 2px 6px; font-size: 9px; color: rgba(232,216,192,0.75);
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid rgba(93,63,106,0.35);
 }
 .feed-badge-music { color: var(--gold); }
+.feed-badge-video { color: rgba(93,63,106,0.9); border-color: rgba(93,63,106,0.5); }
 
 /* Skeleton for grid */
 .feed-skeleton-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 2px; }
@@ -592,6 +594,7 @@ input[type=range].clip-slider::-webkit-slider-thumb {
 .music-item {
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   padding: 12px 13px; display: flex; align-items: center; gap: 12px;
+  border-left: 3px solid rgba(93,63,106,0.4);
   transition: all 0.15s;
 }
 .mi-disc { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; }
@@ -599,7 +602,7 @@ input[type=range].clip-slider::-webkit-slider-thumb {
 .mi-disc.playing { animation: spin 3s linear infinite; }
 .mi-info   { flex: 1; overflow: hidden; }
 .mi-title  { font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mi-artist { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.mi-artist { font-size: 11px; color: rgba(93,63,106,0.85); margin-top: 2px; }
 .mi-size   { font-size: 10px; color: var(--text-faint); }
 .mi-play {
   width: 32px; height: 32px; border: 1px solid var(--border2); border-radius: 50%;
