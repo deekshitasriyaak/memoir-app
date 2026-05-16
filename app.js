@@ -122,34 +122,31 @@ async function ghFolderUrls(folderPath) {
 }
 
 // Fetch a file from the private repo as an authenticated blob URL.
-// Uses the Git Data API (/git/blobs/{sha}) which supports files up to 100MB,
-// unlike the Contents API which is limited to 1MB.
+// Uses the Git Data API (/git/blobs/{sha}) which supports files up to 100MB.
+// Cache stores Promises so concurrent callers share one fetch (no race condition).
 const _blobCache = new Map();
 const _MIME = { mp3:'audio/mpeg', m4a:'audio/mp4', wav:'audio/wav', mp4:'video/mp4', mov:'video/quicktime', jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', webp:'image/webp' };
 
-async function ghBlobUrl(filePath) {
-  if (_blobCache.has(filePath)) return _blobCache.get(filePath);
+function ghBlobUrl(filePath) {
+  if (!_blobCache.has(filePath)) _blobCache.set(filePath, _fetchBlobUrl(filePath));
+  return _blobCache.get(filePath);
+}
+async function _fetchBlobUrl(filePath) {
   try {
-    // Step 1: get the file SHA from the Contents API
     const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`);
     if (!info?.sha) return null;
-
-    // Step 2: fetch raw binary via Git Data API (supports up to 100MB)
     const res = await fetch(`${GITHUB_API}/repos/${state.auth.username}/${state.auth.repo}/git/blobs/${info.sha}`, {
       headers: { Authorization: `Bearer ${state.auth.token}`, Accept: 'application/vnd.github.v3.raw' }
     });
     if (!res.ok) return null;
-
     const ext      = filePath.split('.').pop().toLowerCase();
     const mimeType = _MIME[ext] || 'application/octet-stream';
     const blob     = new Blob([await res.arrayBuffer()], { type: mimeType });
-    const url      = URL.createObjectURL(blob);
-    _blobCache.set(filePath, url);
-    return url;
+    return URL.createObjectURL(blob);
   } catch { return null; }
 }
 function ghBlobCacheClear() {
-  _blobCache.forEach(u => URL.revokeObjectURL(u));
+  _blobCache.forEach(async p => { const u = await p; if (u) URL.revokeObjectURL(u); });
   _blobCache.clear();
 }
 
@@ -465,10 +462,19 @@ async function openPost(postId) {
     // ── PRE-LOAD AUDIO via blob URL (avoids expiring tokens) ──
     if (meta.song?.filename) {
       setupAudioUI(meta.song.title, meta.song.artist);
+      // Show loading state on play button until blob is ready
+      const playBtn = document.getElementById('np-play-btn');
+      playBtn.textContent = '…';
+      playBtn.classList.add('loading');
       ghBlobUrl(`posts/${postId}/${meta.song.filename}`).then(songUrl => {
+        playBtn.classList.remove('loading');
+        playBtn.textContent = '▶';
         if (songUrl) {
           audio.src = songUrl;
           wireAudioEvents(audio, meta.song);
+        } else {
+          playBtn.disabled = true;
+          playBtn.title = 'Could not load song';
         }
       });
     }
@@ -1022,8 +1028,12 @@ function renderEditMediaStrip() {
       const url = URL.createObjectURL(m._file);
       mediaEl   = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
     } else {
-      const url = state.editFolderUrls[m.filename] || `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/posts/${ep.postId}/${m.filename}`;
-      mediaEl   = m.type === 'video' ? Object.assign(document.createElement('video'), { src: url, muted: true }) : Object.assign(document.createElement('img'), { src: url, alt: '' });
+      mediaEl = m.type === 'video'
+        ? Object.assign(document.createElement('video'), { muted: true })
+        : Object.assign(document.createElement('img'), { alt: '' });
+      ghBlobUrl(`posts/${ep.postId}/${m.filename}`).then(url => {
+        if (url) mediaEl.src = url;
+      });
     }
     const removeBtn = document.createElement('button');
     removeBtn.className   = 'media-remove-btn';
