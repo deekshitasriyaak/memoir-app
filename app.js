@@ -121,6 +121,27 @@ async function ghFolderUrls(folderPath) {
   } catch { return {}; }
 }
 
+// Fetch a file from the private repo as an authenticated blob URL.
+// This avoids short-lived signed download_url tokens for audio/images.
+const _blobCache = new Map();
+async function ghBlobUrl(filePath) {
+  if (_blobCache.has(filePath)) return _blobCache.get(filePath);
+  try {
+    const res = await fetch(`${GITHUB_API}/repos/${state.auth.username}/${state.auth.repo}/contents/${filePath}`, {
+      headers: { Authorization: `Bearer ${state.auth.token}`, Accept: 'application/vnd.github.v3.raw' }
+    });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    _blobCache.set(filePath, url);
+    return url;
+  } catch { return null; }
+}
+function ghBlobCacheClear() {
+  _blobCache.forEach(u => URL.revokeObjectURL(u));
+  _blobCache.clear();
+}
+
 // ── LOGGING ───────────────────────────────────────────────────────
 async function logEvent(op, status, detail = '') {
   const entry = { ts: new Date().toISOString(), op, status, detail };
@@ -337,8 +358,8 @@ async function feedThumbFallback(img, thumbPath) {
   if (img.dataset.tried) return;
   img.dataset.tried = '1';
   try {
-    const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/${thumbPath}`);
-    if (info?.download_url) img.src = info.download_url;
+    const url = await ghBlobUrl(thumbPath);
+    if (url) img.src = url;
     else img.style.display = 'none';
   } catch { img.style.display = 'none'; }
 }
@@ -389,19 +410,31 @@ async function openPost(postId) {
     const dots   = document.getElementById('swipe-dots');
 
     const firstImg = sortedMedia.find(m => m.type === 'image');
-    if (firstImg && folderUrls[firstImg.filename]) {
-      document.getElementById('post-view-blur-bg').style.backgroundImage = `url(${folderUrls[firstImg.filename]})`;
+    if (firstImg) {
+      const blurEl = document.getElementById('post-view-blur-bg');
+      const blurUrl = folderUrls[firstImg.filename];
+      if (blurUrl) blurEl.style.backgroundImage = `url(${blurUrl})`;
+      ghBlobUrl(`posts/${postId}/${firstImg.filename}`).then(blobUrl => {
+        if (blobUrl) blurEl.style.backgroundImage = `url(${blobUrl})`;
+      });
     }
 
     for (let i = 0; i < sortedMedia.length; i++) {
-      const m   = sortedMedia[i];
-      const url = folderUrls[m.filename];
-      if (!url) continue;
+      const m       = sortedMedia[i];
+      const filePath = `posts/${postId}/${m.filename}`;
+      const url      = folderUrls[m.filename];
       let el;
       if (m.type === 'video') {
-        el = Object.assign(document.createElement('video'), { className: 'post-view-slide video', src: url, controls: true, playsInline: true });
+        el = Object.assign(document.createElement('video'), { className: 'post-view-slide video', controls: true, playsInline: true });
+        if (url) el.src = url;
+        el.onerror = () => ghBlobUrl(filePath).then(b => { if (b) el.src = b; });
       } else {
-        el = Object.assign(document.createElement('img'), { className: 'post-view-slide', src: url, alt: '' });
+        el = Object.assign(document.createElement('img'), { className: 'post-view-slide', alt: '' });
+        // Load via blob URL immediately (avoids expiring signed tokens)
+        ghBlobUrl(filePath).then(blobUrl => {
+          if (blobUrl) el.src = blobUrl;
+          else if (url) el.src = url;
+        });
       }
       slides.appendChild(el);
       if (sortedMedia.length > 1) {
@@ -418,14 +451,15 @@ async function openPost(postId) {
       document.getElementById('post-view-location-text').textContent = meta.location;
     }
 
-    // ── PRE-LOAD AUDIO so play() can be called synchronously ──
+    // ── PRE-LOAD AUDIO via blob URL (avoids expiring tokens) ──
     if (meta.song?.filename) {
-      const songUrl = folderUrls[meta.song.filename];
-      if (songUrl) {
-        audio.src = songUrl;
-        wireAudioEvents(audio, meta.song);
-        setupAudioUI(meta.song.title, meta.song.artist);
-      }
+      setupAudioUI(meta.song.title, meta.song.artist);
+      ghBlobUrl(`posts/${postId}/${meta.song.filename}`).then(songUrl => {
+        if (songUrl) {
+          audio.src = songUrl;
+          wireAudioEvents(audio, meta.song);
+        }
+      });
     }
 
     logEvent('openPost', 'success', postId);
@@ -515,8 +549,7 @@ async function refreshAudioSrc() {
   const meta = state.currentPost;
   if (!meta?.song?.filename) return;
   try {
-    const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/posts/${meta.id}/${meta.song.filename}`);
-    const url  = info?.download_url;
+    const url = await ghBlobUrl(`posts/${meta.id}/${meta.song.filename}`);
     if (url) {
       const audio = document.getElementById('audio-player');
       audio._eventsSet = false;
@@ -703,8 +736,7 @@ async function loadClipDuration(songId) {
   const song = state.musicIndex.find(s => s.id === songId);
   if (!song) return;
   try {
-    const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
-    const url  = info?.download_url;
+    const url = await ghBlobUrl(`music/${song.filename}`);
     if (!url) return;
     const tmp = new Audio(url);
     state.clipSheet.previewAudio = tmp;
@@ -1222,8 +1254,7 @@ async function previewSong(id) {
   const btn = document.getElementById(`play-${id}`);
   if (btn) btn.textContent = '…';
   try {
-    const info = await ghGet(`/repos/${state.auth.username}/${state.auth.repo}/contents/music/${song.filename}`);
-    const url  = info?.download_url;
+    const url = await ghBlobUrl(`music/${song.filename}`);
     if (!url) throw new Error('No URL');
     previewAudio = new Audio(url);
     previewAudio.addEventListener('play',  () => { document.getElementById(`disc-${id}`)?.classList.add('playing');    if (btn) btn.textContent = '⏸'; });
