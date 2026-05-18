@@ -1,0 +1,904 @@
+You are building a PWA called Memoir — a private photo journal app. The entire app is a single index.html file. No frameworks, no build steps, no backend, no database. Everything is vanilla HTML, CSS, and JavaScript. Data lives in GitHub repositories via the GitHub API.
+
+Core concept
+Each user has a private GitHub repo (memoir-data) that stores their posts, friends list, and config. A shared private repo (memoir-shared) owned by the network host stores the music library, friend inbox, and email alerts. The app is hosted on GitHub Pages at a public URL but contains no tokens — tokens are entered by users during setup and stored encrypted in localStorage.
+
+File structure to create
+index.html          ← entire app (HTML + CSS + JS in one file)
+sw.js               ← service worker for PWA
+manifest.json       ← PWA manifest
+icons/
+  icon-192.png
+  icon-512.png
+
+Data layer — DataSource
+Every GitHub API call goes through a single DataSource object. Nothing calls GitHub directly. This is the most important architectural piece.
+javascriptconst DataSource = {
+  sources: {
+    personal: { owner: null, repo: null, token: null },
+    network:  { owner: null, repo: null, token: null },
+    friends:  {}
+    // friends structure:
+    // { alice: { owner: 'alice-gh', repo: 'memoir-data', token: 'ghp_ALICE_READONLY' } }
+  },
+
+  resolve(source) {
+    if (source === 'personal') return this.sources.personal
+    if (source === 'network')  return this.sources.network
+    if (source.startsWith('friend:')) {
+      const name = source.split(':')[1]
+      return this.sources.friends[name]
+    }
+    throw new Error(`Unknown source: ${source}`)
+  },
+
+  async get(source, path) {
+    // Fetches a file from GitHub, decodes base64, parses JSON
+    // Returns null on 404
+    // Throws with .status on other errors
+  },
+
+  async getRaw(source, path) {
+    // Returns the raw GitHub API response object (for sha, download_url etc)
+  },
+
+  async getFreshUrl(source, path) {
+    // Always re-fetches download_url from GitHub API
+    // Never caches — private repo URLs expire
+    const info = await this.getRaw(source, path)
+    return info?.download_url || null
+  },
+
+  async getFolderUrls(source, folderPath) {
+    // Lists a folder, returns { filename: download_url } map
+    const items = await this.ghGet(source, folderPath)
+    const map = {}
+    if (Array.isArray(items)) {
+      items.forEach(f => { if (f.download_url) map[f.name] = f.download_url })
+    }
+    return map
+  },
+
+  async put(source, path, content, message) {
+    // Writes a file to GitHub (creates or updates)
+    // Handles getting existing sha automatically
+    // content can be object (gets JSON stringified) or ArrayBuffer (binary)
+  },
+
+  async putBinary(source, path, arrayBuffer, message) {
+    // Uploads binary data (images, audio) to GitHub
+  },
+
+  async delete(source, path, message) {
+    // Deletes a file (fetches sha automatically)
+  },
+
+  async listFolder(source, folderPath) {
+    // Returns array of { name, sha, download_url, size } for a folder
+    // Returns [] if folder doesn't exist
+  },
+
+  // Internal GitHub fetch — handles auth headers, error detection
+  async ghFetch(source, path, options = {}) {
+    const { owner, repo, token } = this.resolve(source)
+    const url = path.startsWith('http')
+      ? path
+      : `https://api.github.com/repos/${owner}/${repo}/contents/${path}`
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    })
+    if (res.status === 401) { handleTokenFailure(source); throw Object.assign(new Error('Unauthorized'), { status: 401 }) }
+    if (res.status === 403) { handleTokenScope(source); throw Object.assign(new Error('Forbidden'), { status: 403 }) }
+    if (res.status === 429) { handleRateLimit(res); throw Object.assign(new Error('Rate limited'), { status: 429 }) }
+    if (!res.ok && res.status !== 404) throw Object.assign(new Error(`GitHub ${res.status}`), { status: res.status })
+    return res
+  }
+}
+
+State
+javascriptconst state = {
+  // Auth
+  auth: null,  // { username, token1, token2, token3, email, networkOwner, networkRepo }
+
+  // Content
+  posts: [],
+  filteredPosts: [],
+  musicIndex: [],
+  currentPost: null,
+  currentSlide: 0,
+
+  // Social
+  friends: {},      // { alice: { username, repoOwner, repo, readToken, email } }
+  chats: {},        // { alice: [{ shareId, postId, timestamp, caption, fromMe }] }
+  lastSeen: {},     // { alice: '2026-05-16T10:00:00Z' }
+
+  // Create/edit
+  pendingMedia: [],
+  pendingSong: null,
+  selectedSongId: null,
+  createTrimStart: 0,
+  createTrimEnd: 0,
+  editPost: null,
+  editTrimStart: 0,
+  editTrimEnd: 0,
+
+  // UI
+  navHistory: ['screen-setup'],
+  activeTab: 'feed',
+
+  // Token health
+  tokenHealth: {
+    personal: null,   // 'healthy' | 'expiring' | 'expired' | 'unknown'
+    network: null,
+    read: null,
+    lastChecked: null
+  }
+}
+
+Crypto — store tokens encrypted in localStorage
+javascriptasync function deriveKey() { /* PBKDF2, 100000 iterations, AES-GCM 256 */ }
+async function encryptText(text) { /* encrypt with derived key, return base64 */ }
+async function decryptText(b64) { /* decrypt, return string or null */ }
+
+async function saveAuth(auth) {
+  // Encrypt token1, token2, token3 separately
+  // Store { username, email, networkOwner, networkRepo,
+  //         token1Enc, token2Enc, token3Enc } in localStorage
+}
+
+async function loadAuth() {
+  // Decrypt all three tokens
+  // Return full auth object or null
+}
+
+Boot sequence
+javascriptasync function boot() {
+  // 1. Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {})
+  }
+
+  // 2. Detect URL hash for special modes
+  const hash = window.location.hash.slice(1)
+  if (hash.startsWith('owner')) {
+    // Show owner setup mode
+    showOwnerSetup()
+    return
+  }
+  if (hash.startsWith('invite=')) {
+    const code = decodeInviteCode(hash.slice(7))
+    state.pendingInvite = code
+    // Will be used during setup
+  }
+  if (hash.startsWith('connect=')) {
+    const code = decodeConnectCode(hash.slice(8))
+    state.pendingConnect = code
+  }
+
+  // 3. Try loading saved auth
+  const auth = await loadAuth()
+  if (!auth) {
+    navigateTo('screen-setup')
+    return
+  }
+
+  // 4. Initialize DataSource
+  state.auth = auth
+  DataSource.sources.personal = {
+    owner: auth.username,
+    repo: 'memoir-data',
+    token: auth.token1
+  }
+  DataSource.sources.network = {
+    owner: auth.networkOwner,
+    repo: auth.networkRepo,
+    token: auth.token3
+  }
+
+  // Load friends into DataSource
+  await loadFriends()
+
+  // 5. Navigate to feed
+  navigateTo('screen-feed', false)
+  state.navHistory = ['screen-feed']
+  setActiveTab('feed')
+
+  // 6. Run boot checks in parallel
+  await Promise.allSettled([
+    loadFeed(),
+    checkInbox(),
+    checkFriendOutboxes(),
+    loadMusicIndex(),
+    checkTokenHealth()   // only if last check > 6 hours ago
+  ])
+
+  // 7. Handle pending connect (existing user adding friend)
+  if (state.pendingConnect) {
+    handlePendingConnect(state.pendingConnect)
+  }
+}
+
+Setup screens
+Screen: setup-welcome
+Two buttons:
+
+[ Set up my Memoir ] — hidden unless URL has #owner, OR tap logo 7 times
+[ I have an invite code ] — shown to everyone
+[ Restore my account ] — shown to everyone
+
+If state.pendingInvite exists (from URL hash), auto-show invite flow.
+Screen: setup-owner (4 steps)
+Step 1: Personal repo
+Fields: GitHub username, repo name (default: memoir-data), full PAT (Token 1)
+On connect: verify token via GET /user, create repo structure (see repo structure section), save to localStorage.
+Step 2: Read token (Token 2)
+Instructions with deeplink: https://github.com/settings/tokens?type=beta
+"All repositories, Contents: Read only, no expiration"
+On save: write memoir-data/.memoir/public-card.json
+Step 3: Network repo
+Fields: network repo name (default: memoir-shared), network PAT (Token 3)
+On connect: create memoir-shared structure, write memoir-data/.memoir/network-config.json
+Step 4: Email alerts
+Field: your email address
+Instructions: add GMAIL_USER and GMAIL_APP_PASSWORD secrets to memoir-shared on GitHub (show deeplink)
+On save: upload GitHub Actions workflow file to memoir-shared/.github/workflows/alerts.yml, write email to .memoir/profile.json
+Step 5: Done
+Show generated invite code. Button to copy. Button to open app.
+Screen: setup-friend (3 steps, shown when invite code detected)
+Show "Invited by [name] ✓" at top.
+Step 1: Personal repo — same as owner step 1
+Also: save network config from invite code, save host as first friend
+Step 2: Read token — same as owner step 2
+Step 3: Email (optional)
+Field: email address (for receiving alerts)
+On save: write to .memoir/profile.json
+Auto-pair: write to memoir-shared/inbox/[host]/from-[me].json
+Step 4: Done
+"Connected with [invitedBy]"
+Show own invite code and connect code.
+Screen: setup-restore
+Fields: GitHub username, repo name, Token 1
+On restore: fetch .memoir/public-card.json (→ Token 2), .memoir/network-config.json (→ Token 3), .memoir/profile.json, friends/*.json, posts-index.json
+Reinitialize everything. Navigate to feed.
+
+Repo structures created during setup
+memoir-data (personal)
+posts-index.json                    ← []
+friends/                            ← (empty dir, create with .gitkeep)
+outbox/                             ← (empty dir)
+.memoir/
+  profile.json                      ← { username, email, joinedAt }
+  public-card.json                  ← { username, repoOwner, repo, readToken }
+  network-config.json               ← { networkOwner, networkRepo, networkToken }
+memoir-shared (network)
+music/
+  music-index.json                  ← []
+inbox/
+  [owner-username]/                 ← empty, created as placeholder
+alerts/
+  [owner-username]/                 ← empty placeholder
+.github/
+  workflows/
+    alerts.yml                      ← GitHub Actions workflow for email alerts
+
+GitHub Actions workflow (upload this file during owner setup)
+yamlname: Memoir Alerts
+on:
+  push:
+    paths:
+      - 'alerts/**'
+jobs:
+  send-alert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get alert info
+        id: info
+        run: |
+          FILE=$(git diff-tree --no-commit-id -r --name-only ${{ github.sha }} | grep '^alerts/' | head -1)
+          if [ -z "$FILE" ]; then exit 0; fi
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+          RECIPIENT=$(python3 -c "import sys,json; d=json.load(open('$FILE')); print(d['recipientEmail'])")
+          TYPE=$(python3 -c "import sys,json; d=json.load(open('$FILE')); print(d['type'])")
+          DAYS=$(python3 -c "import sys,json; d=json.load(open('$FILE')); print(d.get('daysLeft',''))" 2>/dev/null || echo "")
+          echo "recipient=$RECIPIENT" >> $GITHUB_OUTPUT
+          echo "type=$TYPE" >> $GITHUB_OUTPUT
+          echo "days=$DAYS" >> $GITHUB_OUTPUT
+      - name: Send email
+        if: steps.info.outputs.recipient != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          to: ${{ steps.info.outputs.recipient }}
+          from: Memoir <${{ secrets.GMAIL_USER }}>
+          subject: "Memoir — token needs attention"
+          html_body: |
+            <div style="font-family:Georgia,serif;max-width:480px;margin:auto;padding:32px;background:#0e0c0a;color:#e8d8c0;border-radius:12px">
+              <h2 style="color:#c8a46a;font-style:italic;margin:0 0 16px">Memoir</h2>
+              <p style="line-height:1.7;color:#c8b898">
+                One of your tokens needs attention. Open the app to see what needs fixing.
+              </p>
+              <a href="https://YOUR_GITHUB_PAGES_URL"
+                 style="display:inline-block;margin-top:20px;padding:12px 24px;background:#c8a46a;color:#0e0c0a;border-radius:6px;text-decoration:none;font-family:monospace;letter-spacing:2px;text-transform:uppercase;font-size:11px">
+                Open Memoir →
+              </a>
+            </div>
+      - name: Clean up alert
+        if: steps.info.outputs.file != ''
+        run: |
+          git config user.email "memoir-bot@noreply.github.com"
+          git config user.name "Memoir Bot"
+          git rm "${{ steps.info.outputs.file }}"
+          git commit -m "memoir: processed alert"
+          git push
+
+Invite and connect codes
+javascript// Full invite code — for new users
+// Contains everything needed to join the network
+function generateInviteCode() {
+  return btoa(JSON.stringify({
+    v: 1,                              // version
+    type: 'invite',
+    invitedBy: state.auth.username,
+    networkOwner: state.auth.networkOwner,
+    networkRepo: state.auth.networkRepo,
+    networkToken: state.auth.token3,
+    hostReadToken: state.auth.token2,
+    hostRepo: 'memoir-data',
+    hostOwner: state.auth.username
+  }))
+}
+
+// Connect code — for existing users connecting with each other
+// Smaller — no network token needed (they already have it)
+function generateConnectCode() {
+  return btoa(JSON.stringify({
+    v: 1,
+    type: 'connect',
+    username: state.auth.username,
+    repoOwner: state.auth.username,
+    repo: 'memoir-data',
+    readToken: state.auth.token2
+  }))
+}
+
+function decodeCode(base64) {
+  try {
+    return JSON.parse(atob(base64))
+  } catch {
+    return null
+  }
+}
+
+// Shareable invite link — paste into WhatsApp
+function generateInviteLink() {
+  const code = generateInviteCode()
+  return `${window.location.origin}${window.location.pathname}#invite=${code}`
+}
+
+function generateConnectLink() {
+  const code = generateConnectCode()
+  return `${window.location.origin}${window.location.pathname}#connect=${code}`
+}
+
+Friend pairing
+javascript// Called after friend setup completes, or when existing user pastes connect code
+async function completePairing(friendData) {
+  // friendData = { username, repoOwner, repo, readToken, email? }
+
+  // 1. Add to DataSource
+  DataSource.sources.friends[friendData.username] = {
+    owner: friendData.repoOwner,
+    repo: friendData.repo,
+    token: friendData.readToken
+  }
+
+  // 2. Save to personal repo
+  await DataSource.put('personal', `friends/${friendData.username}.json`, friendData)
+
+  // 3. Drop note in their inbox via network repo
+  await DataSource.put('network',
+    `inbox/${friendData.username}/from-${state.auth.username}.json`, {
+      username: state.auth.username,
+      repoOwner: state.auth.username,
+      repo: 'memoir-data',
+      readToken: state.auth.token2,
+      email: state.auth.email || '',
+      connectedAt: new Date().toISOString()
+    }
+  )
+
+  // 4. Update local state
+  state.friends[friendData.username] = friendData
+}
+
+// Called on every boot
+async function checkInbox() {
+  try {
+    const files = await DataSource.listFolder('network', `inbox/${state.auth.username}`)
+    for (const file of files) {
+      if (file.name === '.gitkeep') continue
+      const data = await DataSource.get('network', `inbox/${state.auth.username}/${file.name}`)
+      if (!data) continue
+
+      if (data.type === 'token2_update') {
+        // A friend rotated their read token — update silently
+        if (state.friends[data.fromUsername]) {
+          state.friends[data.fromUsername].readToken = data.newReadToken
+          DataSource.sources.friends[data.fromUsername].token = data.newReadToken
+          await DataSource.put('personal', `friends/${data.fromUsername}.json`,
+            state.friends[data.fromUsername])
+        }
+      } else {
+        // New friend connection request
+        await completePairingFromInbox(data)
+        showToast(`${data.username} connected with you`, '', 'success')
+      }
+
+      // Delete processed file
+      await DataSource.delete('network', `inbox/${state.auth.username}/${file.name}`)
+    }
+  } catch {}
+}
+
+Token health check
+javascriptasync function checkTokenHealth() {
+  const lastCheck = localStorage.getItem('memoir_health_check')
+  if (lastCheck) {
+    const hoursSince = (Date.now() - parseInt(lastCheck)) / 3600000
+    if (hoursSince < 6) return
+  }
+  localStorage.setItem('memoir_health_check', Date.now().toString())
+
+  const results = {}
+
+  // Test Token 1 — call /user
+  try {
+    await fetch('https://api.github.com/user', {
+      headers: { 'Authorization': `Bearer ${state.auth.token1}` }
+    }).then(r => { results.token1 = r.ok ? 'healthy' : (r.status === 401 ? 'expired' : 'error') })
+  } catch { results.token1 = 'error' }
+
+  // Test Token 2 — read public-card.json using token2 specifically
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${state.auth.username}/memoir-data/contents/.memoir/public-card.json`,
+      { headers: { 'Authorization': `Bearer ${state.auth.token2}` } }
+    )
+    results.token2 = r.ok ? 'healthy' : (r.status === 401 ? 'expired' : 'error')
+  } catch { results.token2 = 'error' }
+
+  // Test Token 3 — read music-index using token3
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${state.auth.networkOwner}/${state.auth.networkRepo}/contents/music/music-index.json`,
+      { headers: { 'Authorization': `Bearer ${state.auth.token3}` } }
+    )
+    results.token3 = r.ok ? 'healthy' : (r.status === 401 ? 'expired' : 'error')
+  } catch { results.token3 = 'error' }
+
+  state.tokenHealth = results
+  renderTokenHealthBanners(results)
+
+  // Trigger email alerts for failures
+  for (const [key, status] of Object.entries(results)) {
+    if (status === 'expired' || status === 'error') {
+      await triggerEmailAlert(key, status)
+    }
+  }
+}
+
+async function triggerEmailAlert(tokenKey, status) {
+  if (!state.auth.email) return
+  const today = new Date().toISOString().split('T')[0]
+  const alertPath = `alerts/${state.auth.username}/alert-${tokenKey}-${today}.json`
+  
+  // Check if already sent today
+  try {
+    const existing = await DataSource.get('network', alertPath)
+    if (existing) return
+  } catch {}
+
+  await DataSource.put('network', alertPath, {
+    type: `${tokenKey}_${status}`,
+    recipientEmail: state.auth.email,
+    username: state.auth.username,
+    triggeredAt: new Date().toISOString()
+  })
+}
+
+function renderTokenHealthBanners(results) {
+  const messages = {
+    token1: { label: 'personal token', impact: 'Posts won\'t save until fixed.' },
+    token2: { label: 'read token',     impact: 'Friends can\'t see your posts.' },
+    token3: { label: 'network token',  impact: 'Music and sharing unavailable.' }
+  }
+  for (const [key, status] of Object.entries(results)) {
+    if (status !== 'healthy') {
+      const { label, impact } = messages[key]
+      showBanner(`⚠ Your ${label} needs attention. ${impact}`, key)
+    }
+  }
+}
+
+Token rotation
+javascript// Token 2 rotation — auto-notifies all friends via inbox
+async function rotateToken2(newToken2) {
+  state.auth.token2 = newToken2
+  await saveAuth(state.auth)
+
+  // Update public card
+  await DataSource.put('personal', '.memoir/public-card.json', {
+    username: state.auth.username,
+    repoOwner: state.auth.username,
+    repo: 'memoir-data',
+    readToken: newToken2
+  })
+
+  // Notify each friend via their inbox
+  for (const [username] of Object.entries(state.friends)) {
+    await DataSource.put('network', `inbox/${username}/token-update-${state.auth.username}.json`, {
+      type: 'token2_update',
+      fromUsername: state.auth.username,
+      newReadToken: newToken2,
+      updatedAt: new Date().toISOString()
+    })
+  }
+
+  showToast('Read token updated', `${Object.keys(state.friends).length} friends notified automatically`, 'success')
+}
+
+// Token 3 rotation — requires manual re-invite (cannot auto-deliver)
+async function rotateToken3(newToken3) {
+  state.auth.token3 = newToken3
+  DataSource.sources.network.token = newToken3
+  await saveAuth(state.auth)
+  await DataSource.put('personal', '.memoir/network-config.json', {
+    networkOwner: state.auth.networkOwner,
+    networkRepo: state.auth.networkRepo,
+    networkToken: newToken3
+  })
+  showToast('Network token updated', 'Send a new invite code to all friends — this cannot be done automatically', 'warning', 8000)
+}
+
+Post creation
+javascriptasync function submitPost() {
+  const postId = generatePostId()
+  const caption = document.getElementById('caption-input').value.trim()
+  const location = document.getElementById('location-input').value.trim()
+  const selectedSong = state.selectedSongId
+    ? state.musicIndex.find(s => s.id === state.selectedSongId)
+    : null
+
+  const mediaEntries = []
+  let thumbnailPath = null
+
+  // Upload each media file
+  for (let i = 0; i < state.pendingMedia.length; i++) {
+    const file = state.pendingMedia[i]
+    const isVideo = file.type.startsWith('video/')
+    const ext = file.name.split('.').pop().toLowerCase()
+    const filename = `media_${i + 1}.${ext}`
+
+    await DataSource.putBinary('personal', `posts/${postId}/${filename}`,
+      await file.arrayBuffer())
+    mediaEntries.push({ filename, type: isVideo ? 'video' : 'image', order: i + 1 })
+
+    // Generate and upload low-res thumbnail for first image
+    if (i === 0 && !isVideo) {
+      const thumbBlob = await generateThumbnail(file, 180, 135, 0.65)
+      if (thumbBlob) {
+        await DataSource.putBinary('personal', `posts/${postId}/thumb.jpg`,
+          await thumbBlob.arrayBuffer())
+        thumbnailPath = `posts/${postId}/thumb.jpg`
+      } else {
+        thumbnailPath = `posts/${postId}/${filename}`
+      }
+    }
+  }
+
+  // Copy song from shared music repo to post folder
+  let songMeta = null
+  if (selectedSong) {
+    const songUrl = await DataSource.getFreshUrl('network', `music/${selectedSong.filename}`)
+    const songResp = await fetch(songUrl, {
+      headers: { 'Authorization': `Bearer ${state.auth.token3}` }
+    })
+    const songBuffer = await songResp.arrayBuffer()
+    await DataSource.putBinary('personal', `posts/${postId}/song.mp3`, songBuffer)
+    songMeta = {
+      title: selectedSong.title,
+      artist: selectedSong.artist,
+      filename: 'song.mp3',
+      trimStart: state.createTrimStart || 0,
+      trimEnd: state.createTrimEnd || null
+    }
+  }
+
+  // Write meta.json
+  await DataSource.put('personal', `posts/${postId}/meta.json`, {
+    id: postId,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    caption,
+    location,
+    media: mediaEntries,
+    song: songMeta
+  })
+
+  // Update posts-index.json
+  const indexFile = await DataSource.getRaw('personal', 'posts-index.json')
+  const currentIndex = indexFile
+    ? JSON.parse(atob(indexFile.content.replace(/\n/g, '')))
+    : []
+  const newEntry = {
+    id: postId,
+    date: postId.split('-').slice(0, 3).join('-'),
+    captionPreview: caption.slice(0, 120),
+    location,
+    thumbnail: thumbnailPath,
+    songTitle: songMeta?.title || null,
+    songArtist: songMeta?.artist || null,
+    mediaCount: mediaEntries.length,
+    hasVideo: mediaEntries.some(m => m.type === 'video')
+  }
+  await DataSource.put('personal', 'posts-index.json',
+    [newEntry, ...currentIndex], `memoir: create post ${postId}`)
+}
+
+Post sharing (to a friend)
+javascriptasync function sharePost(postId, friendUsername) {
+  const shareId = `share-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+
+  // Get post meta
+  const meta = await DataSource.get('personal', `posts/${postId}/meta.json`)
+
+  // Get thumbnail blob
+  const thumbUrl = await DataSource.getFreshUrl('personal', `posts/${postId}/thumb.jpg`)
+  const thumbResp = await fetch(thumbUrl, {
+    headers: { 'Authorization': `Bearer ${state.auth.token1}` }
+  })
+  const thumbBuffer = await thumbResp.arrayBuffer()
+
+  // Write share metadata to outbox
+  await DataSource.put('personal', `outbox/to-${friendUsername}/${shareId}.json`, {
+    shareId,
+    postId,
+    timestamp: new Date().toISOString(),
+    caption: meta.caption,
+    location: meta.location,
+    songTitle: meta.song?.title || null,
+    mediaCount: meta.media.length,
+    hasVideo: meta.media.some(m => m.type === 'video')
+  })
+
+  // Write thumbnail to outbox
+  await DataSource.putBinary('personal',
+    `outbox/to-${friendUsername}/thumb-${shareId}.jpg`, thumbBuffer)
+
+  showToast(`Shared with ${friendUsername}`, '', 'success')
+}
+
+Receiving shared posts
+javascript// Runs on every boot
+async function checkFriendOutboxes() {
+  for (const [username, friendData] of Object.entries(state.friends)) {
+    try {
+      const files = await DataSource.listFolder(`friend:${username}`, `outbox/to-${state.auth.username}`)
+      const shareFiles = files.filter(f => f.name.endsWith('.json') && f.name !== '.gitkeep')
+
+      const lastSeen = state.lastSeen[username]
+        ? new Date(state.lastSeen[username])
+        : new Date(0)
+
+      let latestTimestamp = lastSeen
+
+      for (const file of shareFiles) {
+        const share = await DataSource.get(`friend:${username}`,
+          `outbox/to-${state.auth.username}/${file.name}`)
+        if (!share) continue
+
+        const shareTime = new Date(share.timestamp)
+        if (shareTime <= lastSeen) continue
+
+        // New share
+        if (!state.chats[username]) state.chats[username] = []
+        state.chats[username].unshift({ ...share, fromMe: false })
+
+        if (shareTime > latestTimestamp) latestTimestamp = shareTime
+      }
+
+      if (latestTimestamp > lastSeen) {
+        state.lastSeen[username] = latestTimestamp.toISOString()
+        localStorage.setItem('memoir_last_seen', JSON.stringify(state.lastSeen))
+        updateChatBadge(username)
+      }
+    } catch {}
+  }
+}
+
+// Opening a friend's shared post
+async function openFriendPost(friendUsername, postId) {
+  const source = `friend:${friendUsername}`
+  const [metaFile, folderUrls] = await Promise.all([
+    DataSource.get(source, `posts/${postId}/meta.json`),
+    DataSource.getFolderUrls(source, `posts/${postId}/`)
+  ])
+  // Render exactly like own post view
+  // All media URLs come from friend's repo via their readToken
+}
+
+Thumbnail generation
+javascriptfunction generateThumbnail(file, maxW = 180, maxH = 135, quality = 0.65) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) { resolve(null); return }
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1)
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+    img.src = url
+  })
+}
+
+Music library
+javascriptasync function loadMusicIndex() {
+  const index = await DataSource.get('network', 'music/music-index.json')
+  state.musicIndex = index || []
+}
+
+async function uploadSong(file, title, artist) {
+  const ext = file.name.split('.').pop().toLowerCase()
+  const id = slugify(`${title}-${artist}`)
+  const filename = `${id}.${ext}`
+
+  await DataSource.putBinary('network', `music/${filename}`, await file.arrayBuffer())
+
+  const current = await DataSource.get('network', 'music/music-index.json') || []
+  await DataSource.put('network', 'music/music-index.json', [
+    ...current,
+    { id, title, artist, filename, sizeBytes: file.size, addedOn: new Date().toISOString().split('T')[0] }
+  ])
+
+  state.musicIndex = [...current]
+}
+
+async function previewSong(song) {
+  // Get fresh URL — private repo URLs expire
+  const url = await DataSource.getFreshUrl('network', `music/${song.filename}`)
+  const audio = new Audio(url)
+  // Handle error → re-fetch URL
+  audio.onerror = async () => {
+    const freshUrl = await DataSource.getFreshUrl('network', `music/${song.filename}`)
+    audio.src = freshUrl
+    audio.play().catch(() => {})
+  }
+  audio.play().catch(() => {})
+  return audio
+}
+
+Audio player (post view)
+javascriptasync function loadAndPlaySong(postId, songMeta) {
+  const audio = document.getElementById('audio-player')
+
+  // Always fetch fresh blob — private repo URLs expire
+  const freshUrl = await DataSource.getFreshUrl('personal', `posts/${postId}/song.mp3`)
+  const resp = await fetch(freshUrl, {
+    headers: { 'Authorization': `Bearer ${state.auth.token1}` }
+  })
+  const blob = await resp.blob()
+
+  if (audio._blobUrl) URL.revokeObjectURL(audio._blobUrl)
+  audio._blobUrl = URL.createObjectURL(blob)
+  audio.src = audio._blobUrl
+
+  const trimStart = songMeta.trimStart || 0
+  const trimEnd = songMeta.trimEnd || null
+
+  audio.addEventListener('loadedmetadata', () => {
+    if (trimStart > 0) audio.currentTime = trimStart
+  }, { once: true })
+
+  audio.ontimeupdate = () => {
+    const end = trimEnd || audio.duration
+    if (audio.currentTime >= end) audio.currentTime = trimStart
+    const elapsed = audio.currentTime - trimStart
+    const total = end - trimStart
+    updateProgressBar(elapsed / total)
+    updateTimeDisplay(elapsed, total)
+  }
+
+  await audio.play()
+}
+
+Screens to build
+screen-setup          ← welcome: fresh / invite / restore buttons
+screen-setup-owner    ← 4-step owner setup
+screen-setup-friend   ← 3-step friend setup (shown when invite detected)
+screen-setup-restore  ← restore from repo using token 1
+
+screen-feed           ← post cards, search bar, bottom nav
+screen-post           ← full post view, media slides, audio player
+screen-create         ← create new post with media + music + trim
+screen-edit           ← edit existing post
+
+screen-music          ← shared music library, upload, preview
+screen-chats          ← friend list with unread badges
+screen-thread         ← shared posts from one friend
+screen-settings       ← account, tokens, friends, network
+
+screen-reorder        ← drag to reorder posts
+
+Bottom navigation
+Four tabs:
+⊟ Feed    ♫ Music    ✉ Chats    ◎ Settings
+Chats tab shows a badge count when there are unread shares.
+
+Design system (keep this exact aesthetic)
+css:root {
+  --bg:         #0e0c0a;
+  --surface:    #161310;
+  --surface2:   #1e1a15;
+  --border:     #272219;
+  --border2:    #332d22;
+  --gold:       #c8a46a;
+  --gold-dim:   #7a6040;
+  --gold-faint: #2a2015;
+  --teal:       #5ab8b0;
+  --teal-dim:   #2d7a74;
+  --teal-faint: #0d2a28;
+  --text:       #e8d8c0;
+  --text-muted: #6b5e4a;
+  --text-faint: #2e2820;
+  --rose:       #c07060;
+  --green:      #5a9e78;
+  --serif:      'Playfair Display', Georgia, serif;
+  --sans:       'Syne', sans-serif;
+  --mono:       'Syne Mono', monospace;
+}
+Fonts from Google Fonts:
+Playfair Display — headings, logo, captions (italic)
+Syne — body text, song titles
+Syne Mono — UI labels, buttons, metadata
+Base font size: 13px. All text slightly larger than a typical app. Dark warm background. Gold as primary accent. Teal as secondary accent for new features (trim UI, network status). Rose for errors and delete actions.
+
+Key implementation rules
+Private repo URLs expire — never cache download_url values. Always call DataSource.getFreshUrl() to get a current URL before loading any image, video, or audio. On img.onerror, re-fetch a fresh URL and retry.
+Audio — always fetch as a blob via authenticated request, create a blob URL, set as audio.src. Never set a GitHub download_url directly as audio src — it will fail on private repos due to CORS.
+Images in feed — use low-res thumb.jpg (generated client-side at 180×135px). Use IntersectionObserver to lazy-load. Always re-fetch the download_url from the API — never store it in posts-index.json.
+All GitHub writes — must fetch current file sha before updating. Use DataSource.put() which handles this automatically.
+Token failures — every DataSource call catches 401/403. On 401: show specific banner for that token, keep rest of app working. Never crash the whole app because one token fails.
+Song in post — always copy the song file from memoir-shared/music/ into posts/postId/song.mp3 during post creation. Posts must be self-contained. Do not reference the shared music repo from a post.
+Object-fit for images — use object-fit: contain with a blurred background behind it. Never use object-fit: cover which crops the image. The blurred background is generated from the same image URL.
+Reorder — use pointer events on drag handles, not HTML5 drag API. HTML5 drag is unreliable on mobile.
+Song trim — store trimStart and trimEnd as seconds in meta.json under the song object. Audio player seeks to trimStart on load and loops back to trimStart when currentTime reaches trimEnd.
+
+What NOT to build
+✗ Text messages in chats (post shares only for now)
+✗ Reactions or comments on posts
+✗ Multiple archive repos
+✗ Multiple networks
+✗ Public posts
+✗ Real-time updates
+✗ Any backend, server, or database
+✗ Any npm packages or build tools
+✗ Any framework (React, Vue, etc)
