@@ -19,50 +19,285 @@
 <body>
 
 <!-- ══════════════════════════════════════════════
-     SETUP
+     WELCOME
 ══════════════════════════════════════════════ -->
-<div id="screen-setup" class="screen active">
+<div id="screen-welcome" class="screen active">
   <div class="setup-wrap">
     <div class="setup-glow"></div>
-    <div class="setup-logo">Memoir</div>
+    <div class="setup-logo" id="welcome-logo" onclick="welcomeLogoTap()">Memoir</div>
     <div class="setup-tagline">your private archive</div>
-    <div id="setup-error"></div>
-    <div id="setup-form">
-      <div class="setup-section-title">GitHub Connection</div>
-      <div class="setup-note">
-        Your photos and music live in <strong>your own private GitHub repo</strong>.
-        Memoir never stores anything. Create a repo called <strong>memoir-data</strong>
-        and a Personal Access Token with <strong>repo</strong> scope.<br><br>
-        <a href="https://github.com/settings/tokens/new" target="_blank" style="color:#5D3F6A">Create token on GitHub →</a>
-      </div>
-      <div class="field">
-        <label class="field-label" for="input-username">GitHub Username</label>
-        <input class="field-input" id="input-username" type="text" placeholder="yourname"
-               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-      </div>
-      <div class="field">
-        <label class="field-label" for="input-repo">Repository Name</label>
-        <input class="field-input" id="input-repo" type="text" placeholder="memoir-data" value="memoir-data"
-               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-      </div>
-      <div class="field">
-        <label class="field-label" for="input-token">Personal Access Token</label>
-        <input class="field-input" id="input-token" type="password" placeholder="ghp_••••••••••••••••••"
-               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-        <div class="field-hint">Needs <strong>repo</strong> scope. Stored only on this device.</div>
-      </div>
-      <button class="btn btn-primary" onclick="handleConnect()">Connect →</button>
+    <div class="welcome-actions">
+      <button class="btn btn-primary" id="btn-owner-setup" onclick="showSetupOwner()" style="display:none">Set up my Memoir →</button>
+      <button class="btn btn-outline-teal" onclick="showSetupFriend(null)">I have an invite code →</button>
+      <button class="btn btn-ghost" onclick="showSetupRestore()">Restore my account →</button>
     </div>
-    <div class="connecting-state" id="connecting-state">
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     SETUP — OWNER (5 steps)
+══════════════════════════════════════════════ -->
+<div id="screen-setup-owner" class="screen">
+  <div class="setup-wrap">
+    <div class="setup-glow"></div>
+    <div class="setup-step-header">
+      <button class="header-btn setup-back-btn" onclick="ownerGoBack()">←</button>
+      <div class="setup-step-label" id="owner-step-label">Step 1 of 5</div>
+      <div style="width:34px"></div>
+    </div>
+
+    <!-- Step 1: Personal repo + Token 1 -->
+    <div id="owner-step-1" class="setup-step">
+      <div class="setup-step-title">Personal Repo</div>
+      <div class="setup-note">Your photos &amp; videos live in <strong>your own private GitHub repo</strong>. Create a classic PAT with <strong>repo</strong> scope.<br><br>
+        <a href="https://github.com/settings/tokens/new" target="_blank" class="setup-link">Create token on GitHub →</a>
+      </div>
+      <div class="setup-error" id="owner-error-1" style="display:none"></div>
+      <div class="field">
+        <label class="field-label">GitHub Username</label>
+        <input class="field-input" id="owner-username" type="text" placeholder="yourname"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Repository Name</label>
+        <input class="field-input" id="owner-repo" type="text" placeholder="memoir-data" value="memoir-data"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Full-Access Token (Token 1)</label>
+        <input class="field-input" id="owner-token1" type="password" placeholder="ghp_••••••••••••••••••"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <div class="field-hint">Needs <strong>repo</strong> scope. Stored encrypted on this device only.</div>
+      </div>
+      <div class="connecting-state" id="owner-connecting-1" style="display:none">
+        <div class="connecting-spinner"></div>
+        <div class="connecting-steps">
+          <div class="step" id="os-1a">Validating token…</div>
+          <div class="step" id="os-1b">Checking repository…</div>
+          <div class="step" id="os-1c">Initializing structure…</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="ownerStep1Next()">Continue →</button>
+    </div>
+
+    <!-- Step 2: Read-only Token 2 -->
+    <div id="owner-step-2" class="setup-step" style="display:none">
+      <div class="setup-step-title">Read Token</div>
+      <div class="setup-note">Create a <strong>fine-grained read-only token</strong> so friends can see posts you share. Set <strong>Contents: Read-only</strong> on <span id="s2-repo-hint" class="setup-code">memoir-data</span>.<br><br>
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="setup-link">Create fine-grained token →</a>
+      </div>
+      <div class="setup-error" id="owner-error-2" style="display:none"></div>
+      <div class="field">
+        <label class="field-label">Read-Only Token (Token 2)</label>
+        <input class="field-input" id="owner-token2" type="password" placeholder="github_pat_••••••••••••••••••"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="setup-step-actions">
+        <button class="btn btn-ghost" onclick="ownerStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="ownerStep2Next()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Network repo + Token 3 -->
+    <div id="owner-step-3" class="setup-step" style="display:none">
+      <div class="setup-step-title">Network Repo</div>
+      <div class="setup-note">A <strong>shared repo</strong> hosts the music library and enables post sharing. Create <span class="setup-code">memoir-shared</span> on GitHub, then a <strong>repo</strong>-scoped PAT for it.</div>
+      <div class="setup-error" id="owner-error-3" style="display:none"></div>
+      <div class="field">
+        <label class="field-label">Network GitHub Username</label>
+        <input class="field-input" id="owner-network-username" type="text" placeholder="yourname"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Network Repo Name</label>
+        <input class="field-input" id="owner-network-repo" type="text" placeholder="memoir-shared" value="memoir-shared"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Network Token (Token 3)</label>
+        <input class="field-input" id="owner-token3" type="password" placeholder="ghp_••••••••••••••••••"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <div class="field-hint">Needs <strong>repo</strong> scope on the network repo.</div>
+      </div>
+      <div class="connecting-state" id="owner-connecting-3" style="display:none">
+        <div class="connecting-spinner"></div>
+        <div class="connecting-steps">
+          <div class="step" id="os-3a">Verifying network token…</div>
+          <div class="step" id="os-3b">Checking network repo…</div>
+          <div class="step" id="os-3c">Initializing network…</div>
+        </div>
+      </div>
+      <div class="setup-step-actions">
+        <button class="btn btn-ghost" onclick="ownerStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="ownerStep3Next()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Email -->
+    <div id="owner-step-4" class="setup-step" style="display:none">
+      <div class="setup-step-title">Alert Email</div>
+      <div class="setup-note">Optional: get email alerts when tokens are unhealthy. Uses a GitHub Actions workflow — no third-party service.</div>
+      <div class="field">
+        <label class="field-label">Email Address (optional)</label>
+        <input class="field-input" id="owner-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="setup-step-actions">
+        <button class="btn btn-ghost" onclick="ownerStep(3)">← Back</button>
+        <button class="btn btn-primary" onclick="ownerStep4Next()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Done + invite code -->
+    <div id="owner-step-5" class="setup-step" style="display:none">
+      <div class="setup-step-title">You're in ✦</div>
+      <div class="setup-note">Your Memoir is ready. Share this invite code with friends so they can join your network:</div>
+      <div class="invite-code-box">
+        <div class="invite-code-label">Your invite code</div>
+        <div class="invite-code-text" id="owner-invite-code">—</div>
+        <button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="copyOwnerInviteCode()">Copy code</button>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="ownerStep5Launch()">Open Memoir →</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     SETUP — FRIEND (4 steps)
+══════════════════════════════════════════════ -->
+<div id="screen-setup-friend" class="screen">
+  <div class="setup-wrap">
+    <div class="setup-glow" style="background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(45,180,180,.22) 0%,transparent 80%)"></div>
+    <div class="setup-step-header">
+      <button class="header-btn setup-back-btn" onclick="friendGoBack()">←</button>
+      <div class="setup-step-label" id="friend-step-label">Step 1 of 4</div>
+      <div style="width:34px"></div>
+    </div>
+
+    <!-- Step 1: Invite code + personal repo -->
+    <div id="friend-step-1" class="setup-step">
+      <div class="setup-step-title">Join Memoir</div>
+      <div class="setup-note">Paste the invite code you received, then connect your own GitHub to store your archive.</div>
+      <div class="setup-error" id="friend-error-1" style="display:none"></div>
+      <div class="field">
+        <label class="field-label">Invite Code</label>
+        <input class="field-input" id="friend-invite-code" type="text" placeholder="paste code here…"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Your GitHub Username</label>
+        <input class="field-input" id="friend-username" type="text" placeholder="yourname"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Repository Name</label>
+        <input class="field-input" id="friend-repo" type="text" placeholder="memoir-data" value="memoir-data"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Full-Access Token (Token 1)</label>
+        <input class="field-input" id="friend-token1" type="password" placeholder="ghp_••••••••••••••••••"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <div class="field-hint">Needs <strong>repo</strong> scope. Stored encrypted on this device.</div>
+      </div>
+      <div class="connecting-state" id="friend-connecting-1" style="display:none">
+        <div class="connecting-spinner"></div>
+        <div class="connecting-steps">
+          <div class="step" id="fs-1a">Decoding invite…</div>
+          <div class="step" id="fs-1b">Validating token…</div>
+          <div class="step" id="fs-1c">Setting up repo…</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="friendStep1Next()">Continue →</button>
+    </div>
+
+    <!-- Step 2: Read-only Token 2 -->
+    <div id="friend-step-2" class="setup-step" style="display:none">
+      <div class="setup-step-title">Read Token</div>
+      <div class="setup-note">Create a <strong>fine-grained read-only token</strong> so <span id="f-inviter-name" class="setup-code">your friend</span> can see posts you share. Set <strong>Contents: Read-only</strong> on <span id="f-repo-hint" class="setup-code">memoir-data</span>.<br><br>
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="setup-link">Create fine-grained token →</a>
+      </div>
+      <div class="setup-error" id="friend-error-2" style="display:none"></div>
+      <div class="field">
+        <label class="field-label">Read-Only Token (Token 2)</label>
+        <input class="field-input" id="friend-token2" type="password" placeholder="github_pat_••••••••••••••••••"
+               autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="setup-step-actions">
+        <button class="btn btn-ghost" onclick="friendStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="friendStep2Next()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Email -->
+    <div id="friend-step-3" class="setup-step" style="display:none">
+      <div class="setup-step-title">Alert Email</div>
+      <div class="setup-note">Optional: get notified if your tokens expire.</div>
+      <div class="field">
+        <label class="field-label">Email Address (optional)</label>
+        <input class="field-input" id="friend-email" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="setup-step-actions">
+        <button class="btn btn-ghost" onclick="friendStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="friendStep3Next()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Done + connect code -->
+    <div id="friend-step-4" class="setup-step" style="display:none">
+      <div class="setup-step-title">Almost there ✦</div>
+      <div class="setup-note">Send your <strong>connect code</strong> to <span id="f-final-inviter" class="setup-code">your friend</span> so they can add you in their Chats tab:</div>
+      <div class="invite-code-box" style="border-color:rgba(45,180,180,.4)">
+        <div class="invite-code-label">Your connect code</div>
+        <div class="invite-code-text" id="friend-connect-code">—</div>
+        <button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="copyFriendConnectCode()">Copy code</button>
+      </div>
+      <div class="setup-note" style="font-size:11px;margin-top:8px;color:var(--text-faint)">Once they add you, you'll both appear in each other's Chats tab.</div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="friendStep4Launch()">Open Memoir →</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     SETUP — RESTORE
+══════════════════════════════════════════════ -->
+<div id="screen-setup-restore" class="screen">
+  <div class="setup-wrap">
+    <div class="setup-glow"></div>
+    <div class="setup-step-header">
+      <button class="header-btn setup-back-btn" onclick="goBack()">←</button>
+      <div></div>
+      <div style="width:34px"></div>
+    </div>
+    <div class="setup-step-title">Restore Account</div>
+    <div class="setup-note">Re-enter your GitHub credentials to restore your archive on this device. Friends and settings will load from your repo automatically.</div>
+    <div class="setup-error" id="restore-error" style="display:none"></div>
+    <div class="field">
+      <label class="field-label">GitHub Username</label>
+      <input class="field-input" id="restore-username" type="text" placeholder="yourname"
+             autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="field">
+      <label class="field-label">Repository Name</label>
+      <input class="field-input" id="restore-repo" type="text" placeholder="memoir-data" value="memoir-data"
+             autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="field">
+      <label class="field-label">Full-Access Token (Token 1)</label>
+      <input class="field-input" id="restore-token1" type="password" placeholder="ghp_••••••••••••••••••"
+             autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="connecting-state" id="restore-connecting" style="display:none">
       <div class="connecting-spinner"></div>
       <div class="connecting-steps">
-        <div class="step" id="step-1">Validating token…</div>
-        <div class="step" id="step-2">Checking repository…</div>
-        <div class="step" id="step-3">Initializing structure…</div>
-        <div class="step" id="step-4">Setting up workflows…</div>
-        <div class="step" id="step-5">Almost there…</div>
+        <div class="step" id="rs-1">Validating token…</div>
+        <div class="step" id="rs-2">Loading profile…</div>
+        <div class="step" id="rs-3">Restoring friends…</div>
       </div>
     </div>
+    <button class="btn btn-primary" onclick="handleRestore()">Restore →</button>
   </div>
 </div>
 
@@ -86,6 +321,7 @@
   <div class="feed-filters" id="feed-filters" style="display:none"></div>
 
   <div class="scroll-body" id="feed-body">
+    <div id="token-banners"></div>
     <div id="ios-install-nudge">
       <div class="nudge-text"><strong>Install Memoir</strong> — tap Share → "Add to Home Screen"</div>
       <button class="nudge-close" onclick="dismissInstallNudge()">✕</button>
@@ -99,6 +335,10 @@
     </button>
     <button class="nav-tab" id="nav-music"    onclick="switchTab('music',event)">
       <span class="nav-tab-icon">♫</span><span class="nav-tab-label">Music</span>
+    </button>
+    <button class="nav-tab" id="nav-chats"    onclick="switchTab('chats',event)">
+      <span class="nav-tab-icon">◈</span><span class="nav-tab-label">Chats</span>
+      <span class="nav-badge" id="nav-chats-badge" style="display:none"></span>
     </button>
     <button class="nav-tab" id="nav-settings" onclick="switchTab('settings',event)">
       <span class="nav-tab-icon">◎</span><span class="nav-tab-label">Settings</span>
@@ -114,10 +354,11 @@
   <div class="app-header">
     <button class="header-btn" onclick="goBack()"
             style="border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7)">←</button>
+    <div id="post-source-badge" class="post-source-badge" style="display:none"></div>
+    <div style="width:34px"></div>
   </div>
 
   <div class="scroll-body">
-    <!-- Square media area — object-fit:contain prevents any cropping -->
     <div class="post-view-media" id="post-view-media"
          ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">
       <div class="post-view-blur-bg" id="post-view-blur-bg"></div>
@@ -145,9 +386,10 @@
         <span>📍</span><span id="post-view-location-text"></span>
       </div>
 
-      <div class="post-view-actions">
-        <button class="btn btn-ghost"  onclick="openEditPost()">Edit</button>
-        <button class="btn btn-danger" onclick="openDeleteSheet()">Delete</button>
+      <div class="post-view-actions" id="post-view-actions">
+        <button class="btn btn-ghost"   onclick="openEditPost()">Edit</button>
+        <button class="btn btn-ghost"   onclick="openShareSheet()" id="btn-share-post">Share</button>
+        <button class="btn btn-danger"  onclick="openDeleteSheet()">Delete</button>
       </div>
     </div>
   </div>
@@ -192,8 +434,9 @@
       </div>
 
       <div>
-        <div class="section-label">Music <span style="color:#5D3F6A">(optional)</span></div>
-        <!-- Tap a song to select · tap ✂ Trim to set clip start/end -->
+        <div class="section-label">Music <span style="color:#5D3F6A">(optional)</span>
+          <span id="music-source-badge" class="music-source-badge" style="display:none"></span>
+        </div>
         <div class="music-selector" id="music-selector">
           <div style="font-size:13px;color:var(--text-faint);padding:8px 0">Loading your library…</div>
         </div>
@@ -259,7 +502,6 @@
 
       <div>
         <div class="section-label">Music <span style="color:#5D3F6A">(optional)</span></div>
-        <!-- Tap a song to select · tap ✂ Trim to set clip start/end -->
         <div class="music-selector" id="edit-music-selector">
           <div style="font-size:13px;color:var(--text-faint);padding:8px 0">Loading…</div>
         </div>
@@ -299,6 +541,7 @@
   </div>
 
   <div class="scroll-body">
+    <div id="music-network-banner" style="display:none"></div>
     <div class="music-list" id="music-list">
       <div class="empty-state">
         <div class="empty-icon">♫</div>
@@ -318,6 +561,60 @@
 
   <input type="file" id="song-file-input" accept="audio/*,.mp3,.m4a,.wav" style="display:none"
          onchange="handleSongFile(this.files[0])">
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     CHATS
+══════════════════════════════════════════════ -->
+<div id="screen-chats" class="screen">
+  <div class="app-header">
+    <button class="header-btn" onclick="goBack()">←</button>
+    <div class="logo" style="font-size:22px">Chats</div>
+    <button class="header-btn" onclick="openAddFriendSheet()" title="Add friend">+</button>
+  </div>
+
+  <div class="scroll-body">
+    <div id="chats-list">
+      <div class="empty-state">
+        <div class="empty-icon">◈</div>
+        <div class="empty-title">No friends yet</div>
+        <div class="empty-sub">Share your invite code or paste a connect code to add friends</div>
+        <button class="btn btn-outline-teal" style="margin-top:16px;width:auto;padding:8px 20px" onclick="openAddFriendSheet()">Add friend</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-tab" id="nav-feed-c"     onclick="switchTab('feed',event)">
+      <span class="nav-tab-icon">⊟</span><span class="nav-tab-label">Feed</span>
+    </button>
+    <button class="nav-tab" id="nav-music-c"    onclick="switchTab('music',event)">
+      <span class="nav-tab-icon">♫</span><span class="nav-tab-label">Music</span>
+    </button>
+    <button class="nav-tab active" id="nav-chats-c" onclick="switchTab('chats',event)">
+      <span class="nav-tab-icon">◈</span><span class="nav-tab-label">Chats</span>
+    </button>
+    <button class="nav-tab" id="nav-settings-c" onclick="switchTab('settings',event)">
+      <span class="nav-tab-icon">◎</span><span class="nav-tab-label">Settings</span>
+    </button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     THREAD (shared posts with one friend)
+══════════════════════════════════════════════ -->
+<div id="screen-thread" class="screen">
+  <div class="app-header">
+    <button class="header-btn" onclick="goBack()">←</button>
+    <div class="logo" id="thread-friend-name" style="font-size:18px">Friend</div>
+    <div style="width:34px"></div>
+  </div>
+
+  <div class="scroll-body">
+    <div id="thread-list"></div>
+  </div>
 </div>
 
 
@@ -350,6 +647,48 @@
       </div>
     </div>
 
+    <div class="settings-section" id="settings-tokens-section">
+      <div class="settings-section-title">Tokens</div>
+      <div class="settings-row" id="settings-tokens-row">
+        <div class="settings-item">
+          <span class="si-label">Token 1 (full access)</span>
+          <span class="si-value" id="si-token1-status">—</span>
+        </div>
+        <div class="settings-item">
+          <span class="si-label">Token 2 (read-only)</span>
+          <span class="si-value" id="si-token2-status">—</span>
+          <button class="si-action-btn" onclick="openUpdateToken(2)" id="si-token2-btn">Update</button>
+        </div>
+        <div class="settings-item">
+          <span class="si-label">Token 3 (network)</span>
+          <span class="si-value" id="si-token3-status">—</span>
+          <button class="si-action-btn" onclick="openUpdateToken(3)" id="si-token3-btn">Update</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="settings-network-section" style="display:none">
+      <div class="settings-section-title">Network</div>
+      <div class="settings-row">
+        <div class="settings-item">
+          <span class="si-label">Network Repo</span>
+          <span class="si-value" id="si-network-repo">—</span>
+        </div>
+        <div class="settings-item" onclick="copySettingsInviteCode()" style="cursor:pointer">
+          <span class="si-label">Invite Code</span>
+          <span class="si-value" style="color:var(--teal)">Copy →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="settings-friends-section" style="display:none">
+      <div class="settings-section-title">Friends</div>
+      <div class="settings-row" id="settings-friends-row"></div>
+      <div style="padding:0 16px 8px">
+        <button class="btn btn-outline-teal" style="width:auto;padding:7px 16px;font-size:11px" onclick="openAddFriendSheet()">Add friend →</button>
+      </div>
+    </div>
+
     <div class="settings-section">
       <div class="settings-section-title">Posts</div>
       <div class="settings-row">
@@ -359,7 +698,7 @@
         </div>
         <div class="settings-item" onclick="syncMusicLibrary()">
           <span class="si-label">Sync Music Library</span>
-          <span class="si-value">from GitHub repo</span>
+          <span class="si-value">scan repo for audio files</span>
         </div>
       </div>
     </div>
@@ -369,7 +708,7 @@
       <div class="settings-row">
         <div class="settings-item" onclick="showQRExport()">
           <span class="si-label">Export Login (QR)</span>
-          <span class="si-value">transfer to another device</span>
+          <span class="si-value">transfer Token 1 to another device</span>
         </div>
       </div>
     </div>
@@ -382,6 +721,21 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-tab" id="nav-feed-s"     onclick="switchTab('feed',event)">
+      <span class="nav-tab-icon">⊟</span><span class="nav-tab-label">Feed</span>
+    </button>
+    <button class="nav-tab" id="nav-music-s"    onclick="switchTab('music',event)">
+      <span class="nav-tab-icon">♫</span><span class="nav-tab-label">Music</span>
+    </button>
+    <button class="nav-tab" id="nav-chats-s"    onclick="switchTab('chats',event)">
+      <span class="nav-tab-icon">◈</span><span class="nav-tab-label">Chats</span>
+    </button>
+    <button class="nav-tab active" id="nav-settings-s" onclick="switchTab('settings',event)">
+      <span class="nav-tab-icon">◎</span><span class="nav-tab-label">Settings</span>
+    </button>
   </div>
 </div>
 
@@ -466,10 +820,60 @@
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Sign out?</div>
-    <div class="sheet-msg">Your data stays safe in GitHub. You'll need your PAT to sign back in.</div>
+    <div class="sheet-msg">Your data stays safe in GitHub. You'll need your token to sign back in.</div>
     <div class="sheet-actions">
       <button class="btn btn-danger" onclick="confirmSignOut()">Sign Out</button>
       <button class="btn btn-ghost"  onclick="closeSheet('sheet-signout')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share post -->
+<div class="sheet-overlay" id="sheet-share" onclick="closeSheet('sheet-share')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Share memory</div>
+    <div class="sheet-msg">Choose a friend to share this post with:</div>
+    <div id="share-friend-list" class="share-friend-list"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeSheet('sheet-share')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add friend / paste connect code -->
+<div class="sheet-overlay" id="sheet-add-friend" onclick="closeSheet('sheet-add-friend')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add Friend</div>
+    <div class="sheet-msg">Ask your friend to share their <strong>connect code</strong> with you, then paste it below.</div>
+    <div class="field" style="margin-top:12px">
+      <label class="field-label">Connect Code</label>
+      <textarea class="field-input" id="connect-code-input" rows="3" placeholder="paste connect code here…"
+                style="resize:none;font-family:var(--font-mono);font-size:11px"></textarea>
+    </div>
+    <div id="add-friend-error" class="setup-error" style="display:none"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-primary" onclick="confirmAddFriend()">Add Friend</button>
+      <button class="btn btn-ghost"   onclick="closeSheet('sheet-add-friend')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update token -->
+<div class="sheet-overlay" id="sheet-update-token" onclick="closeSheet('sheet-update-token')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="update-token-title">Update Token</div>
+    <div class="sheet-msg" id="update-token-msg"></div>
+    <div class="field">
+      <label class="field-label">New Token</label>
+      <input class="field-input" id="update-token-input" type="password" placeholder="ghp_••••••••••••••••••"
+             autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-primary" onclick="confirmUpdateToken()">Save Token</button>
+      <button class="btn btn-ghost"   onclick="closeSheet('sheet-update-token')">Cancel</button>
     </div>
   </div>
 </div>
@@ -484,7 +888,6 @@
       <div class="clip-sheet-artist" id="clip-sheet-artist"></div>
     </div>
 
-    <!-- Visual bar showing clip range -->
     <div class="clip-visual">
       <div class="clip-visual-bg"></div>
       <div class="clip-visual-range" id="clip-visual-fill" style="left:0%;width:10%"></div>
@@ -492,7 +895,6 @@
       <div class="clip-visual-label" id="clip-visual-label">clip</div>
     </div>
 
-    <!-- Start slider -->
     <div class="clip-row">
       <div class="clip-row-head">
         <span class="clip-row-name">Start</span>
@@ -503,7 +905,6 @@
              oninput="onClipStartChange(this.value)">
     </div>
 
-    <!-- End slider -->
     <div class="clip-row">
       <div class="clip-row-head">
         <span class="clip-row-name">End</span>
@@ -514,13 +915,11 @@
              oninput="onClipEndChange(this.value)">
     </div>
 
-    <!-- Duration -->
     <div class="clip-duration-row">
       <span>Clip length</span>
       <span class="clip-duration-val" id="clip-duration-val">30s</span>
     </div>
 
-    <!-- Preview -->
     <button class="clip-preview-btn" id="clip-preview-btn" onclick="toggleClipPreview()">
       ▶ Preview clip
     </button>
