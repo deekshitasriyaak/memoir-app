@@ -39,7 +39,8 @@ const state = {
   _createFolderColor: 'gold',
   _createFolderType:  'personal',
   _createPostFolders: [],  // folder ids selected in create post
-  _editPostFolders:   [],  // folder ids selected in edit post
+  _editPostFolders:         [],  // folder ids selected in edit post
+  _editPostFoldersOriginal: [],  // original folder ids when edit opened
   threadFriend:     null,
   tokenHealth:      {},   // { 1: 'ok'|'warn'|'bad', 2: ..., 3: ... }
   songPausedByVideo: false,
@@ -1606,7 +1607,12 @@ function handleSearch(query) { applyFeedFilters(); }
 function applyFeedFilters() {
   const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
   state.filteredPosts = state.posts.filter(p => {
-    if (q && !(p.captionPreview || '').toLowerCase().includes(q) && !(p.location || '').toLowerCase().includes(q)) return false;
+    if (q) {
+      const inCaption  = (p.captionPreview || '').toLowerCase().includes(q);
+      const inLocation = (p.location || '').toLowerCase().includes(q);
+      const inFolder   = state.personalFolders.some(f => (f.postIds || []).includes(p.id) && f.name.toLowerCase().includes(q));
+      if (!inCaption && !inLocation && !inFolder) return false;
+    }
     if (state.feedDateFilter) {
       const d = new Date(p.date);
       const ms = isNaN(d) ? '' : d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
@@ -2365,9 +2371,12 @@ async function submitEdit() {
     }), `memoir: update index ${postId}`);
     state.posts = updatedIndex; state.filteredPosts = updatedIndex;
     renderFeed(state.filteredPosts); state.currentPost = updatedMeta;
+    // Apply folder additions/removals
+    await applyFolderSelections(postId, 'edit');
     showToast('Saved ✦', 'Memory updated', 'success');
     logEvent('editPost', 'success', postId);
     stopClipPreviewAudio(); progress.classList.remove('visible'); btn.disabled = false;
+    renderFolderRow();
     state.editPost = null; goBack();
     setTimeout(() => openPost(postId), 80);
   } catch (err) { showError('Save failed', err); btn.disabled = false; progress.classList.remove('visible'); }
@@ -2614,10 +2623,25 @@ async function saveReorder() {
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────────
+async function saveDisplayName() {
+  const input = document.getElementById('si-display-name');
+  if (!input) return;
+  const name = input.value.trim();
+  state.auth.displayName = name || null;
+  localStorage.setItem('memoir_auth', JSON.stringify(state.auth));
+  try {
+    const profileFile = await ghGetFile('profile.json');
+    await ghPutFile('profile.json', { ...profileFile.content, displayName: name || null }, profileFile.sha, 'memoir: update display name');
+    showToast('Name saved', '', 'success');
+  } catch { showToast('Name saved locally', '', 'info'); }
+}
+
 async function loadSettings() {
   if (!state.auth) return;
   document.getElementById('si-username').textContent = state.auth.username;
   document.getElementById('si-repo').textContent     = state.auth.repo;
+  const dnInput = document.getElementById('si-display-name');
+  if (dnInput) dnInput.value = state.auth.displayName || '';
 
   // Network section
   const netSection = document.getElementById('settings-network-section');
@@ -2877,6 +2901,16 @@ function folderDecoData(id) {
   return { type, rot };
 }
 
+function getFolderCoverSrc(f) {
+  const postIds = f.postIds || [];
+  for (const id of postIds) {
+    const post = (state.posts || []).find(p => p.id === id);
+    if (post?.thumbnail_b64) return post.thumbnail_b64;
+    if (post?.thumbnail) return `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`;
+  }
+  return null;
+}
+
 function renderFolderRow() {
   const allFolders = [
     ...state.personalFolders.map(f => ({ ...f, kind: 'personal' })),
@@ -2887,29 +2921,45 @@ function renderFolderRow() {
   if (!wrap || !row) return;
   wrap.style.display = '';
   const allCount = (state.posts || []).length;
+
+  // "All Memories" card — mosaic of first 4 post thumbnails
+  const mosaicPosts = (state.posts || []).slice(0, 4);
+  const mosaicHtml = mosaicPosts.map(p => {
+    const src = p.thumbnail_b64 || (p.thumbnail ? `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${p.thumbnail}` : null);
+    return src ? `<img src="${src}" alt="">` : `<div class="fc-mosaic-empty"></div>`;
+  }).join('');
+
   row.innerHTML = `
-    <div class="folder-card folder-card-all active" onclick="filterByFolder(null)" data-fid="__all">
-      <div class="fc-pin"></div>
-      <div class="fc-name">All Memories</div>
-      <div class="fc-count">${allCount}</div>
+    <div class="fc-wrap fc-wrap-all">
+      <div class="folder-card folder-card-all active" onclick="filterByFolder(null)" data-fid="__all">
+        <div class="fc-cover-wrap"><div class="fc-mosaic">${mosaicHtml}</div></div>
+        <div class="fc-info"><div class="fc-name">All Memories</div><div class="fc-count">${allCount}</div></div>
+      </div>
     </div>
     ${allFolders.map(f => {
-      const c    = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
-      const deco = folderDecoData(f.id);
-      const count = f.kind === 'personal'
-        ? (f.postIds || []).length
-        : (f.postCount ?? 0);
-      return `<div class="folder-card" onclick="filterByFolder('${esc(f.id)}')" data-fid="${esc(f.id)}"
-                   data-fdeco="${deco.type}" style="--fc-light:${c.light};--fc-border:${c.border};--fc-dot:${c.bg};--fdr:${deco.rot}deg">
-        <div class="fc-dot"></div>
-        <div class="fc-icon">${f.kind === 'shared' ? '◈' : '⊟'}</div>
-        <div class="fc-name">${esc(f.name)}</div>
-        <div class="fc-count">${count}</div>
+      const c     = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+      const deco  = folderDecoData(f.id);
+      const count = f.kind === 'personal' ? (f.postIds || []).length : (f.postCount ?? 0);
+      const cover = getFolderCoverSrc(f);
+      const coverHtml = cover
+        ? `<img class="fc-cover-img" src="${cover}" alt="">`
+        : `<div class="fc-cover-empty" style="background:${c.bg};opacity:0.35"></div>`;
+      return `<div class="fc-wrap" style="--fc-tab:${c.bg}">
+        <div class="folder-card" onclick="filterByFolder('${esc(f.id)}')" data-fid="${esc(f.id)}"
+             data-fdeco="${deco.type}" style="--fc-light:${c.light};--fc-border:${c.border};--fc-dot:${c.bg};--fdr:${deco.rot}deg">
+          <div class="fc-cover-wrap">${coverHtml}</div>
+          <div class="fc-info">
+            <div class="fc-name">${esc(f.name)}</div>
+            <div class="fc-count">${count}</div>
+          </div>
+        </div>
       </div>`;
     }).join('')}
-    <div class="folder-card folder-card-new" onclick="openCreateFolderSheet('feed')">
-      <div class="fc-new-icon">+</div>
-      <div class="fc-name" style="color:var(--text-muted)">New folder</div>
+    <div class="fc-wrap fc-wrap-new">
+      <div class="folder-card folder-card-new" onclick="openCreateFolderSheet('feed')">
+        <div class="fc-cover-wrap"><div class="fc-cover-empty" style="opacity:0.12"><span style="font-size:22px;color:var(--text-faint)">+</span></div></div>
+        <div class="fc-info"><div class="fc-name" style="color:var(--text-muted)">New folder</div></div>
+      </div>
     </div>
   `;
 }
@@ -2985,6 +3035,7 @@ function initFolderChips(context) {
     state._editPostFolders = postId
       ? state.personalFolders.filter(f => (f.postIds || []).includes(postId)).map(f => f.id)
       : [];
+    state._editPostFoldersOriginal = [...state._editPostFolders];
   }
   renderFolderChips(context, chipsEl, allFolders);
 }
@@ -3102,8 +3153,9 @@ async function confirmFolderAdd() {
 }
 
 // ── ADD EXISTING POST TO FOLDER ───────────────────────────────────
-let _addToFolderPostId  = null;
+let _addToFolderPostId   = null;
 let _addToFolderSelected = [];
+let _addToFolderOriginal = [];
 
 function openAddToFolderSheet() {
   const meta = state.currentPost; if (!meta) return;
@@ -3118,6 +3170,7 @@ function openAddToFolderSheet() {
   _addToFolderSelected = state.personalFolders
     .filter(f => (f.postIds || []).includes(meta.id))
     .map(f => f.id);
+  _addToFolderOriginal = [..._addToFolderSelected];
   renderAddToFolderChips(allFolders);
   openSheet('sheet-add-to-folder');
 }
@@ -3148,42 +3201,57 @@ function toggleAddToFolderChip(folderId) {
 
 async function confirmAddToFolder() {
   if (!_addToFolderPostId) return;
+  const postId = _addToFolderPostId;
   closeSheet('sheet-add-to-folder');
   let personalChanged = false;
+  // Add to newly selected folders
   for (const fid of _addToFolderSelected) {
     const personal = state.personalFolders.find(f => f.id === fid);
     if (personal) {
       if (!personal.postIds) personal.postIds = [];
-      if (!personal.postIds.includes(_addToFolderPostId)) {
-        personal.postIds.push(_addToFolderPostId); personalChanged = true;
-      }
+      if (!personal.postIds.includes(postId)) { personal.postIds.push(postId); personalChanged = true; }
     } else {
-      await addPostToSharedFolder(fid, _addToFolderPostId);
+      await addPostToSharedFolder(fid, postId);
+    }
+  }
+  // Remove from deselected folders
+  for (const fid of _addToFolderOriginal) {
+    if (!_addToFolderSelected.includes(fid)) {
+      const personal = state.personalFolders.find(f => f.id === fid);
+      if (personal?.postIds) { personal.postIds = personal.postIds.filter(id => id !== postId); personalChanged = true; }
     }
   }
   if (personalChanged) await savePersonalFolders();
-  showToast('Saved to folder', '', 'success');
+  showToast('Folders updated', '', 'success');
   renderFolderRow();
 }
 
 async function applyFolderSelections(postId, context) {
   const selected = context === 'create' ? state._createPostFolders : state._editPostFolders;
+  const original = context === 'edit' ? (state._editPostFoldersOriginal || []) : [];
+  let personalChanged = false;
+  // Add to newly selected
   for (const fid of selected) {
     const personal = state.personalFolders.find(f => f.id === fid);
     if (personal) {
       if (!personal.postIds) personal.postIds = [];
-      if (!personal.postIds.includes(postId)) {
-        personal.postIds.push(postId);
-      }
+      if (!personal.postIds.includes(postId)) { personal.postIds.push(postId); personalChanged = true; }
     } else {
       await addPostToSharedFolder(fid, postId);
     }
   }
-  if (selected.some(fid => state.personalFolders.find(f => f.id === fid))) {
-    await savePersonalFolders();
+  // Remove from deselected (edit only)
+  if (context === 'edit') {
+    for (const fid of original) {
+      if (!selected.includes(fid)) {
+        const personal = state.personalFolders.find(f => f.id === fid);
+        if (personal?.postIds) { personal.postIds = personal.postIds.filter(id => id !== postId); personalChanged = true; }
+      }
+    }
   }
+  if (personalChanged) await savePersonalFolders();
   if (context === 'create') state._createPostFolders = [];
-  else state._editPostFolders = [];
+  else { state._editPostFolders = []; state._editPostFoldersOriginal = []; }
 }
 
 async function addPostToSharedFolder(folderId, postId) {
@@ -3265,18 +3333,27 @@ function loadFoldersScreen() {
     return;
   }
   grid.innerHTML = allFolders.map(f => {
-    const c    = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
-    const deco = folderDecoData(f.id);
+    const c     = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+    const deco  = folderDecoData(f.id);
     const count = f.kind === 'personal' ? (f.postIds || []).length : (f.postCount ?? 0);
-    const icon  = f.kind === 'shared' ? '◈' : '⊟';
-    return `<div class="folder-grid-card" onclick="filterByFolder('${esc(f.id)}');goBack()"
-                 data-fdeco="${deco.type}"
-                 style="--fgc-light:${c.light};--fgc-border:${c.border};--fgc-dot:${c.bg};--fdr:${deco.rot}deg">
-      <div class="fgc-icon">${icon}</div>
-      <div class="fgc-dot"></div>
-      <div class="fgc-name">${esc(f.name)}</div>
-      <div class="fgc-count">${count} ${count === 1 ? 'memory' : 'memories'}</div>
-      <div class="fgc-type">${f.kind === 'shared' ? 'shared' : 'personal'}</div>
+    const cover = f.kind === 'personal' ? getFolderCoverSrc(f) : null;
+    const coverHtml = cover
+      ? `<img class="fgc-cover-img" src="${cover}" alt="">`
+      : `<div class="fgc-cover-empty" style="background:${c.bg}"></div>`;
+    const sharedBadge = f.kind === 'shared' ? `<span class="fgc-shared-badge">◈ shared</span>` : '';
+    return `<div class="fgc-wrap" style="--fgc-tab:${c.bg}">
+      <div class="folder-grid-card" onclick="filterByFolder('${esc(f.id)}');goBack()"
+           data-fdeco="${deco.type}"
+           style="--fgc-light:${c.light};--fgc-border:${c.border};--fgc-dot:${c.bg};--fdr:${deco.rot}deg">
+        <div class="fgc-cover-wrap">${coverHtml}</div>
+        <div class="fgc-info">
+          <div class="fgc-name">${esc(f.name)}</div>
+          <div class="fgc-meta">
+            <span class="fgc-count">${count} ${count === 1 ? 'memory' : 'memories'}</span>
+            ${sharedBadge}
+          </div>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
