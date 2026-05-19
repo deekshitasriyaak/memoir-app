@@ -33,6 +33,13 @@ const state = {
   friends:          {},   // { username: { username, repo, readToken, networkOwner, networkRepo, addedAt } }
   inboxByFriend:    {},   // { username: [shareEntry, ...] }
   lastSeen:         {},   // { username: ISO string } — persisted in localStorage
+  personalFolders:  [],   // [{ id, name, color, postIds:[] }]
+  sharedFolders:    [],   // from folders-index.json in network repo
+  _createFolderCtx: null, // 'create' | 'edit' | 'feed' — which context opened the sheet
+  _createFolderColor: 'gold',
+  _createFolderType:  'personal',
+  _createPostFolders: [],  // folder ids selected in create post
+  _editPostFolders:   [],  // folder ids selected in edit post
   threadFriend:     null,
   tokenHealth:      {},   // { 1: 'ok'|'warn'|'bad', 2: ..., 3: ... }
   songPausedByVideo: false,
@@ -503,7 +510,7 @@ function setChatsTabActive() {
 }
 function setMusicTabActive() {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('nav-music')?.classList.add('active');
+  ['nav-music','nav-music-c','nav-music-m','nav-music-s'].forEach(id => document.getElementById(id)?.classList.add('active'));
 }
 function setSettingsTabActive() {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -521,9 +528,11 @@ function navigateTo(screenId, addHistory = true) {
   if (addHistory) state.navHistory.push(screenId);
   if (screenId === 'screen-settings') loadSettings();
   if (screenId === 'screen-music')    loadMusicLibrary();
-  if (screenId === 'screen-create')   loadMusicForCreate();
+  if (screenId === 'screen-create')   { loadMusicForCreate(); initFolderChips('create'); }
+  if (screenId === 'screen-edit')     initFolderChips('edit');
   if (screenId === 'screen-reorder')  loadReorderScreen();
   if (screenId === 'screen-chats')    loadChats();
+  if (screenId === 'screen-folders')  loadFoldersScreen();
 }
 
 function goBack() {
@@ -1084,7 +1093,12 @@ async function launchApp() {
   state.navHistory = ['screen-feed'];
   setFeedTabActive();
   showInstallNudge();
-  await loadFeed();
+  await Promise.allSettled([
+    loadFeed(),
+    loadPersonalFolders(),
+    loadSharedFolders(),
+  ]);
+  renderFolderRow();
 }
 
 // ── FRIENDS ───────────────────────────────────────────────────────
@@ -2120,6 +2134,8 @@ async function submitPost() {
     state.posts = updatedIndex; state.filteredPosts = updatedIndex;
     showToast('Posted ✦', 'Memory saved to GitHub', 'success');
     logEvent('createPost', 'success', postId);
+    // Save folder selections after post is created
+    if (state._createPostFolders?.length) await applyFolderSelections(postId, 'create');
     state.pendingMedia = []; state.selectedSongId = null;
     state.clipSheet = { mode: null, songId: null, startTime: 0, endTime: null, duration: null, previewAudio: null, trimConfirmed: false };
     document.getElementById('caption-input').value = ''; document.getElementById('location-input').value = '';
@@ -2665,7 +2681,10 @@ function showQRExport() {
   if (!state.auth) return;
   const wrap = document.getElementById('qr-canvas-wrap'); wrap.innerHTML = '';
   try {
-    new QRCode(wrap, { text: JSON.stringify({ u: state.auth.username, r: state.auth.repo, t: state.auth.token1 || state.auth.token, e: state.auth.email || '' }), width: 170, height: 170, colorDark: '#0e0c0a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    // Encode credentials as base64 in a URL so scanners open the app, not mail
+    const payload = btoa(JSON.stringify({ u: state.auth.username, r: state.auth.repo, t: state.auth.token1 || state.auth.token }));
+    const url = `${location.origin}/#restore?d=${encodeURIComponent(payload)}`;
+    new QRCode(wrap, { text: url, width: 170, height: 170, colorDark: '#0e0c0a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
   } catch { wrap.innerHTML = `<div style="color:var(--rose);font-size:11px;text-align:center">QR generation failed</div>`; }
   document.getElementById('qr-overlay').classList.add('open');
 }
@@ -2696,11 +2715,23 @@ async function boot() {
   // Load lastSeen from localStorage
   state.lastSeen = JSON.parse(localStorage.getItem('memoir_last_seen') || '{}');
 
-  // Handle URL hash for invite links
+  // Handle URL hash for invite links and QR restore
   const hash = window.location.hash.slice(1);
   if (hash.startsWith('invite=')) {
     state._pendingInviteCode = decodeURIComponent(hash.slice(7));
     history.replaceState(null, '', window.location.pathname);
+  }
+  // QR code deep-link: #restore?d=BASE64
+  if (hash.startsWith('restore?d=')) {
+    try {
+      const parsed = JSON.parse(atob(decodeURIComponent(hash.slice(10))));
+      showSetupRestore();
+      if (parsed.u) document.getElementById('restore-username').value = parsed.u;
+      if (parsed.r) document.getElementById('restore-repo').value   = parsed.r;
+      if (parsed.t) document.getElementById('restore-token1').value = parsed.t;
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    } catch { /* bad QR data, fall through */ }
   }
 
   const auth = await loadAuth();
@@ -2738,7 +2769,354 @@ async function boot() {
     loadMusicIndexBackground(),
     checkFriendOutboxes(),
     checkTokenHealth(),
+    loadPersonalFolders(),
+    loadSharedFolders(),
   ]);
+  renderFolderRow();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FOLDERS
+// ══════════════════════════════════════════════════════════════════
+
+const FOLDER_COLORS = {
+  gold:   { bg:'#c8a46a', light:'rgba(200,164,106,0.13)', border:'rgba(200,164,106,0.35)' },
+  teal:   { bg:'#2db4b4', light:'rgba(45,180,180,0.13)',  border:'rgba(45,180,180,0.35)'  },
+  rose:   { bg:'#c07060', light:'rgba(192,112,96,0.13)',  border:'rgba(192,112,96,0.35)'  },
+  purple: { bg:'#7b5ea7', light:'rgba(123,94,167,0.13)',  border:'rgba(123,94,167,0.35)'  },
+  green:  { bg:'#5a9e78', light:'rgba(90,158,120,0.13)',  border:'rgba(90,158,120,0.35)'  },
+};
+
+async function loadPersonalFolders() {
+  try {
+    const data = await DataSource.get('personal', 'folders-personal.json');
+    state.personalFolders = Array.isArray(data) ? data : [];
+  } catch { state.personalFolders = []; }
+}
+
+async function savePersonalFolders() {
+  try {
+    await ghPutFile('folders-personal.json', state.personalFolders, null, 'memoir: update personal folders');
+  } catch (err) { showError('Could not save folders', err); }
+}
+
+async function loadSharedFolders() {
+  if (!state.auth?.networkOwner || !state.auth?.networkRepo || !state.auth?.token3) return;
+  try {
+    const index = await DataSource.get('network', 'folders-index.json');
+    state.sharedFolders = Array.isArray(index)
+      ? index.filter(f => f.members?.includes(state.auth.username))
+      : [];
+  } catch { state.sharedFolders = []; }
+}
+
+function renderFolderRow() {
+  const allFolders = [
+    ...state.personalFolders.map(f => ({ ...f, kind: 'personal' })),
+    ...state.sharedFolders.map(f => ({ ...f, kind: 'shared' })),
+  ];
+  const wrap = document.getElementById('folder-row-wrap');
+  const row  = document.getElementById('folder-row');
+  if (!wrap || !row) return;
+  if (!allFolders.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const allCount = (state.posts || []).length;
+  row.innerHTML = `
+    <div class="folder-card folder-card-all active" onclick="filterByFolder(null)" data-fid="__all">
+      <div class="fc-pin"></div>
+      <div class="fc-name">All Memories</div>
+      <div class="fc-count">${allCount}</div>
+    </div>
+    ${allFolders.map(f => {
+      const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+      const count = f.kind === 'personal'
+        ? (f.postIds || []).length
+        : (f.postCount ?? 0);
+      return `<div class="folder-card" onclick="filterByFolder('${esc(f.id)}')" data-fid="${esc(f.id)}"
+                   style="--fc-light:${c.light};--fc-border:${c.border};--fc-dot:${c.bg}">
+        <div class="fc-dot"></div>
+        <div class="fc-icon">${f.kind === 'shared' ? '◈' : '⊟'}</div>
+        <div class="fc-name">${esc(f.name)}</div>
+        <div class="fc-count">${count}</div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function filterByFolder(folderId) {
+  // highlight selected card
+  document.querySelectorAll('.folder-card').forEach(c => c.classList.remove('active'));
+  const card = folderId
+    ? document.querySelector(`.folder-card[data-fid="${folderId}"]`)
+    : document.querySelector('.folder-card[data-fid="__all"]');
+  card?.classList.add('active');
+
+  if (!folderId) {
+    state.filteredPosts = state.posts;
+    renderFeed(state.filteredPosts);
+    return;
+  }
+  // personal folder filter
+  const personal = state.personalFolders.find(f => f.id === folderId);
+  if (personal) {
+    const ids = new Set(personal.postIds || []);
+    state.filteredPosts = state.posts.filter(p => ids.has(p.id));
+    renderFeed(state.filteredPosts);
+    return;
+  }
+  // shared folder — load from network and render
+  loadSharedFolderPosts(folderId).then(posts => {
+    state.filteredPosts = posts;
+    renderFeed(posts);
+  });
+}
+
+async function loadSharedFolderPosts(folderId) {
+  try {
+    const entries = await DataSource.get('network', `folders/${folderId}/posts.json`) || [];
+    const results = await Promise.allSettled(
+      entries.map(async entry => {
+        const source = entry.owner === state.auth.username ? 'personal' : `friend:${entry.owner}`;
+        const meta = await DataSource.get(source, `posts/${entry.postId}/meta.json`);
+        if (!meta) return null;
+        return { ...meta, id: entry.postId, owner: entry.owner, addedAt: entry.addedAt };
+      })
+    );
+    return results
+      .filter(r => r.status === 'fulfilled' && r.value)
+      .map(r => r.value)
+      .sort((a, b) => new Date(b.addedAt || b.createdAt) - new Date(a.addedAt || a.createdAt));
+  } catch { return []; }
+}
+
+function initFolderChips(context) {
+  const allFolders = [
+    ...state.personalFolders.map(f => ({ ...f, kind:'personal' })),
+    ...state.sharedFolders.map(f => ({ ...f, kind:'shared' })),
+  ];
+  const sectionId = context === 'create' ? 'create-folder-section' : 'edit-folder-section';
+  const chipsId   = context === 'create' ? 'create-folder-chips'   : 'edit-folder-chips';
+  const section   = document.getElementById(sectionId);
+  const chipsEl   = document.getElementById(chipsId);
+  if (!section || !chipsEl) return;
+  if (!allFolders.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  if (context === 'create') state._createPostFolders = [];
+  else state._editPostFolders = [];
+  renderFolderChips(context, chipsEl, allFolders);
+}
+
+function renderFolderChips(context, chipsEl, allFolders) {
+  if (!chipsEl) return;
+  const selected = context === 'create' ? state._createPostFolders : state._editPostFolders;
+  chipsEl.innerHTML = allFolders.map(f => {
+    const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+    const sel = selected.includes(f.id);
+    return `<button class="folder-chip${sel ? ' selected' : ''}"
+              onclick="togglePostFolder('${esc(f.id)}','${context}')"
+              style="--chip-bg:${c.light};--chip-border:${c.border};--chip-dot:${c.bg}">
+      <span class="chip-dot"></span>${esc(f.name)}
+      ${f.kind === 'shared' ? '<span class="chip-shared-icon">◈</span>' : ''}
+    </button>`;
+  }).join('');
+}
+
+function togglePostFolder(folderId, context) {
+  const arr = context === 'create' ? state._createPostFolders : state._editPostFolders;
+  const idx = arr.indexOf(folderId);
+  if (idx === -1) arr.push(folderId); else arr.splice(idx, 1);
+  const allFolders = [
+    ...state.personalFolders.map(f => ({ ...f, kind:'personal' })),
+    ...state.sharedFolders.map(f => ({ ...f, kind:'shared' })),
+  ];
+  const chipsId = context === 'create' ? 'create-folder-chips' : 'edit-folder-chips';
+  renderFolderChips(context, document.getElementById(chipsId), allFolders);
+}
+
+async function applyFolderSelections(postId, context) {
+  const selected = context === 'create' ? state._createPostFolders : state._editPostFolders;
+  for (const fid of selected) {
+    const personal = state.personalFolders.find(f => f.id === fid);
+    if (personal) {
+      if (!personal.postIds) personal.postIds = [];
+      if (!personal.postIds.includes(postId)) {
+        personal.postIds.push(postId);
+      }
+    } else {
+      await addPostToSharedFolder(fid, postId);
+    }
+  }
+  if (selected.some(fid => state.personalFolders.find(f => f.id === fid))) {
+    await savePersonalFolders();
+  }
+  if (context === 'create') state._createPostFolders = [];
+  else state._editPostFolders = [];
+}
+
+async function addPostToSharedFolder(folderId, postId) {
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const current = await DataSource.get('network', `folders/${folderId}/posts.json`) || [];
+      if (current.some(p => p.postId === postId && p.owner === state.auth.username)) return;
+      await DataSource.put('network', `folders/${folderId}/posts.json`, [
+        ...current,
+        { postId, owner: state.auth.username, addedAt: new Date().toISOString(), addedBy: state.auth.username }
+      ]);
+      await updateFoldersIndex(folderId, null, current.length + 1);
+      return;
+    } catch (err) {
+      if (err?.status === 409) { retries--; await new Promise(r => setTimeout(r, 300 + Math.random()*200)); }
+      else throw err;
+    }
+  }
+  showToast('Conflict saving to folder', 'Try again in a moment', 'warning');
+}
+
+async function updateFoldersIndex(folderId, metaOverride, newPostCount) {
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const index = await DataSource.get('network', 'folders-index.json') || [];
+      const existing = index.find(f => f.id === folderId);
+      if (existing) {
+        if (metaOverride) Object.assign(existing, { name: metaOverride.name, members: metaOverride.members, color: metaOverride.color });
+        if (newPostCount !== null && newPostCount !== undefined) existing.postCount = newPostCount;
+        existing.lastUpdated = new Date().toISOString();
+      } else if (metaOverride) {
+        index.push({ ...metaOverride, postCount: 0, lastUpdated: new Date().toISOString() });
+      }
+      await DataSource.put('network', 'folders-index.json', index);
+      return;
+    } catch (err) {
+      if (err?.status === 409) { retries--; await new Promise(r => setTimeout(r, 300 + Math.random()*200)); }
+      else throw err;
+    }
+  }
+}
+
+async function createPersonalFolder(name, color) {
+  const id = `pfolder-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+  const folder = { id, name, color, postIds: [], createdAt: new Date().toISOString() };
+  state.personalFolders.push(folder);
+  await savePersonalFolders();
+  return id;
+}
+
+async function createSharedFolder(name, color) {
+  if (!state.auth?.networkOwner || !state.auth?.token3) throw new Error('Network repo not set up');
+  const id = `folder-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+  const meta = { id, name, color, createdBy: state.auth.username, createdAt: new Date().toISOString(), members: [state.auth.username] };
+  await Promise.all([
+    DataSource.put('network', `folders/${id}/meta.json`, meta),
+    DataSource.put('network', `folders/${id}/posts.json`, []),
+  ]);
+  await updateFoldersIndex(id, meta, 0);
+  state.sharedFolders.push({ ...meta, postCount: 0 });
+  return id;
+}
+
+function openFoldersScreen() {
+  navigateTo('screen-folders');
+}
+
+function loadFoldersScreen() {
+  const grid = document.getElementById('folders-grid');
+  if (!grid) return;
+  const allFolders = [
+    ...state.personalFolders.map(f => ({ ...f, kind:'personal' })),
+    ...state.sharedFolders.map(f => ({ ...f, kind:'shared' })),
+  ];
+  if (!allFolders.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⊟</div><div class="empty-title">No folders yet</div><div class="empty-sub">Tap + to create your first folder</div></div>`;
+    return;
+  }
+  grid.innerHTML = allFolders.map(f => {
+    const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+    const count = f.kind === 'personal' ? (f.postIds || []).length : (f.postCount ?? 0);
+    const icon  = f.kind === 'shared' ? '◈' : '⊟';
+    return `<div class="folder-grid-card" onclick="filterByFolder('${esc(f.id)}');goBack()"
+                 style="--fgc-light:${c.light};--fgc-border:${c.border};--fgc-dot:${c.bg}">
+      <div class="fgc-icon">${icon}</div>
+      <div class="fgc-dot"></div>
+      <div class="fgc-name">${esc(f.name)}</div>
+      <div class="fgc-count">${count} ${count === 1 ? 'memory' : 'memories'}</div>
+      <div class="fgc-type">${f.kind === 'shared' ? 'shared' : 'personal'}</div>
+    </div>`;
+  }).join('');
+}
+
+function openCreateFolderSheet(context) {
+  state._createFolderCtx   = context;
+  state._createFolderColor = 'gold';
+  state._createFolderType  = 'personal';
+  const nameEl = document.getElementById('new-folder-name');
+  if (nameEl) nameEl.value = '';
+  const errEl = document.getElementById('create-folder-error');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  // reset color dots
+  document.querySelectorAll('.folder-color-dot').forEach(d => {
+    d.classList.toggle('active', d.dataset.color === 'gold');
+  });
+  // reset type buttons
+  document.querySelectorAll('.folder-type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === 'personal');
+  });
+  const hint = document.getElementById('folder-type-hint');
+  if (hint) hint.textContent = 'Stored in your private repo only.';
+  // hide shared option if no network repo
+  const sharedBtn = document.getElementById('folder-type-shared');
+  if (sharedBtn) sharedBtn.style.display = (state.auth?.token3) ? '' : 'none';
+  openSheet('sheet-create-folder');
+}
+
+function selectFolderType(type) {
+  state._createFolderType = type;
+  document.querySelectorAll('.folder-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  const hint = document.getElementById('folder-type-hint');
+  if (hint) hint.textContent = type === 'shared'
+    ? 'Visible to all friends in your network.'
+    : 'Stored in your private repo only.';
+}
+
+function selectFolderColor(color) {
+  state._createFolderColor = color;
+  document.querySelectorAll('.folder-color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === color));
+}
+
+async function confirmCreateFolder() {
+  const name  = document.getElementById('new-folder-name')?.value.trim();
+  const errEl = document.getElementById('create-folder-error');
+  if (!name) { errEl.textContent = 'Please enter a folder name.'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  const btn = document.querySelector('#sheet-create-folder .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+  try {
+    let id;
+    if (state._createFolderType === 'shared') {
+      id = await createSharedFolder(name, state._createFolderColor);
+    } else {
+      id = await createPersonalFolder(name, state._createFolderColor);
+    }
+    closeSheet('sheet-create-folder');
+    showToast(`Folder created`, name, 'success');
+    renderFolderRow();
+    // If opened from create/edit context, re-init chips
+    if (state._createFolderCtx === 'create') initFolderChips('create');
+    if (state._createFolderCtx === 'edit')   initFolderChips('edit');
+    if (state._createFolderCtx === 'feed')   loadFoldersScreen();
+  } catch (err) {
+    errEl.textContent = err.message || 'Could not create folder.';
+    errEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Folder'; }
+  }
+}
+
+async function handleFolderInvite(data) {
+  showToast(`Added to "${data.folderName}"`, `by ${data.invitedBy}`, 'success');
+  await loadSharedFolders();
+  renderFolderRow();
 }
 
 async function loadMusicIndexBackground() {

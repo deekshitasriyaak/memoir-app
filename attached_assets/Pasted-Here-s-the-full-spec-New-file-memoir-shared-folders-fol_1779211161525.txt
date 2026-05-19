@@ -1,0 +1,243 @@
+Here's the full spec:
+
+---
+
+**New file: `memoir-shared/folders/[folder-id]/meta.json`**
+```json
+{
+  "id": "folder-abc123",
+  "name": "Goa Trip 2024",
+  "createdBy": "alice",
+  "createdAt": "2024-05-01T10:00:00Z",
+  "members": ["alice", "bob", "carol"],
+  "color": "teal"
+}
+```
+
+**New file: `memoir-shared/folders/[folder-id]/posts.json`**
+```json
+[
+  {
+    "postId": "2024-05-01-abc",
+    "owner": "alice",
+    "addedAt": "2024-05-01T12:00:00Z",
+    "addedBy": "alice"
+  },
+  {
+    "postId": "2024-05-02-xyz",
+    "owner": "bob",
+    "addedAt": "2024-05-02T09:00:00Z",
+    "addedBy": "bob"
+  }
+]
+```
+
+---
+
+**Changes to personal `posts-index.json` entries** — add one field:
+```json
+{
+  "id": "2024-05-01-abc",
+  "sharedFolders": ["folder-abc123", "folder-def456"]
+}
+```
+Just an array of folder IDs this post has been added to. Purely informational — lets you show a "shared" badge on your own feed without hitting `memoir-shared`.
+
+---
+
+**New: `memoir-shared/folders-index.json`**
+```json
+[
+  {
+    "id": "folder-abc123",
+    "name": "Goa Trip 2024",
+    "createdBy": "alice",
+    "members": ["alice", "bob", "carol"],
+    "color": "teal",
+    "postCount": 14,
+    "lastUpdated": "2024-05-10T08:00:00Z"
+  }
+]
+```
+A single top-level index so the Folders tab can load all shared folders in one request instead of listing every subdirectory.
+
+---
+
+**Key functions to add:**
+
+```javascript
+// Create a new shared folder
+async function createSharedFolder(name, color = 'teal') {
+  const id = `folder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  const meta = {
+    id, name, color,
+    createdBy: state.auth.username,
+    createdAt: new Date().toISOString(),
+    members: [state.auth.username]
+  }
+
+  // Write meta and empty posts list in parallel
+  await Promise.all([
+    DataSource.put('network', `folders/${id}/meta.json`, meta),
+    DataSource.put('network', `folders/${id}/posts.json`, [])
+  ])
+
+  // Update folders-index
+  await updateFoldersIndex(id, meta, 0)
+  return id
+}
+
+// Add a post to a shared folder — retries on concurrent write conflict
+async function addPostToSharedFolder(folderId, postId) {
+  let retries = 3
+  while (retries > 0) {
+    try {
+      const current = await DataSource.get('network', `folders/${folderId}/posts.json`) || []
+      const alreadyAdded = current.some(p => p.postId === postId && p.owner === state.auth.username)
+      if (alreadyAdded) return
+
+      await DataSource.put('network', `folders/${folderId}/posts.json`, [
+        ...current,
+        {
+          postId,
+          owner: state.auth.username,
+          addedAt: new Date().toISOString(),
+          addedBy: state.auth.username
+        }
+      ])
+
+      // Update sharedFolders field on local post entry
+      await markPostAsShared(postId, folderId)
+
+      // Update folders-index postCount + lastUpdated
+      await updateFoldersIndex(folderId, null, current.length + 1)
+      return
+
+    } catch (err) {
+      if (err.status === 409) {
+        retries--
+        await new Promise(r => setTimeout(r, 300 + Math.random() * 200))
+      } else {
+        throw err
+      }
+    }
+  }
+  showToast('Conflict saving to folder', 'Try again in a moment', 'warning')
+}
+
+// Load all shared folders the current user is a member of
+async function loadSharedFolders() {
+  const index = await DataSource.get('network', 'folders-index.json') || []
+  state.sharedFolders = index.filter(f => f.members.includes(state.auth.username))
+}
+
+// Load posts inside a shared folder, resolving each from its owner's repo
+async function loadSharedFolderPosts(folderId) {
+  const entries = await DataSource.get('network', `folders/${folderId}/posts.json`) || []
+
+  const posts = await Promise.allSettled(
+    entries.map(async entry => {
+      const source = entry.owner === state.auth.username
+        ? 'personal'
+        : `friend:${entry.owner}`
+
+      const meta = await DataSource.get(source, `posts/${entry.postId}/meta.json`)
+      if (!meta) return null
+
+      const thumbUrl = await DataSource.getFreshUrl(source, `posts/${entry.postId}/thumb.jpg`)
+      return { ...meta, thumbUrl, owner: entry.owner, addedAt: entry.addedAt }
+    })
+  )
+
+  return posts
+    .filter(r => r.status === 'fulfilled' && r.value !== null)
+    .map(r => r.value)
+    .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
+}
+
+// Invite a friend to a shared folder
+async function inviteToSharedFolder(folderId, friendUsername) {
+  const meta = await DataSource.get('network', `folders/${folderId}/meta.json`)
+  if (!meta || meta.members.includes(friendUsername)) return
+
+  meta.members.push(friendUsername)
+  await DataSource.put('network', `folders/${folderId}/meta.json`, meta)
+
+  // Drop an inbox notification so they know they were added
+  await DataSource.put('network',
+    `inbox/${friendUsername}/folder-invite-${folderId}.json`, {
+      type: 'folder_invite',
+      folderId,
+      folderName: meta.name,
+      invitedBy: state.auth.username,
+      invitedAt: new Date().toISOString()
+    }
+  )
+
+  await updateFoldersIndex(folderId, meta, null)
+}
+
+// Helper — update folders-index.json entry
+async function updateFoldersIndex(folderId, metaOverride, newPostCount) {
+  let retries = 3
+  while (retries > 0) {
+    try {
+      const index = await DataSource.get('network', 'folders-index.json') || []
+      const existing = index.find(f => f.id === folderId)
+
+      if (existing) {
+        if (metaOverride) Object.assign(existing, { name: metaOverride.name, members: metaOverride.members, color: metaOverride.color })
+        if (newPostCount !== null) existing.postCount = newPostCount
+        existing.lastUpdated = new Date().toISOString()
+      } else if (metaOverride) {
+        index.push({ ...metaOverride, postCount: 0, lastUpdated: new Date().toISOString() })
+      }
+
+      await DataSource.put('network', 'folders-index.json', index)
+      return
+    } catch (err) {
+      if (err.status === 409) {
+        retries--
+        await new Promise(r => setTimeout(r, 300 + Math.random() * 200))
+      } else throw err
+    }
+  }
+}
+
+// Handle folder invite from inbox (add to checkInbox)
+async function handleFolderInvite(data) {
+  showToast(`${data.invitedBy} added you to "${data.folderName}"`, '', 'success')
+  await loadSharedFolders()
+  renderFoldersTab()
+}
+```
+
+---
+
+**Handle in `checkInbox`** — add this case alongside the existing `token2_update` handler:
+```javascript
+if (data.type === 'folder_invite') {
+  await handleFolderInvite(data)
+}
+```
+
+---
+
+**State additions:**
+```javascript
+state.sharedFolders = []       // loaded from folders-index.json
+state.personalFolders = []     // local only, stored in personal repo
+```
+
+---
+
+**Personal folders** (non-shared, local only) live in your personal repo:
+```
+memoir-data/
+  folders-personal.json    ← [{ id, name, color, postIds: [] }]
+```
+No network involvement at all — just read/write to personal repo. The feed filter pills show both personal and shared folders together, distinguished by a small icon (a person icon for personal, a group icon for shared).
+
+---
+
+The 409 retry logic is the only real gotcha. Everything else slots directly into what already exists — Token 3 is the write key, read tokens handle post fetching, and the inbox mechanism you already built handles invites.

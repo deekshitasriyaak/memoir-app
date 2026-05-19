@@ -1050,3 +1050,200 @@ input[type=range].clip-slider::-webkit-slider-thumb {
 .feed-skeleton-cell {
   height: 180px; border-radius: 5px;
 }
+
+/* ══════════════════════════════════════════════
+   FOLDERS — HORIZONTAL SCROLL ROW (feed)
+══════════════════════════════════════════════ */
+.folder-row-wrap {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.folder-row-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px 4px;
+}
+.folder-row-label {
+  font-size: 9px; letter-spacing: 2.5px; color: rgba(232,216,192,0.45);
+  font-family: var(--mono);
+}
+.folder-row-viewall {
+  font-size: 10px; letter-spacing: 1px; color: var(--gold-dim);
+  background: none; border: none; cursor: pointer; font-family: var(--mono);
+  padding: 0; transition: color 0.15s;
+}
+.folder-row-viewall:hover { color: var(--gold); }
+
+.folder-row {
+  display: flex; gap: 10px;
+  padding: 4px 12px 12px;
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.folder-row::-webkit-scrollbar { display: none; }
+
+.folder-card {
+  flex-shrink: 0;
+  width: 96px;
+  background: var(--surface);
+  border: 1px solid var(--fc-border, var(--border));
+  border-radius: 10px;
+  padding: 10px 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.folder-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--fc-light, transparent);
+  pointer-events: none;
+}
+.folder-card.active {
+  border-color: var(--gold-dim);
+  background: var(--gold-faint);
+}
+.folder-card.active::before { background: transparent; }
+.folder-card:active { opacity: 0.8; transform: scale(0.97); }
+
+.folder-card-all .fc-pin {
+  width: 14px; height: 14px;
+  background: var(--gold-dim); border-radius: 50%;
+  margin-bottom: 7px;
+}
+
+.fc-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--fc-dot, var(--gold));
+  margin-bottom: 7px;
+}
+.fc-icon {
+  font-size: 13px; color: var(--text-faint);
+  margin-bottom: 4px; display: block;
+}
+.fc-name {
+  font-size: 12px; font-family: var(--sans); font-weight: 500;
+  color: var(--text); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.fc-count {
+  font-size: 10px; color: var(--text-muted); font-family: var(--mono);
+}
+
+
+/* ══════════════════════════════════════════════
+   FOLDERS — CHIP PICKER (create / edit post)
+══════════════════════════════════════════════ */
+.folder-chip-list {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 2px 0 4px;
+}
+
+.folder-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--chip-bg, var(--surface));
+  border: 1px solid var(--chip-border, var(--border));
+  border-radius: 20px; padding: 6px 12px;
+  font-size: 12px; color: var(--text);
+  cursor: pointer; font-family: var(--sans);
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.folder-chip.selected {
+  border-color: var(--chip-border);
+  background: var(--chip-bg);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--chip-border);
+}
+.chip-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--chip-dot, var(--gold));
+  flex-shrink: 0;
+}
+.chip-shared-icon {
+  font-size: 10px; color: var(--teal); margin-left: 2px;
+}
+
+
+/* ══════════════════════════════════════════════
+   FOLDERS GRID SCREEN
+══════════════════════════════════════════════ */
+.folders-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 16px 14px;
+}
+
+.folder-grid-card {
+  background: var(--surface);
+  border: 1px solid var(--fgc-border, var(--border));
+  border-radius: 14px;
+  padding: 18px 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  position: relative; overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.folder-grid-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--fgc-light, transparent); pointer-events: none;
+}
+.folder-grid-card:active { opacity: 0.8; transform: scale(0.97); }
+
+.fgc-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--fgc-dot, var(--gold));
+  margin-bottom: 10px;
+}
+.fgc-icon {
+  font-size: 20px; color: var(--text-faint); opacity: 0.5;
+  margin-bottom: 8px; display: block;
+}
+.fgc-name {
+  font-size: 15px; font-family: var(--sans); font-weight: 500;
+  color: var(--text); line-height: 1.3; margin-bottom: 5px;
+}
+.fgc-count {
+  font-size: 11px; color: var(--text-muted); font-family: var(--mono);
+  margin-bottom: 3px;
+}
+.fgc-type {
+  font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--text-faint); font-family: var(--mono);
+}
+
+
+/* ══════════════════════════════════════════════
+   SHEET: CREATE FOLDER — type & color pickers
+══════════════════════════════════════════════ */
+.folder-type-row {
+  display: flex; gap: 8px; margin-bottom: 8px;
+}
+.folder-type-btn {
+  flex: 1; border: 1px solid var(--border2); color: var(--text-muted);
+  background: none; border-radius: 8px; padding: 9px 12px;
+  font-size: 12px; cursor: pointer; font-family: var(--sans);
+  transition: all 0.15s;
+}
+.folder-type-btn.active {
+  border-color: var(--gold-dim); color: var(--gold);
+  background: var(--gold-faint);
+}
+
+.folder-color-row {
+  display: flex; gap: 12px; padding: 4px 0;
+}
+.folder-color-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2.5px solid transparent; cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.folder-color-dot.active {
+  border-color: rgba(255,255,255,0.7);
+  transform: scale(1.18);
+}
+.folder-color-dot:active { transform: scale(0.9); }

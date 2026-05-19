@@ -49,9 +49,13 @@
 
     <!-- Step 1: Personal repo + Token 1 -->
     <div id="owner-step-1" class="setup-step">
-      <div class="setup-step-title">Personal Repo</div>
-      <div class="setup-note">Your photos &amp; videos live in <strong>your own private GitHub repo</strong>. Create a classic PAT with <strong>repo</strong> scope.<br><br>
-        <a href="https://github.com/settings/tokens/new" target="_blank" class="setup-link">Create token on GitHub →</a>
+      <div class="setup-step-title">Your GitHub Repo</div>
+      <div class="setup-note">
+        Memoir stores your photos and videos in <strong>your own private GitHub repo</strong> — nothing goes through our servers.<br><br>
+        <strong>Step 1 — Create a repo:</strong><br>
+        Go to <a href="https://github.com/new" target="_blank" class="setup-link">github.com/new</a> · Name it <span class="setup-code">memoir-data</span> · tick <em>Private</em> · click Create.<br><br>
+        <strong>Step 2 — Create a token:</strong><br>
+        Go to <a href="https://github.com/settings/tokens/new?scopes=repo&description=Memoir+full+access" target="_blank" class="setup-link">Settings → Developer settings → Tokens (classic)</a> · check <strong>repo</strong> · set expiry · copy the <span class="setup-code">ghp_…</span> token.
       </div>
       <div class="setup-error" id="owner-error-1" style="display:none"></div>
       <div class="field">
@@ -68,7 +72,7 @@
         <label class="field-label">Full-Access Token (Token 1)</label>
         <input class="field-input" id="owner-token1" type="password" placeholder="ghp_••••••••••••••••••"
                autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-        <div class="field-hint">Needs <strong>repo</strong> scope. Stored encrypted on this device only.</div>
+        <div class="field-hint">Needs <strong>repo</strong> scope. Stored encrypted on this device only — never sent anywhere.</div>
       </div>
       <div class="connecting-state" id="owner-connecting-1" style="display:none">
         <div class="connecting-spinner"></div>
@@ -83,9 +87,14 @@
 
     <!-- Step 2: Read-only Token 2 -->
     <div id="owner-step-2" class="setup-step" style="display:none">
-      <div class="setup-step-title">Read Token</div>
-      <div class="setup-note">Create a <strong>fine-grained read-only token</strong> so friends can see posts you share. Set <strong>Contents: Read-only</strong> on <span id="s2-repo-hint" class="setup-code">memoir-data</span>.<br><br>
-        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="setup-link">Create fine-grained token →</a>
+      <div class="setup-step-title">Sharing Token</div>
+      <div class="setup-note">
+        This token lets friends <strong>read posts you share</strong> with them — they can't write or delete anything.<br><br>
+        <strong>How to create it:</strong><br>
+        Go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="setup-link">Settings → Developer settings → Fine-grained tokens</a><br>
+        · Under <em>Repository access</em> → select <span id="s2-repo-hint" class="setup-code">memoir-data</span><br>
+        · Under <em>Permissions → Contents</em> → set to <strong>Read-only</strong><br>
+        · Generate and copy the token (starts with <span class="setup-code">github_pat_</span>)
       </div>
       <div class="setup-error" id="owner-error-2" style="display:none"></div>
       <div class="field">
@@ -102,7 +111,13 @@
     <!-- Step 3: Network repo + Token 3 -->
     <div id="owner-step-3" class="setup-step" style="display:none">
       <div class="setup-step-title">Network Repo</div>
-      <div class="setup-note">A <strong>shared repo</strong> hosts the music library and enables post sharing. Create <span class="setup-code">memoir-shared</span> on GitHub, then a <strong>repo</strong>-scoped PAT for it.</div>
+      <div class="setup-note">
+        A second private repo holds your <strong>music library, shared folders, and friend connections</strong>.<br><br>
+        <strong>Step 1 — Create the repo:</strong><br>
+        Go to <a href="https://github.com/new" target="_blank" class="setup-link">github.com/new</a> · Name it <span class="setup-code">memoir-shared</span> · tick <em>Private</em> · click Create.<br><br>
+        <strong>Step 2 — Create a token for it:</strong><br>
+        Go to <a href="https://github.com/settings/tokens/new?scopes=repo&description=Memoir+network" target="_blank" class="setup-link">Settings → Developer settings → Tokens (classic)</a> · check <strong>repo</strong> · copy the <span class="setup-code">ghp_…</span> token.
+      </div>
       <div class="setup-error" id="owner-error-3" style="display:none"></div>
       <div class="field">
         <label class="field-label">Network GitHub Username</label>
@@ -178,7 +193,12 @@
     <!-- Step 1: Invite code + personal repo -->
     <div id="friend-step-1" class="setup-step">
       <div class="setup-step-title">Join Memoir</div>
-      <div class="setup-note">Paste the invite code you received, then connect your own GitHub to store your archive.</div>
+      <div class="setup-note">
+        Your friend sent you an <strong>invite code</strong> — paste it below to connect to their network.<br><br>
+        You'll also need <strong>your own GitHub repo</strong> to store your archive:<br>
+        Go to <a href="https://github.com/new" target="_blank" class="setup-link">github.com/new</a> · Name it <span class="setup-code">memoir-data</span> · tick <em>Private</em> · Create.<br><br>
+        Then create a token: <a href="https://github.com/settings/tokens/new?scopes=repo&description=Memoir+full+access" target="_blank" class="setup-link">Settings → Developer settings → Tokens (classic)</a> · check <strong>repo</strong> · copy the <span class="setup-code">ghp_…</span> token.
+      </div>
       <div class="setup-error" id="friend-error-1" style="display:none"></div>
       <div class="field">
         <label class="field-label">Invite Code</label>
@@ -214,9 +234,14 @@
 
     <!-- Step 2: Read-only Token 2 -->
     <div id="friend-step-2" class="setup-step" style="display:none">
-      <div class="setup-step-title">Read Token</div>
-      <div class="setup-note">Create a <strong>fine-grained read-only token</strong> so <span id="f-inviter-name" class="setup-code">your friend</span> can see posts you share. Set <strong>Contents: Read-only</strong> on <span id="f-repo-hint" class="setup-code">memoir-data</span>.<br><br>
-        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="setup-link">Create fine-grained token →</a>
+      <div class="setup-step-title">Sharing Token</div>
+      <div class="setup-note">
+        Create a token so <span id="f-inviter-name" class="setup-code">your friend</span> can <strong>read posts you share</strong> with them.<br><br>
+        <strong>How to create it:</strong><br>
+        Go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="setup-link">Settings → Developer settings → Fine-grained tokens</a><br>
+        · Under <em>Repository access</em> → select <span id="f-repo-hint" class="setup-code">memoir-data</span><br>
+        · Under <em>Permissions → Contents</em> → set to <strong>Read-only</strong><br>
+        · Generate and copy the token (starts with <span class="setup-code">github_pat_</span>)
       </div>
       <div class="setup-error" id="friend-error-2" style="display:none"></div>
       <div class="field">
@@ -247,7 +272,7 @@
     <!-- Step 4: Done + connect code -->
     <div id="friend-step-4" class="setup-step" style="display:none">
       <div class="setup-step-title">Almost there ✦</div>
-      <div class="setup-note">Send your <strong>connect code</strong> to <span id="f-final-inviter" class="setup-code">your friend</span> so they can add you in their Chats tab:</div>
+      <div class="setup-note">You're set up! Now <span id="f-final-inviter" class="setup-code">your friend</span> needs to add you.<br><br>Copy your <strong>connect code</strong> below and send it to them — they'll paste it in their <em>Chats → Add Friend</em> sheet.</div>
       <div class="invite-code-box" style="border-color:rgba(45,180,180,.4)">
         <div class="invite-code-label">Your connect code</div>
         <div class="invite-code-text" id="friend-connect-code">—</div>
@@ -318,6 +343,18 @@
              oninput="handleSearch(this.value)">
     </div>
   </div>
+
+  <!-- Folders horizontal row -->
+  <div class="folder-row-wrap" id="folder-row-wrap" style="display:none">
+    <div class="folder-row-header">
+      <span class="folder-row-label">FOLDERS</span>
+      <button class="folder-row-viewall" onclick="openFoldersScreen()">VIEW ALL ›</button>
+    </div>
+    <div class="folder-row" id="folder-row">
+      <!-- injected by renderFolderRow() -->
+    </div>
+  </div>
+
   <div class="feed-filters" id="feed-filters" style="display:none"></div>
 
   <div class="scroll-body" id="feed-body">
@@ -433,6 +470,12 @@
                autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
+      <div id="create-folder-section" style="display:none">
+        <div class="section-label">Folders <span style="color:#5D3F6A">(optional)</span></div>
+        <div class="folder-chip-list" id="create-folder-chips"></div>
+        <button class="btn btn-ghost" style="margin-top:8px;font-size:10px;width:auto;padding:6px 14px" onclick="openCreateFolderSheet('create')">+ New folder</button>
+      </div>
+
       <div>
         <div class="section-label">Music <span style="color:#5D3F6A">(optional)</span>
           <span id="music-source-badge" class="music-source-badge" style="display:none"></span>
@@ -500,6 +543,12 @@
                autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
 
+      <div id="edit-folder-section" style="display:none">
+        <div class="section-label">Folders <span style="color:#5D3F6A">(optional)</span></div>
+        <div class="folder-chip-list" id="edit-folder-chips"></div>
+        <button class="btn btn-ghost" style="margin-top:8px;font-size:10px;width:auto;padding:6px 14px" onclick="openCreateFolderSheet('edit')">+ New folder</button>
+      </div>
+
       <div>
         <div class="section-label">Music <span style="color:#5D3F6A">(optional)</span></div>
         <div class="music-selector" id="edit-music-selector">
@@ -561,6 +610,21 @@
 
   <input type="file" id="song-file-input" accept="audio/*,.mp3,.m4a,.wav" style="display:none"
          onchange="handleSongFile(this.files[0])">
+
+  <div class="bottom-nav">
+    <button class="nav-tab" id="nav-feed-m"     onclick="switchTab('feed',event)">
+      <span class="nav-tab-icon">⊟</span><span class="nav-tab-label">Feed</span>
+    </button>
+    <button class="nav-tab active" id="nav-music-m" onclick="switchTab('music',event)">
+      <span class="nav-tab-icon">♫</span><span class="nav-tab-label">Music</span>
+    </button>
+    <button class="nav-tab" id="nav-chats-m"    onclick="switchTab('chats',event)">
+      <span class="nav-tab-icon">◈</span><span class="nav-tab-label">Chats</span>
+    </button>
+    <button class="nav-tab" id="nav-settings-m" onclick="switchTab('settings',event)">
+      <span class="nav-tab-icon">◎</span><span class="nav-tab-label">Settings</span>
+    </button>
+  </div>
 </div>
 
 
@@ -579,7 +643,7 @@
       <div class="empty-state">
         <div class="empty-icon">◈</div>
         <div class="empty-title">No friends yet</div>
-        <div class="empty-sub">Share your invite code or paste a connect code to add friends</div>
+        <div class="empty-sub">Send your <strong>invite code</strong> (in Settings) to a friend. Once they set up, they'll send you a <strong>connect code</strong> — tap + to paste it.</div>
         <button class="btn btn-outline-teal" style="margin-top:16px;width:auto;padding:8px 20px" onclick="openAddFriendSheet()">Add friend</button>
       </div>
     </div>
@@ -846,10 +910,10 @@
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Add Friend</div>
-    <div class="sheet-msg">Ask your friend to share their <strong>connect code</strong> with you, then paste it below.</div>
+    <div class="sheet-msg">First send your friend your <strong>invite code</strong> from Settings so they can set up Memoir. Once they finish, they'll get a <strong>connect code</strong> to send back — paste it below.</div>
     <div class="field" style="margin-top:12px">
-      <label class="field-label">Connect Code</label>
-      <textarea class="field-input" id="connect-code-input" rows="3" placeholder="paste connect code here…"
+      <label class="field-label">Friend's Connect Code</label>
+      <textarea class="field-input" id="connect-code-input" rows="3" placeholder="paste their connect code here…"
                 style="resize:none;font-family:var(--font-mono);font-size:11px"></textarea>
     </div>
     <div id="add-friend-error" class="setup-error" style="display:none"></div>
@@ -930,6 +994,66 @@
 
 
 <!-- ══════════════════════════════════════════════
+     FOLDERS SCREEN
+══════════════════════════════════════════════ -->
+<div id="screen-folders" class="screen">
+  <div class="app-header">
+    <button class="header-btn" onclick="goBack()">←</button>
+    <div class="logo" style="font-size:22px">Folders</div>
+    <button class="header-btn" onclick="openCreateFolderSheet('feed')" title="New folder">+</button>
+  </div>
+  <div class="scroll-body">
+    <div id="folders-grid" class="folders-grid">
+      <div class="empty-state">
+        <div class="empty-icon">⊟</div>
+        <div class="empty-title">No folders yet</div>
+        <div class="empty-sub">Tap + to create your first folder</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     SHEET: CREATE FOLDER
+══════════════════════════════════════════════ -->
+<div class="sheet-overlay" id="sheet-create-folder" onclick="closeSheet('sheet-create-folder')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">New Folder</div>
+    <div class="field" style="margin-top:8px">
+      <label class="field-label">Folder Name</label>
+      <input class="field-input" id="new-folder-name" type="text" placeholder="e.g. Goa Trip 2024"
+             autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label class="field-label">Type</label>
+      <div class="folder-type-row">
+        <button class="folder-type-btn active" data-type="personal" onclick="selectFolderType('personal')">Personal</button>
+        <button class="folder-type-btn" data-type="shared" onclick="selectFolderType('shared')" id="folder-type-shared">Shared with friends</button>
+      </div>
+      <div class="field-hint" id="folder-type-hint">Stored in your private repo only.</div>
+    </div>
+    <div class="field">
+      <label class="field-label">Color</label>
+      <div class="folder-color-row">
+        <button class="folder-color-dot active" data-color="gold"   style="background:#c8a46a" onclick="selectFolderColor('gold')"></button>
+        <button class="folder-color-dot"        data-color="teal"   style="background:#2db4b4" onclick="selectFolderColor('teal')"></button>
+        <button class="folder-color-dot"        data-color="rose"   style="background:#c07060" onclick="selectFolderColor('rose')"></button>
+        <button class="folder-color-dot"        data-color="purple" style="background:#7b5ea7" onclick="selectFolderColor('purple')"></button>
+        <button class="folder-color-dot"        data-color="green"  style="background:#5a9e78" onclick="selectFolderColor('green')"></button>
+      </div>
+    </div>
+    <div id="create-folder-error" class="setup-error" style="display:none"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-primary" onclick="confirmCreateFolder()">Create Folder</button>
+      <button class="btn btn-ghost" onclick="closeSheet('sheet-create-folder')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
      GLOBAL ELEMENTS
 ══════════════════════════════════════════════ -->
 <div id="toast-container"></div>
@@ -939,7 +1063,7 @@
 <div id="qr-overlay" onclick="closeQRExport()">
   <div class="qr-box" onclick="event.stopPropagation()">
     <div class="qr-title">Transfer Login</div>
-    <div class="qr-subtitle">Scan on another device to sign in. Keep it private.</div>
+    <div class="qr-subtitle">Scan this on another device to restore your account. The code opens Memoir automatically.</div>
     <div id="qr-canvas-wrap"></div>
     <div class="qr-warning">⚠ Contains your access token. Only show it to yourself.</div>
     <button class="btn btn-ghost qr-close" onclick="closeQRExport()">Close</button>
