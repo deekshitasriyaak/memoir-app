@@ -1357,3 +1357,126 @@ input[type=range].clip-slider::-webkit-slider-thumb {
 .token-steps li { margin-bottom: 2px; }
 .token-steps strong { color: var(--text); }
 .token-steps em { color: var(--teal); font-style: normal; }
+
+/* ── FOLDER CARD DECORATIONS ─────────────────────────────────────── */
+/* Horizontal row folder cards */
+.folder-card[data-fdeco]::after {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9;
+  line-height: 1;
+  font-style: normal;
+  right: 6px; top: 6px;
+  transform: rotate(var(--fdr, 0deg));
+  display: block;
+}
+.folder-card[data-fdeco="flower1"]::after { content: '✾'; font-size: 18px; color: #c8914a; opacity: 0.75; }
+.folder-card[data-fdeco="flower2"]::after { content: '❀'; font-size: 16px; color: #b09880; opacity: 0.72; }
+.folder-card[data-fdeco="leaf"]::after    { content: '❧'; font-size: 16px; color: #7a9a6a; opacity: 0.68; }
+.folder-card[data-fdeco="pin"]::after     { content: '●'; font-size: 10px; color: var(--fc-dot, var(--gold)); opacity: 0.90; }
+.folder-card[data-fdeco="star"]::after    { content: '✦'; font-size: 11px; color: #c8a84a; opacity: 0.72; text-shadow: 6px -6px 0 rgba(200,168,74,0.30); }
+
+/* Grid folder cards */
+.folder-grid-card[data-fdeco]::after {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9;
+  line-height: 1;
+  font-style: normal;
+  right: 12px; top: 12px;
+  transform: rotate(var(--fdr, 0deg));
+  display: block;
+}
+.folder-grid-card[data-fdeco="flower1"]::after { content: '✾'; font-size: 26px; color: #c8914a; opacity: 0.72; }
+.folder-grid-card[data-fdeco="flower2"]::after { content: '❀'; font-size: 24px; color: #b09880; opacity: 0.68; }
+.folder-grid-card[data-fdeco="leaf"]::after    { content: '❧'; font-size: 24px; color: #7a9a6a; opacity: 0.65; }
+.folder-grid-card[data-fdeco="pin"]::after     { content: '●'; font-size: 14px; color: var(--fgc-dot, var(--gold)); opacity: 0.88; }
+.folder-grid-card[data-fdeco="star"]::after    { content: '✦'; font-size: 16px; color: #c8a84a; opacity: 0.70; text-shadow: 8px -8px 0 rgba(200,168,74,0.28); }
+
+/* ── FOLDER CHIP — STRONGER SELECTED STATE ───────────────────────── */
+.folder-chip.selected {
+  border-color: var(--chip-dot);
+  border-width: 2px;
+  background: var(--chip-bg);
+  color: var(--text);
+  box-shadow: 0 0 0 2.5px var(--chip-dot), 0 2px 10px rgba(0,0,0,0.28);
+  transform: scale(1.06);
+}
+.folder-chip.selected::after {
+  content: ' ✓';
+  color: var(--chip-dot);
+  font-weight: 700;
+  font-size: 11px;
+  margin-left: 1px;
+}
+
+/* ── FOLDER ADD MEMORIES BUTTON ──────────────────────────────────── */
+.folder-add-memories-btn {
+  font-size: 10px; letter-spacing: 0.5px;
+  color: var(--teal); background: none;
+  border: 1px solid rgba(45,180,180,0.35);
+  border-radius: 12px; padding: 3px 10px;
+  cursor: pointer; font-family: var(--mono);
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.folder-add-memories-btn:active { background: rgba(45,180,180,0.1); }
+
+/* ── FOLDER ADD MULTI-SELECT SHEET ───────────────────────────────── */
+.sheet-tall {
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+.sheet-tall > * { flex-shrink: 0; }
+.folder-add-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 6px;
+}
+.fag-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s;
+}
+.fag-item img, .fag-no-thumb {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.fag-no-thumb { background: var(--surface2, #2a2620); }
+.fag-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s;
+}
+.fag-item.added { cursor: default; opacity: 0.55; }
+.fag-item.added .fag-overlay { background: rgba(0,0,0,0.45); }
+.fag-added-lbl {
+  font-size: 18px; color: rgba(255,255,255,0.75);
+  font-weight: 700; pointer-events: none;
+}
+.fag-item.selected .fag-overlay {
+  background: rgba(0,0,0,0.25);
+  outline: 3px solid var(--gold);
+  outline-offset: -3px;
+}
+.fag-check {
+  width: 26px; height: 26px;
+  background: var(--gold); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--bg);
+  line-height: 1; pointer-events: none;
+}
+.folder-add-footer {
+  padding: 14px 0 0;
+  display: flex; flex-direction: column; gap: 8px;
+  flex-shrink: 0;
+}

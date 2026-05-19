@@ -2842,6 +2842,17 @@ async function loadSharedFolders() {
   } catch { state.sharedFolders = []; }
 }
 
+// Deterministic decoration per folder card
+const _FOLDER_DECO = ['flower1','flower2','leaf','pin','star','none','flower1','none','leaf','star'];
+function folderDecoData(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0x7fff;
+  const type = _FOLDER_DECO[h % _FOLDER_DECO.length];
+  const rots = [-12, -5, 3, 8, 14, -8];
+  const rot  = rots[(h >> 4) % rots.length];
+  return { type, rot };
+}
+
 function renderFolderRow() {
   const allFolders = [
     ...state.personalFolders.map(f => ({ ...f, kind: 'personal' })),
@@ -2850,7 +2861,6 @@ function renderFolderRow() {
   const wrap = document.getElementById('folder-row-wrap');
   const row  = document.getElementById('folder-row');
   if (!wrap || !row) return;
-  // Always show the row so users can create their first folder
   wrap.style.display = '';
   const allCount = (state.posts || []).length;
   row.innerHTML = `
@@ -2860,12 +2870,13 @@ function renderFolderRow() {
       <div class="fc-count">${allCount}</div>
     </div>
     ${allFolders.map(f => {
-      const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+      const c    = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+      const deco = folderDecoData(f.id);
       const count = f.kind === 'personal'
         ? (f.postIds || []).length
         : (f.postCount ?? 0);
       return `<div class="folder-card" onclick="filterByFolder('${esc(f.id)}')" data-fid="${esc(f.id)}"
-                   style="--fc-light:${c.light};--fc-border:${c.border};--fc-dot:${c.bg}">
+                   data-fdeco="${deco.type}" style="--fc-light:${c.light};--fc-border:${c.border};--fc-dot:${c.bg};--fdr:${deco.rot}deg">
         <div class="fc-dot"></div>
         <div class="fc-icon">${f.kind === 'shared' ? '◈' : '⊟'}</div>
         <div class="fc-name">${esc(f.name)}</div>
@@ -2886,6 +2897,11 @@ function filterByFolder(folderId) {
     ? document.querySelector(`.folder-card[data-fid="${folderId}"]`)
     : document.querySelector('.folder-card[data-fid="__all"]');
   card?.classList.add('active');
+
+  // show / hide "Add memories" button
+  state.activeFolderId = folderId || null;
+  const addBtn = document.getElementById('folder-add-memories-btn');
+  if (addBtn) addBtn.style.display = folderId ? '' : 'none';
 
   if (!folderId) {
     state.filteredPosts = state.posts;
@@ -2974,6 +2990,91 @@ function togglePostFolder(folderId, context) {
   ];
   const chipsId = context === 'create' ? 'create-folder-chips' : 'edit-folder-chips';
   renderFolderChips(context, document.getElementById(chipsId), allFolders);
+}
+
+// ── MULTI-SELECT ADD POSTS TO ACTIVE FOLDER ──────────────────────
+let _folderAddSelected = new Set();
+
+function openFolderAddSheet() {
+  const fid = state.activeFolderId; if (!fid) return;
+  const folder = state.personalFolders.find(f => f.id === fid)
+               || state.sharedFolders.find(f => f.id === fid);
+  const nameEl = document.getElementById('folder-add-name');
+  if (nameEl) nameEl.textContent = folder?.name || 'Folder';
+  _folderAddSelected = new Set();
+  renderFolderAddGrid();
+  document.getElementById('folder-add-confirm-btn').disabled = true;
+  document.getElementById('folder-add-confirm-btn').textContent = 'Add to folder';
+  openSheet('sheet-folder-add');
+}
+
+function renderFolderAddGrid() {
+  const grid = document.getElementById('folder-add-grid'); if (!grid) return;
+  const fid  = state.activeFolderId;
+  const folder = state.personalFolders.find(f => f.id === fid);
+  const alreadyIn = new Set(folder?.postIds || []);
+  const allPosts  = state.posts || [];
+
+  grid.innerHTML = allPosts.map(post => {
+    const isAdded    = alreadyIn.has(post.id);
+    const isSelected = _folderAddSelected.has(post.id);
+    let thumbHtml;
+    if (post.thumbnail_b64) {
+      thumbHtml = `<img src="${post.thumbnail_b64}" alt="">`;
+    } else if (post.thumbnail) {
+      const url = `https://raw.githubusercontent.com/${state.auth.username}/${state.auth.repo}/main/${post.thumbnail}`;
+      thumbHtml = `<img src="${url}" alt="">`;
+    } else {
+      thumbHtml = `<div class="fag-no-thumb"></div>`;
+    }
+    const cls = isAdded ? 'fag-item added' : isSelected ? 'fag-item selected' : 'fag-item';
+    const onclick = isAdded ? '' : `onclick="toggleFolderAddPost('${esc(post.id)}')"`;
+    return `<div class="${cls}" ${onclick}>
+      ${thumbHtml}
+      <div class="fag-overlay">
+        ${isAdded ? '<span class="fag-added-lbl">✓</span>' : isSelected ? '<span class="fag-check">✓</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleFolderAddPost(postId) {
+  if (_folderAddSelected.has(postId)) _folderAddSelected.delete(postId);
+  else _folderAddSelected.add(postId);
+  const n = _folderAddSelected.size;
+  const btn = document.getElementById('folder-add-confirm-btn');
+  btn.disabled = n === 0;
+  btn.textContent = n > 0 ? `Add ${n} memor${n === 1 ? 'y' : 'ies'}` : 'Add to folder';
+  renderFolderAddGrid();
+}
+
+async function confirmFolderAdd() {
+  const fid = state.activeFolderId; if (!fid) return;
+  closeSheet('sheet-folder-add');
+  const folder = state.personalFolders.find(f => f.id === fid);
+  const alreadyIn = new Set(folder?.postIds || []);
+  const toAdd = [..._folderAddSelected].filter(id => !alreadyIn.has(id));
+  const skipped = [..._folderAddSelected].filter(id => alreadyIn.has(id));
+
+  if (toAdd.length === 0) {
+    showToast('No new memories to add', 'All selected are already in this folder', 'info');
+    return;
+  }
+
+  if (folder) {
+    if (!folder.postIds) folder.postIds = [];
+    folder.postIds.push(...toAdd);
+    await savePersonalFolders();
+  } else {
+    for (const id of toAdd) await addPostToSharedFolder(fid, id);
+  }
+
+  let msg = `${toAdd.length} memor${toAdd.length === 1 ? 'y' : 'ies'} added`;
+  if (skipped.length) msg += ` · ${skipped.length} already in folder`;
+  showToast(msg, '', 'success');
+  _folderAddSelected = new Set();
+  filterByFolder(fid);
+  renderFolderRow();
 }
 
 // ── ADD EXISTING POST TO FOLDER ───────────────────────────────────
@@ -3140,11 +3241,13 @@ function loadFoldersScreen() {
     return;
   }
   grid.innerHTML = allFolders.map(f => {
-    const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+    const c    = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+    const deco = folderDecoData(f.id);
     const count = f.kind === 'personal' ? (f.postIds || []).length : (f.postCount ?? 0);
     const icon  = f.kind === 'shared' ? '◈' : '⊟';
     return `<div class="folder-grid-card" onclick="filterByFolder('${esc(f.id)}');goBack()"
-                 style="--fgc-light:${c.light};--fgc-border:${c.border};--fgc-dot:${c.bg}">
+                 data-fdeco="${deco.type}"
+                 style="--fgc-light:${c.light};--fgc-border:${c.border};--fgc-dot:${c.bg};--fdr:${deco.rot}deg">
       <div class="fgc-icon">${icon}</div>
       <div class="fgc-dot"></div>
       <div class="fgc-name">${esc(f.name)}</div>

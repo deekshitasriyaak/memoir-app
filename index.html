@@ -348,7 +348,10 @@
   <div class="folder-row-wrap" id="folder-row-wrap" style="display:none">
     <div class="folder-row-header">
       <span class="folder-row-label">FOLDERS</span>
-      <button class="folder-row-viewall" onclick="openFoldersScreen()">VIEW ALL ›</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="folder-add-memories-btn" id="folder-add-memories-btn" onclick="openFolderAddSheet()" style="display:none">＋ Add memories</button>
+        <button class="folder-row-viewall" onclick="openFoldersScreen()">VIEW ALL ›</button>
+      </div>
     </div>
     <div class="folder-row" id="folder-row">
       <!-- injected by renderFolderRow() -->
@@ -940,6 +943,20 @@
     <div class="sheet-actions">
       <button class="btn btn-primary" onclick="confirmUpdateToken()">Save Token</button>
       <button class="btn btn-ghost"   onclick="closeSheet('sheet-update-token')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Multi-select add posts to active folder -->
+<div class="sheet-overlay" id="sheet-folder-add" onclick="closeSheet('sheet-folder-add')">
+  <div class="sheet sheet-tall" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add to "<span id="folder-add-name">Folder</span>"</div>
+    <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px 0">Tap memories to select. Already-added ones show a check.</p>
+    <div id="folder-add-grid" class="folder-add-grid"></div>
+    <div class="folder-add-footer">
+      <button class="btn btn-primary" id="folder-add-confirm-btn" onclick="confirmFolderAdd()" disabled>Add to folder</button>
+      <button class="btn btn-ghost"   onclick="closeSheet('sheet-folder-add')">Cancel</button>
     </div>
   </div>
 </div>
