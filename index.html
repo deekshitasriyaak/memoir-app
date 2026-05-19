@@ -975,6 +975,18 @@
 </div>
 
 <!-- Add existing post to folder -->
+<!-- Folder options (delete, etc.) -->
+<div class="sheet-overlay" id="sheet-folder-options" onclick="closeSheet('sheet-folder-options')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="folder-options-title">Folder</div>
+    <div class="sheet-actions" style="flex-direction:column;gap:10px">
+      <button class="btn btn-danger" onclick="confirmDeleteFolder()" style="width:100%">Delete folder</button>
+      <button class="btn btn-ghost"  onclick="closeSheet('sheet-folder-options')" style="width:100%">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-overlay" id="sheet-add-to-folder" onclick="closeSheet('sheet-add-to-folder')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>

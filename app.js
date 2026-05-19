@@ -1492,6 +1492,7 @@ async function loadFeed() {
     state.filteredPosts = [...state.posts];
     renderFeedFilters();
     renderFeed(state.filteredPosts);
+    initFolderScrollBehavior();
     logEvent('loadFeed', 'success', `${state.posts.length} posts`);
   } catch (err) {
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-title">Couldn't load feed</div><div class="empty-sub">${err.message}</div></div>`;
@@ -1734,19 +1735,7 @@ async function openPost(postId) {
     }
 
     // Folder membership badges
-    const pvFolders = document.getElementById('post-view-folders');
-    if (pvFolders) {
-      const folders = state.personalFolders.filter(f => (f.postIds || []).includes(postId));
-      if (folders.length) {
-        pvFolders.innerHTML = folders.map(f => {
-          const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
-          return `<span class="post-folder-badge" style="--pfd:${c.bg}" onclick="filterByFolder('${esc(f.id)}');goBack()">⊟ ${esc(f.name)}</span>`;
-        }).join('');
-        pvFolders.style.display = 'flex';
-      } else {
-        pvFolders.style.display = 'none';
-      }
-    }
+    renderPostFolderBadges(postId);
 
     // Corner botanical deco on post view
     const decoEl = document.getElementById('post-view-deco');
@@ -2382,6 +2371,82 @@ async function submitEdit() {
     state.editPost = null; goBack();
     setTimeout(() => openPost(postId), 80);
   } catch (err) { showError('Save failed', err); btn.disabled = false; progress.classList.remove('visible'); }
+}
+
+function renderPostFolderBadges(postId) {
+  const pvFolders = document.getElementById('post-view-folders');
+  if (!pvFolders) return;
+  const folders = state.personalFolders.filter(f => (f.postIds || []).includes(postId));
+  if (folders.length) {
+    pvFolders.innerHTML = folders.map(f => {
+      const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+      return `<span class="post-folder-badge" style="--pfd:${c.bg}">
+        <span class="pvfb-label" onclick="filterByFolder('${esc(f.id)}');goBack()">⊟ ${esc(f.name)}</span>
+        <button class="pvfb-remove" onclick="removePostFromFolder('${esc(f.id)}','${esc(postId)}')" title="Remove from folder">✕</button>
+      </span>`;
+    }).join('');
+    pvFolders.style.display = 'flex';
+  } else {
+    pvFolders.style.display = 'none';
+  }
+}
+
+async function removePostFromFolder(folderId, postId) {
+  const folder = state.personalFolders.find(f => f.id === folderId);
+  if (!folder?.postIds) return;
+  folder.postIds = folder.postIds.filter(id => id !== postId);
+  await savePersonalFolders();
+  renderPostFolderBadges(postId);
+  renderFolderRow();
+  // If currently filtered by this folder, re-filter
+  if (state.activeFolderId === folderId) {
+    state._activeFolderPosts = state.posts.filter(p => (folder.postIds || []).includes(p.id));
+  }
+  showToast('Removed from folder', '', 'success');
+}
+
+// ── FOLDER OPTIONS & DELETE ────────────────────────────────────────
+let _folderOptionsId = null;
+function openFolderOptions(folderId, event) {
+  if (event) event.stopPropagation();
+  _folderOptionsId = folderId;
+  const folder = state.personalFolders.find(f => f.id === folderId);
+  const titleEl = document.getElementById('folder-options-title');
+  if (titleEl) titleEl.textContent = folder?.name || 'Folder';
+  openSheet('sheet-folder-options');
+}
+async function confirmDeleteFolder() {
+  const fid = _folderOptionsId; if (!fid) return;
+  closeSheet('sheet-folder-options');
+  const folder = state.personalFolders.find(f => f.id === fid);
+  if (!folder) return;
+  const name = folder.name;
+  state.personalFolders = state.personalFolders.filter(f => f.id !== fid);
+  await savePersonalFolders();
+  if (state.activeFolderId === fid) filterByFolder(null);
+  renderFolderRow();
+  const gridEl = document.getElementById('folders-grid');
+  if (gridEl) loadFoldersScreen();
+  showToast(`"${name}" deleted`, '', 'success');
+}
+
+// ── FOLDER ROW SCROLL COLLAPSE ────────────────────────────────────
+function initFolderScrollBehavior() {
+  const feedBody  = document.getElementById('feed-body');
+  const folderWrap = document.getElementById('folder-row-wrap');
+  if (!feedBody || !folderWrap || feedBody._folderScrollBound) return;
+  feedBody._folderScrollBound = true;
+  let lastY = 0;
+  feedBody.addEventListener('scroll', () => {
+    const y = feedBody.scrollTop;
+    const delta = y - lastY;
+    if (delta > 6 && y > 55) {
+      folderWrap.classList.add('folders-collapsed');
+    } else if (delta < -4) {
+      folderWrap.classList.remove('folders-collapsed');
+    }
+    lastY = y;
+  }, { passive: true });
 }
 
 // ── MUSIC LIBRARY ─────────────────────────────────────────────────
@@ -3351,6 +3416,7 @@ function loadFoldersScreen() {
            data-fdeco="${deco.type}"
            style="--fgc-light:${c.light};--fgc-border:${c.border};--fgc-dot:${c.bg};--fdr:${deco.rot}deg">
         <div class="fgc-cover-wrap">${coverHtml}</div>
+        ${f.kind === 'personal' ? `<button class="fgc-options-btn" onclick="openFolderOptions('${esc(f.id)}',event)">⋯</button>` : ''}
         <div class="fgc-info">
           <div class="fgc-name">${esc(f.name)}</div>
           <div class="fgc-meta">
