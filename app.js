@@ -29,6 +29,7 @@ const state = {
   editFolderUrls:   {},
   feedDateFilter:       null,
   feedLocationFilter:   null,
+  _activeFolderPosts:   null, // base post list when a folder is selected
   musicQuery:           '',
   friends:          {},   // { username: { username, repo, readToken, networkOwner, networkRepo, addedAt } }
   inboxByFriend:    {},   // { username: [shareEntry, ...] }
@@ -1606,7 +1607,8 @@ async function feedThumbFallback(img, thumbPath) {
 function handleSearch(query) { applyFeedFilters(); }
 function applyFeedFilters() {
   const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
-  state.filteredPosts = state.posts.filter(p => {
+  const base = state._activeFolderPosts || state.posts;
+  state.filteredPosts = base.filter(p => {
     if (q) {
       const inCaption  = (p.captionPreview || '').toLowerCase().includes(q);
       const inLocation = (p.location || '').toLowerCase().includes(q);
@@ -2876,7 +2878,7 @@ async function loadPersonalFolders() {
 
 async function savePersonalFolders() {
   try {
-    await ghPutFile('folders-personal.json', state.personalFolders, null, 'memoir: update personal folders');
+    await ghUpdateIndexRetry('folders-personal.json', () => state.personalFolders, 'memoir: update personal folders');
   } catch (err) { showError('Could not save folders', err); }
 }
 
@@ -2978,22 +2980,25 @@ function filterByFolder(folderId) {
   if (addBtn) addBtn.style.display = folderId ? '' : 'none';
 
   if (!folderId) {
+    state._activeFolderPosts = null;
     state.filteredPosts = state.posts;
-    renderFeed(state.filteredPosts);
+    applyFeedFilters();
     return;
   }
   // personal folder filter
   const personal = state.personalFolders.find(f => f.id === folderId);
   if (personal) {
     const ids = new Set(personal.postIds || []);
-    state.filteredPosts = state.posts.filter(p => ids.has(p.id));
-    renderFeed(state.filteredPosts);
+    state._activeFolderPosts = state.posts.filter(p => ids.has(p.id));
+    state.filteredPosts = state._activeFolderPosts;
+    applyFeedFilters();
     return;
   }
   // shared folder — load from network and render
   loadSharedFolderPosts(folderId).then(posts => {
+    state._activeFolderPosts = posts;
     state.filteredPosts = posts;
-    renderFeed(posts);
+    applyFeedFilters();
   });
 }
 
