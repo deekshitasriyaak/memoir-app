@@ -1247,3 +1247,17 @@ input[type=range].clip-slider::-webkit-slider-thumb {
   transform: scale(1.18);
 }
 .folder-color-dot:active { transform: scale(0.9); }
+
+/* New folder card in the row */
+.folder-card-new {
+  border-style: dashed;
+  border-color: var(--border2);
+  background: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; min-height: 80px;
+}
+.folder-card-new:active { background: var(--surface); }
+.fc-new-icon {
+  font-size: 22px; color: var(--text-faint); line-height: 1;
+  margin-bottom: 2px;
+}

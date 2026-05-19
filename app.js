@@ -2335,16 +2335,9 @@ async function loadMusicLibrary() {
   list.innerHTML = `<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:13px">Loading…</div>`;
   const src = musicSource();
   try {
-    // Network badge
+    // Network badge — hidden, no label shown
     const banner = document.getElementById('music-network-banner');
-    if (banner) {
-      if (src === 'network') {
-        banner.style.display = 'block';
-        banner.innerHTML = `<div class="music-network-badge">◈ Shared Library · ${state.auth.networkOwner}/${state.auth.networkRepo || 'memoir-shared'}</div>`;
-      } else {
-        banner.style.display = 'none';
-      }
-    }
+    if (banner) banner.style.display = 'none';
     const idx = await DataSource.get(src, 'music/music-index.json');
     state.musicIndex = Array.isArray(idx) ? idx : [];
     state.musicQuery = document.getElementById('music-search-input')?.value?.toLowerCase().trim() || '';
@@ -2818,7 +2811,7 @@ function renderFolderRow() {
   const wrap = document.getElementById('folder-row-wrap');
   const row  = document.getElementById('folder-row');
   if (!wrap || !row) return;
-  if (!allFolders.length) { wrap.style.display = 'none'; return; }
+  // Always show the row so users can create their first folder
   wrap.style.display = '';
   const allCount = (state.posts || []).length;
   row.innerHTML = `
@@ -2840,6 +2833,10 @@ function renderFolderRow() {
         <div class="fc-count">${count}</div>
       </div>`;
     }).join('')}
+    <div class="folder-card folder-card-new" onclick="openCreateFolderSheet('feed')">
+      <div class="fc-new-icon">+</div>
+      <div class="fc-name" style="color:var(--text-muted)">New folder</div>
+    </div>
   `;
 }
 

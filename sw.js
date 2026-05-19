@@ -1,4 +1,4 @@
-const VERSION = 'memoir-v4';
+const VERSION = 'memoir-v5';
 
 // Only cache static assets — NEVER cache index.html so updates are instant
 const SHELL_ASSETS = [
@@ -33,9 +33,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // index.html — always network-first so updates are instant
-  if (url.pathname === '/' || url.pathname === '/index.html') {
-    event.respondWith(fetch(event.request).catch(() => caches.match('/index.html')));
+  // Core app files — always network-first so updates are instant
+  if (url.pathname === '/' || url.pathname === '/index.html' ||
+      url.pathname === '/app.js' || url.pathname === '/styles.css') {
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
     return;
   }
 
