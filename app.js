@@ -1512,10 +1512,12 @@ const _DECO_TYPES = ['none','f1','f2','f3','leaf','tape','star','none','f1','non
 function cardDecoData(id) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0x7fff;
-  const type = _DECO_TYPES[h % _DECO_TYPES.length];
-  const rots = [-14, -8, -3, 5, 10, 16, -10, 7];
-  const rot  = rots[(h >> 4) % rots.length];
-  return { type, rot };
+  const type  = _DECO_TYPES[h % _DECO_TYPES.length];
+  const rots  = [-14, -8, -3, 5, 10, 16, -10, 7];
+  const rot   = rots[(h >> 4) % rots.length];
+  const tilts = [-0.7, -0.3, 0, 0, 0.3, 0.6, -0.5, 0.4];
+  const tilt  = tilts[(h >> 8) % tilts.length];
+  return { type, rot, tilt };
 }
 
 function renderPostCard(post) {
@@ -1533,10 +1535,9 @@ function renderPostCard(post) {
       : `<div class="feed-card-no-thumb"></div>`;
   }
   const decoAttr  = deco.type !== 'none' ? ` data-deco="${deco.type}"` : '';
-  const decoStyle = ` style="--dr:${deco.rot}deg"`;
   const tapeEl    = deco.type === 'tape' ? `<div class="card-tape"></div>` : '';
-  return `<div class="feed-card" onclick="openPost('${post.id}')">
-    <div class="feed-card-photo"${decoAttr}${decoStyle}>
+  return `<div class="feed-card" style="--ct:${deco.tilt}deg" onclick="openPost('${post.id}')">
+    <div class="feed-card-photo"${decoAttr} style="--dr:${deco.rot}deg">
       ${tapeEl}
       ${thumbHtml}
       <div class="feed-card-badges">
@@ -1722,6 +1723,29 @@ async function openPost(postId) {
     if (meta.location) {
       document.getElementById('post-view-location').style.display = 'flex';
       document.getElementById('post-view-location-text').textContent = meta.location;
+    }
+
+    // Folder membership badges
+    const pvFolders = document.getElementById('post-view-folders');
+    if (pvFolders) {
+      const folders = state.personalFolders.filter(f => (f.postIds || []).includes(postId));
+      if (folders.length) {
+        pvFolders.innerHTML = folders.map(f => {
+          const c = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+          return `<span class="post-folder-badge" style="--pfd:${c.bg}" onclick="filterByFolder('${esc(f.id)}');goBack()">⊟ ${esc(f.name)}</span>`;
+        }).join('');
+        pvFolders.style.display = 'flex';
+      } else {
+        pvFolders.style.display = 'none';
+      }
+    }
+
+    // Corner botanical deco on post view
+    const decoEl = document.getElementById('post-view-deco');
+    if (decoEl) {
+      const d = cardDecoData(postId);
+      decoEl.dataset.deco = d.type;
+      decoEl.style.setProperty('--dr', `${d.rot}deg`);
     }
 
     if (meta.song?.filename) {
