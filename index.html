@@ -425,6 +425,7 @@
 
       <div class="post-view-actions" id="post-view-actions">
         <button class="btn btn-ghost"   onclick="openEditPost()">Edit</button>
+        <button class="btn btn-ghost"   onclick="openAddToFolderSheet()">+ Folder</button>
         <button class="btn btn-ghost"   onclick="openShareSheet()" id="btn-share-post">Share</button>
         <button class="btn btn-danger"  onclick="openDeleteSheet()">Delete</button>
       </div>
@@ -930,6 +931,7 @@
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="update-token-title">Update Token</div>
     <div class="sheet-msg" id="update-token-msg"></div>
+    <div id="update-token-instructions" class="token-instructions"></div>
     <div class="field">
       <label class="field-label">New Token</label>
       <input class="field-input" id="update-token-input" type="password" placeholder="ghp_••••••••••••••••••"
@@ -938,6 +940,20 @@
     <div class="sheet-actions">
       <button class="btn btn-primary" onclick="confirmUpdateToken()">Save Token</button>
       <button class="btn btn-ghost"   onclick="closeSheet('sheet-update-token')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add existing post to folder -->
+<div class="sheet-overlay" id="sheet-add-to-folder" onclick="closeSheet('sheet-add-to-folder')">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add to Folder</div>
+    <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px">Select the folders you want this memory to appear in.</p>
+    <div id="add-to-folder-chips" style="display:flex;flex-wrap:wrap;gap:8px;padding-bottom:4px"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-primary" onclick="confirmAddToFolder()">Save</button>
+      <button class="btn btn-ghost"   onclick="closeSheet('sheet-add-to-folder')">Cancel</button>
     </div>
   </div>
 </div>

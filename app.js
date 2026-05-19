@@ -497,6 +497,10 @@ function updateTokenStatusUI() {
   if (el1) el1.textContent = statusText(state.tokenHealth[1] || (state.auth?.token1 ? 'ok' : ''));
   if (el2) el2.textContent = statusText(state.tokenHealth[2] || (state.auth?.token2 ? 'ok' : '– Not set'));
   if (el3) el3.textContent = statusText(state.tokenHealth[3] || (state.auth?.token3 ? 'ok' : '– Not set'));
+  // Token 3 is only relevant for network owners — hide for users who joined via invite
+  const isOwner = !state.auth?.networkOwner || state.auth.networkOwner === state.auth?.username;
+  const token3Row = el3?.closest('.settings-item');
+  if (token3Row) token3Row.style.display = isOwner ? '' : 'none';
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────
@@ -1503,8 +1507,20 @@ function renderFeed(posts) {
   lazyLoadVideoThumbs();
 }
 
+// Deterministic decoration per card — stable across renders, based on post id hash
+const _DECO_TYPES = ['none','f1','f2','f3','leaf','tape','star','none','f1','none'];
+function cardDecoData(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0x7fff;
+  const type = _DECO_TYPES[h % _DECO_TYPES.length];
+  const rots = [-14, -8, -3, 5, 10, 16, -10, 7];
+  const rot  = rots[(h >> 4) % rots.length];
+  return { type, rot };
+}
+
 function renderPostCard(post) {
-  const date     = formatDate(post.date);
+  const date = formatDate(post.date);
+  const deco = cardDecoData(post.id);
   let thumbHtml;
   if (post.thumbnail_b64) {
     thumbHtml = `<img src="${post.thumbnail_b64}" alt="">`;
@@ -1516,8 +1532,12 @@ function renderPostCard(post) {
       ? `<div class="feed-card-no-thumb feed-card-vid-pending" data-vid-post="${post.id}"></div>`
       : `<div class="feed-card-no-thumb"></div>`;
   }
+  const decoAttr  = deco.type !== 'none' ? ` data-deco="${deco.type}"` : '';
+  const decoStyle = ` style="--dr:${deco.rot}deg"`;
+  const tapeEl    = deco.type === 'tape' ? `<div class="card-tape"></div>` : '';
   return `<div class="feed-card" onclick="openPost('${post.id}')">
-    <div class="feed-card-photo">
+    <div class="feed-card-photo"${decoAttr}${decoStyle}>
+      ${tapeEl}
       ${thumbHtml}
       <div class="feed-card-badges">
         ${post.mediaCount > 1 ? `<div class="feed-badge">1/${post.mediaCount}</div>` : ''}
@@ -2613,11 +2633,30 @@ function confirmRemoveFriend(username) {
 let _updateTokenN = 0;
 function openUpdateToken(n) {
   _updateTokenN = n;
-  const labels = { 2: 'Read-Only Token (Token 2)', 3: 'Network Token (Token 3)' };
-  const msgs   = { 2: 'Update your read-only token so friends can continue to see your shared posts.', 3: 'Update your network token to restore music library and sharing access.' };
-  document.getElementById('update-token-title').textContent = `Update Token ${n}`;
-  document.getElementById('update-token-msg').textContent   = msgs[n] || '';
-  document.getElementById('update-token-input').value       = '';
+  const titles = { 2: 'Update Read-Only Token', 3: 'Update Network Token' };
+  const msgs   = { 2: 'Your read-only token lets friends view your shared posts.', 3: 'Your network token enables the music library and shared folders.' };
+  const instructions = {
+    2: `<ol class="token-steps">
+      <li>Open <strong>github.com</strong> → your profile → <strong>Settings</strong></li>
+      <li>Scroll to <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Fine-grained tokens</strong></li>
+      <li>Click <strong>Generate new token</strong></li>
+      <li>Under <strong>Repository access</strong>, select your memoir repo only</li>
+      <li>Under <strong>Permissions → Repository permissions → Contents</strong>, choose <strong>Read-only</strong></li>
+      <li>Click <strong>Generate token</strong>, copy it and paste below</li>
+    </ol>`,
+    3: `<ol class="token-steps">
+      <li>Open <strong>github.com</strong> → your profile → <strong>Settings</strong></li>
+      <li>Scroll to <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Fine-grained tokens</strong></li>
+      <li>Click <strong>Generate new token</strong></li>
+      <li>Under <strong>Repository access</strong>, select your <em>shared / network</em> repo</li>
+      <li>Under <strong>Permissions → Repository permissions → Contents</strong>, choose <strong>Read and write</strong></li>
+      <li>Click <strong>Generate token</strong>, copy it and paste below</li>
+    </ol>`
+  };
+  document.getElementById('update-token-title').textContent         = titles[n] || `Update Token ${n}`;
+  document.getElementById('update-token-msg').textContent           = msgs[n] || '';
+  document.getElementById('update-token-instructions').innerHTML    = instructions[n] || '';
+  document.getElementById('update-token-input').value               = '';
   openSheet('sheet-update-token');
 }
 async function confirmUpdateToken() {
@@ -2898,8 +2937,15 @@ function initFolderChips(context) {
   if (!section || !chipsEl) return;
   if (!allFolders.length) { section.style.display = 'none'; return; }
   section.style.display = '';
-  if (context === 'create') state._createPostFolders = [];
-  else state._editPostFolders = [];
+  if (context === 'create') {
+    state._createPostFolders = [];
+  } else {
+    // Pre-select folders this post already belongs to
+    const postId = state.editPost?.postId;
+    state._editPostFolders = postId
+      ? state.personalFolders.filter(f => (f.postIds || []).includes(postId)).map(f => f.id)
+      : [];
+  }
   renderFolderChips(context, chipsEl, allFolders);
 }
 
@@ -2928,6 +2974,71 @@ function togglePostFolder(folderId, context) {
   ];
   const chipsId = context === 'create' ? 'create-folder-chips' : 'edit-folder-chips';
   renderFolderChips(context, document.getElementById(chipsId), allFolders);
+}
+
+// ── ADD EXISTING POST TO FOLDER ───────────────────────────────────
+let _addToFolderPostId  = null;
+let _addToFolderSelected = [];
+
+function openAddToFolderSheet() {
+  const meta = state.currentPost; if (!meta) return;
+  const allFolders = [
+    ...state.personalFolders.map(f => ({ ...f, kind: 'personal' })),
+    ...state.sharedFolders.map(f => ({ ...f, kind: 'shared' })),
+  ];
+  if (!allFolders.length) {
+    showToast('No folders yet', 'Create a folder first from the feed', 'info'); return;
+  }
+  _addToFolderPostId   = meta.id;
+  _addToFolderSelected = state.personalFolders
+    .filter(f => (f.postIds || []).includes(meta.id))
+    .map(f => f.id);
+  renderAddToFolderChips(allFolders);
+  openSheet('sheet-add-to-folder');
+}
+
+function renderAddToFolderChips(allFolders) {
+  const el = document.getElementById('add-to-folder-chips'); if (!el) return;
+  el.innerHTML = allFolders.map(f => {
+    const c   = FOLDER_COLORS[f.color] || FOLDER_COLORS.gold;
+    const sel = _addToFolderSelected.includes(f.id);
+    return `<button class="folder-chip${sel ? ' selected' : ''}"
+              onclick="toggleAddToFolderChip('${esc(f.id)}')"
+              style="--chip-bg:${c.light};--chip-border:${c.border};--chip-dot:${c.bg}">
+      <span class="chip-dot"></span>${esc(f.name)}
+      ${f.kind === 'shared' ? '<span class="chip-shared-icon">◈</span>' : ''}
+    </button>`;
+  }).join('');
+}
+
+function toggleAddToFolderChip(folderId) {
+  const idx = _addToFolderSelected.indexOf(folderId);
+  if (idx === -1) _addToFolderSelected.push(folderId); else _addToFolderSelected.splice(idx, 1);
+  const allFolders = [
+    ...state.personalFolders.map(f => ({ ...f, kind: 'personal' })),
+    ...state.sharedFolders.map(f => ({ ...f, kind: 'shared' })),
+  ];
+  renderAddToFolderChips(allFolders);
+}
+
+async function confirmAddToFolder() {
+  if (!_addToFolderPostId) return;
+  closeSheet('sheet-add-to-folder');
+  let personalChanged = false;
+  for (const fid of _addToFolderSelected) {
+    const personal = state.personalFolders.find(f => f.id === fid);
+    if (personal) {
+      if (!personal.postIds) personal.postIds = [];
+      if (!personal.postIds.includes(_addToFolderPostId)) {
+        personal.postIds.push(_addToFolderPostId); personalChanged = true;
+      }
+    } else {
+      await addPostToSharedFolder(fid, _addToFolderPostId);
+    }
+  }
+  if (personalChanged) await savePersonalFolders();
+  showToast('Saved to folder', '', 'success');
+  renderFolderRow();
 }
 
 async function applyFolderSelections(postId, context) {

@@ -1261,3 +1261,99 @@ input[type=range].clip-slider::-webkit-slider-thumb {
   font-size: 22px; color: var(--text-faint); line-height: 1;
   margin-bottom: 2px;
 }
+
+/* ── CARD DECORATIONS ─────────────────────────────────────────────── */
+.feed-card-photo { overflow: visible; }
+
+/* Tape strip across top of polaroid */
+.card-tape {
+  position: absolute;
+  top: -8px; left: 50%;
+  transform: translateX(-50%) rotate(var(--dr, 0deg));
+  width: 60px; height: 22px;
+  background: rgba(230, 210, 100, 0.42);
+  border-radius: 3px;
+  z-index: 8;
+  pointer-events: none;
+}
+.card-tape::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent, transparent 4px,
+    rgba(190,160,40,0.12) 4px, rgba(190,160,40,0.12) 5px
+  );
+}
+
+/* Flower / leaf / star overlays */
+.feed-card-photo[data-deco]::after {
+  position: absolute;
+  pointer-events: none;
+  z-index: 7;
+  line-height: 1;
+  font-style: normal;
+  display: block;
+}
+.feed-card-photo[data-deco="f1"]::after {
+  content: '✾';
+  bottom: -14px; right: 6px;
+  font-size: 30px;
+  color: #c8914a;
+  opacity: 0.84;
+  transform: rotate(var(--dr, 12deg));
+}
+.feed-card-photo[data-deco="f2"]::after {
+  content: '❀';
+  bottom: -11px; left: 5px;
+  font-size: 26px;
+  color: #b09880;
+  opacity: 0.76;
+  transform: rotate(var(--dr, -8deg));
+}
+.feed-card-photo[data-deco="f3"]::after {
+  content: '✿';
+  bottom: -12px; right: 4px;
+  font-size: 24px;
+  color: #d4b070;
+  opacity: 0.80;
+  transform: rotate(var(--dr, 15deg));
+}
+.feed-card-photo[data-deco="leaf"]::after {
+  content: '❧';
+  bottom: -10px; right: 5px;
+  font-size: 26px;
+  color: #7a9a6a;
+  opacity: 0.70;
+  transform: rotate(var(--dr, 5deg));
+}
+.feed-card-photo[data-deco="star"]::after {
+  content: '✦';
+  bottom: 10px; right: 8px;
+  font-size: 12px;
+  color: #c8a84a;
+  opacity: 0.72;
+  transform: rotate(var(--dr, 0deg));
+  text-shadow: 9px -9px 0 rgba(200,168,74,0.38);
+}
+
+/* ── TOKEN INSTRUCTIONS ─────────────────────────────────────────── */
+.token-instructions {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+}
+.token-instructions:empty { display: none; }
+.token-steps {
+  margin: 0; padding: 0 0 0 18px;
+  list-style: decimal;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.token-steps li { margin-bottom: 2px; }
+.token-steps strong { color: var(--text); }
+.token-steps em { color: var(--teal); font-style: normal; }
