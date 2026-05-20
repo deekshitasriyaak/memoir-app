@@ -59,6 +59,12 @@
       </div>
       <div class="setup-error" id="owner-error-1" style="display:none"></div>
       <div class="field">
+        <label class="field-label">Your Name</label>
+        <input class="field-input" id="owner-display-name" type="text" placeholder="how you'll appear to friends"
+               autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" maxlength="40">
+        <div class="field-hint">Shown to friends. You can change this later in Settings.</div>
+      </div>
+      <div class="field">
         <label class="field-label">GitHub Username</label>
         <input class="field-input" id="owner-username" type="text" placeholder="yourname"
                autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
@@ -204,6 +210,12 @@
         <label class="field-label">Invite Code</label>
         <input class="field-input" id="friend-invite-code" type="text" placeholder="paste code here…"
                autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field-label">Your Name</label>
+        <input class="field-input" id="friend-display-name" type="text" placeholder="how you'll appear to friends"
+               autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" maxlength="40">
+        <div class="field-hint">Shown to friends. You can change this later in Settings.</div>
       </div>
       <div class="field">
         <label class="field-label">Your GitHub Username</label>
@@ -734,6 +746,7 @@
         <div class="settings-item">
           <span class="si-label">Token 1 (full access)</span>
           <span class="si-value" id="si-token1-status">—</span>
+          <button class="si-action-btn" onclick="openUpdateToken(1)" id="si-token1-btn">Update</button>
         </div>
         <div class="settings-item">
           <span class="si-label">Token 2 (read-only)</span>

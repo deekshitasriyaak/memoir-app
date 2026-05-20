@@ -286,13 +286,20 @@ body { background: #050403; }
 .feed-card {
   cursor: pointer;
   background: #f5efe4;
-  padding: 7px 7px 14px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35);
-  border-bottom: 2px solid rgba(93,63,106,0.28);
+  padding: 7px 7px 16px;
+  box-shadow:
+    0 10px 32px rgba(0,0,0,0.7),
+    0 3px 10px rgba(0,0,0,0.45),
+    2px 2px 0 rgba(220,195,155,0.18),
+    -1px -1px 0 rgba(70,50,30,0.3),
+    inset 0 0 0 1px rgba(190,165,125,0.12);
+  border-bottom: 2px solid rgba(80,50,90,0.32);
+  border-right: 1px solid rgba(80,50,90,0.14);
   transition: transform 0.15s, opacity 0.15s;
   position: relative;
+  isolation: isolate;
 }
-.feed-card:active { opacity: 0.82; transform: scale(0.97); }
+.feed-card:active { opacity: 0.82; transform: rotate(var(--ct,0deg)) scale(0.96); }
 
 .feed-card-photo {
   position: relative;
@@ -1060,6 +1067,9 @@ input[type=range].clip-slider::-webkit-slider-thumb {
   overflow: hidden;
   max-height: 180px;
   transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, border-color 0.22s ease;
+  transform: translateZ(0);
+  will-change: transform;
+  contain: layout style;
 }
 .folder-row-wrap.folders-collapsed {
   max-height: 0;
@@ -1762,3 +1772,131 @@ input[type=range].clip-slider::-webkit-slider-thumb {
 }
 .post-view-deco[data-deco="tape"],
 .post-view-deco[data-deco="none"] { opacity: 0; }
+
+/* ══════════════════════════════════════════════
+   WORN POLAROID — STRONGER AGED EFFECT
+══════════════════════════════════════════════ */
+
+/* Override base tilt and shadow from earlier rules */
+.feed-card {
+  transform: rotate(var(--ct, 0deg));
+}
+
+/* Thicker worn frame edges — simulate curled/bent paper */
+.feed-card::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 4;
+  pointer-events: none;
+  border-radius: inherit;
+  /* Subtle warm-toned aging overlay on the whole card */
+  background: linear-gradient(
+    145deg,
+    rgba(200,170,120,0.06) 0%,
+    transparent 40%,
+    rgba(80,50,30,0.04) 100%
+  );
+}
+
+/* Exposed film border — thin off-white inner edge on photo */
+.feed-card-photo::after {
+  box-shadow: inset 0 0 0 2px rgba(245,235,215,0.28);
+}
+
+/* Heavier corner darkening vignette + aged warm center */
+.feed-card-photo::before {
+  background:
+    radial-gradient(ellipse at 0%   0%,   rgba(20,10,5,0.42) 0%, transparent 42%),
+    radial-gradient(ellipse at 100% 0%,   rgba(20,10,5,0.36) 0%, transparent 38%),
+    radial-gradient(ellipse at 100% 100%, rgba(20,10,5,0.44) 0%, transparent 44%),
+    radial-gradient(ellipse at 0%   100%, rgba(20,10,5,0.46) 0%, transparent 44%),
+    radial-gradient(ellipse at 50%  50%,  rgba(255,220,150,0.04) 0%, transparent 70%);
+}
+
+/* Stronger paper grain lines on caption strip */
+.feed-card-info {
+  background-image:
+    repeating-linear-gradient(
+      0deg, transparent, transparent 11px,
+      rgba(120,90,60,0.07) 11px, rgba(120,90,60,0.07) 12px
+    ),
+    repeating-linear-gradient(
+      90deg, transparent, transparent 22px,
+      rgba(140,110,80,0.02) 22px, rgba(140,110,80,0.02) 23px
+    );
+}
+
+/* Extend caption strip slightly and add aged-type feel to date */
+.feed-card-date {
+  color: #7a5a40;
+  letter-spacing: 1.5px;
+}
+.feed-card-caption {
+  color: #2e2010;
+}
+
+/* ══════════════════════════════════════════════
+   MORE AESTHETIC DECORATIVES — BOTANICAL
+   across empty states, headers, setup screens
+══════════════════════════════════════════════ */
+
+/* Feed header — faint botanical watermark top-right */
+.app-header::after {
+  content: '';
+  position: absolute;
+  right: -6px; top: -4px;
+  width: 72px; height: 72px;
+  background-image: url('/assets/deco/botanical.png');
+  background-size: 300% auto;
+  background-position: 92% 14%;
+  background-repeat: no-repeat;
+  opacity: 0.055;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+
+/* Empty feed state */
+.empty-state {
+  position: relative;
+}
+
+/* Setup screens */
+.setup-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+
+/* Folder screen header botanical accent */
+#screen-folders .app-header::after {
+  background-position: 45% 68%;
+  opacity: 0.07;
+}
+
+/* Settings screen — mystic star deco top-right */
+#screen-settings .app-header::after {
+  background-image: url('/assets/deco/mystic.png');
+  background-size: 200% auto;
+  background-position: 60% 20%;
+  opacity: 0.07;
+}
+
+
+/* Invite code box — small star sparkle */
+.invite-code-box {
+  position: relative;
+  overflow: hidden;
+}
+.invite-code-box::after {
+  content: '';
+  position: absolute;
+  right: 8px; top: 8px;
+  width: 50px; height: 50px;
+  background-image: url('/assets/deco/mystic.png');
+  background-size: 220% auto;
+  background-position: 85% 15%;
+  background-repeat: no-repeat;
+  opacity: 0.2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}

@@ -457,11 +457,13 @@ function dismissBanner(id) {
 
 async function checkTokenHealth() {
   if (!state.auth) return;
+  const isOwner = !state.auth.networkOwner || state.auth.networkOwner === state.auth.username;
+
   // Check token1
   try {
     const res = await fetch(`${GITHUB_API}/user`, { headers: { Authorization: `Bearer ${state.auth.token1}` } });
     state.tokenHealth[1] = res.ok ? 'ok' : 'bad';
-    if (!res.ok) showBanner('token1', '⚠ Token 1 (full access) appears expired — update it in Settings.', 'error');
+    if (!res.ok) showBanner('token1', '⚠ Token 1 (full access) appears expired — tap to update in Settings.', 'error');
   } catch { state.tokenHealth[1] = 'warn'; }
 
   // Check token2
@@ -472,11 +474,14 @@ async function checkTokenHealth() {
         { headers: { Authorization: `Bearer ${state.auth.token2}` } }
       );
       state.tokenHealth[2] = res.ok ? 'ok' : 'bad';
-      if (!res.ok) showBanner('token2', '⚠ Token 2 (read-only) is expired — friends cannot see your shares. Update in Settings.', 'warn');
+      if (!res.ok) showBanner('token2', '⚠ Token 2 (read-only) expired — friends can\'t see your posts. Update in Settings.', 'warn');
     } catch { state.tokenHealth[2] = 'warn'; }
+  } else {
+    state.tokenHealth[2] = '';
+    showBanner('token2-missing', '⚠ Token 2 not set — friends won\'t be able to read your posts. Add it in Settings.', 'warn');
   }
 
-  // Check token3
+  // Check token3 (network owners only)
   if (state.auth.token3 && state.auth.networkOwner) {
     try {
       const res = await fetch(
@@ -484,11 +489,23 @@ async function checkTokenHealth() {
         { headers: { Authorization: `Bearer ${state.auth.token3}` } }
       );
       state.tokenHealth[3] = res.ok ? 'ok' : 'bad';
-      if (!res.ok) showBanner('token3', '⚠ Token 3 (network) is expired — music and sharing unavailable. Update in Settings.', 'warn');
+      if (!res.ok) showBanner('token3', '⚠ Token 3 (network) expired — music and sharing unavailable. Update in Settings.', 'warn');
     } catch { state.tokenHealth[3] = 'warn'; }
+  } else if (isOwner && !state.auth.token3) {
+    state.tokenHealth[3] = '';
+    showBanner('token3-missing', '⚠ Token 3 not set — music library and network features unavailable. Add it in Settings.', 'warn');
   }
 
   updateTokenStatusUI();
+
+  // Warn if display name clashes with a connected friend
+  if (state.auth.displayName) {
+    const clash = Object.values(state.friends || {}).find(f =>
+      (f.displayName || f.username || '').toLowerCase() === state.auth.displayName.toLowerCase()
+      && f.username !== state.auth.username
+    );
+    if (clash) showBanner('name-clash', `⚠ Your name "${state.auth.displayName}" matches a friend's — consider changing it in Settings.`, 'warn');
+  }
 }
 
 function updateTokenStatusUI() {
@@ -695,9 +712,11 @@ function ownerShowError(n, msg) {
 }
 
 async function ownerStep1Next() {
-  const username = document.getElementById('owner-username').value.trim();
-  const repo     = document.getElementById('owner-repo').value.trim() || 'memoir-data';
-  const token1   = document.getElementById('owner-token1').value.trim();
+  const displayName = document.getElementById('owner-display-name').value.trim();
+  const username    = document.getElementById('owner-username').value.trim();
+  const repo        = document.getElementById('owner-repo').value.trim() || 'memoir-data';
+  const token1      = document.getElementById('owner-token1').value.trim();
+  if (!displayName) { ownerShowError(1, 'Please enter your name.'); return; }
   if (!username || !token1) { ownerShowError(1, 'Username and token are required.'); return; }
 
   // Disable inputs
@@ -732,7 +751,7 @@ async function ownerStep1Next() {
     await new Promise(r => setTimeout(r, 300));
 
     state.auth = tmpState;
-    state._setupOwnerData = { ...state._setupOwnerData, username, repo, token1 };
+    state._setupOwnerData = { ...state._setupOwnerData, username, repo, token1, displayName };
     document.getElementById('s2-repo-hint').textContent = repo;
     document.getElementById('owner-connecting-1').style.display = 'none';
     ownerStep(2);
@@ -801,6 +820,7 @@ async function ownerStep4Next() {
   // Finalize auth and save
   state.auth = {
     username: d.username, repo: d.repo, email,
+    displayName: d.displayName || null,
     networkOwner: d.networkOwner, networkRepo: d.networkRepo,
     token1: d.token1, token2: d.token2, token3: d.token3,
     token: d.token1,
@@ -812,6 +832,7 @@ async function ownerStep4Next() {
   try {
     await ghPutFile('public-card.json', {
       username: d.username, repo: d.repo, readToken: d.token2,
+      displayName: d.displayName || null,
       networkOwner: d.networkOwner, networkRepo: d.networkRepo,
       updatedAt: new Date().toISOString(),
     }, null, 'memoir: publish public card');
@@ -866,14 +887,16 @@ function friendShowError(n, msg) {
 }
 
 async function friendStep1Next() {
-  const rawCode = document.getElementById('friend-invite-code').value.trim();
-  const username = document.getElementById('friend-username').value.trim();
-  const repo     = document.getElementById('friend-repo').value.trim() || 'memoir-data';
-  const token1   = document.getElementById('friend-token1').value.trim();
+  const rawCode     = document.getElementById('friend-invite-code').value.trim();
+  const displayName = document.getElementById('friend-display-name').value.trim();
+  const username    = document.getElementById('friend-username').value.trim();
+  const repo        = document.getElementById('friend-repo').value.trim() || 'memoir-data';
+  const token1      = document.getElementById('friend-token1').value.trim();
 
-  if (!rawCode)   { friendShowError(1, 'Invite code is required.'); return; }
-  if (!username)  { friendShowError(1, 'Username is required.'); return; }
-  if (!token1)    { friendShowError(1, 'Token 1 is required.'); return; }
+  if (!rawCode)     { friendShowError(1, 'Invite code is required.'); return; }
+  if (!displayName) { friendShowError(1, 'Please enter your name.'); return; }
+  if (!username)    { friendShowError(1, 'Username is required.'); return; }
+  if (!token1)      { friendShowError(1, 'Token 1 is required.'); return; }
 
   const invite = decodeCode(rawCode);
   if (!invite?.networkOwner || !invite?.invitedBy) { friendShowError(1, 'Invalid invite code. Ask your friend to share it again.'); return; }
@@ -903,7 +926,7 @@ async function friendStep1Next() {
     adv();
     await new Promise(r => setTimeout(r, 300));
 
-    state._setupFriendData = { ...state._setupFriendData, username, repo, token1, invite };
+    state._setupFriendData = { ...state._setupFriendData, username, repo, token1, invite, displayName };
     document.getElementById('f-inviter-name').textContent = invite.invitedBy;
     document.getElementById('f-repo-hint').textContent    = repo;
     document.getElementById('friend-connecting-1').style.display = 'none';
@@ -930,6 +953,7 @@ async function friendStep3Next() {
   // Finalize auth
   state.auth = {
     username: d.username, repo: d.repo, email,
+    displayName: d.displayName || null,
     networkOwner: invite.networkOwner, networkRepo: invite.networkRepo,
     token1: d.token1, token2: d.token2, token3: '',
     token: d.token1,
@@ -941,6 +965,7 @@ async function friendStep3Next() {
   try {
     await ghPutFile('public-card.json', {
       username: d.username, repo: d.repo, readToken: d.token2,
+      displayName: d.displayName || null,
       networkOwner: invite.networkOwner, networkRepo: invite.networkRepo,
       updatedAt: new Date().toISOString(),
     }, null, 'memoir: publish public card');
@@ -2186,7 +2211,9 @@ async function submitPost() {
     mp.querySelector('.media-picker-text').style.display = '';
     mp.querySelector('.media-picker-sub').style.display  = '';
     progress.classList.remove('visible'); btn.disabled = false;
-    renderFeed(state.filteredPosts); goBack();
+    renderFeed(state.filteredPosts);
+    goBack();
+    openPost(postId);
   } catch (err) { showError('Post failed', err); btn.disabled = false; progress.classList.remove('visible'); }
 }
 
@@ -2748,9 +2775,24 @@ function confirmRemoveFriend(username) {
 let _updateTokenN = 0;
 function openUpdateToken(n) {
   _updateTokenN = n;
-  const titles = { 2: 'Update Read-Only Token', 3: 'Update Network Token' };
-  const msgs   = { 2: 'Your read-only token lets friends view your shared posts.', 3: 'Your network token enables the music library and shared folders.' };
+  const titles = {
+    1: 'Update Full-Access Token',
+    2: 'Update Read-Only Token',
+    3: 'Update Network Token'
+  };
+  const msgs = {
+    1: 'Token 1 is your main write token — it lets Memoir save photos and posts to GitHub.',
+    2: 'Your read-only token lets friends view your shared posts.',
+    3: 'Your network token enables the music library and shared folders.'
+  };
   const instructions = {
+    1: `<ol class="token-steps">
+      <li>Open <strong>github.com</strong> → your profile → <strong>Settings</strong></li>
+      <li>Scroll to <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Tokens (classic)</strong></li>
+      <li>Click <strong>Generate new token (classic)</strong></li>
+      <li>Check the <strong>repo</strong> scope (full control)</li>
+      <li>Set an expiry, click <strong>Generate token</strong>, copy the <span style="font-family:monospace">ghp_…</span> token and paste below</li>
+    </ol>`,
     2: `<ol class="token-steps">
       <li>Open <strong>github.com</strong> → your profile → <strong>Settings</strong></li>
       <li>Scroll to <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Fine-grained tokens</strong></li>
@@ -2779,11 +2821,11 @@ async function confirmUpdateToken() {
   if (!newToken) { showToast('Token required', '', 'warning'); return; }
   closeSheet('sheet-update-token');
   const n = _updateTokenN;
+  if (n === 1) { state.auth.token1 = newToken; state.auth.token = newToken; initDataSource(); }
   if (n === 2) state.auth.token2 = newToken;
   if (n === 3) { state.auth.token3 = newToken; initDataSource(); }
   await saveAuth(state.auth);
   if (n === 2) {
-    // Update public-card.json with new read token
     try {
       const card = await ghGetFile('public-card.json');
       const updated = { ...(card?.content || {}), readToken: newToken, updatedAt: new Date().toISOString() };
@@ -2794,6 +2836,7 @@ async function confirmUpdateToken() {
   state.tokenHealth[n] = 'ok';
   updateTokenStatusUI();
   dismissBanner(`token${n}`);
+  dismissBanner(`token${n}-missing`);
 }
 
 function handleSignOut()  { openSheet('sheet-signout'); }
