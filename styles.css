@@ -100,6 +100,9 @@ body { background: #050403; }
 .scroll-body {
   flex: 1; overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 .scroll-body::-webkit-scrollbar { display: none; }
 
@@ -1068,8 +1071,10 @@ input[type=range].clip-slider::-webkit-slider-thumb {
   max-height: 180px;
   transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, border-color 0.22s ease;
   transform: translateZ(0);
-  will-change: transform;
-  contain: layout style;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  position: relative;
+  z-index: 1;
 }
 .folder-row-wrap.folders-collapsed {
   max-height: 0;
